@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>千珠落尽反馈</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#efe6d2;--dim:#9a8f78;--gold:#d9b45a;--gold2:#f3dc9a;--gold3:#8a6a2a;--line:#3a2f20;--red:#ff6b5b;--green:#7fe0a0}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;min-height:100vh;background:radial-gradient(ellipse at 50% -10%,#2a1f12 0%,#0d0a07 55%,#050403 100%) fixed,#070605}
+  .serif{font-family:"Noto Serif SC","Songti SC",serif}
+  .goldtxt{background:linear-gradient(180deg,#fff3c4,#d9b45a 55%,#8a6a2a);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px 48px}
+  h1{margin:0;font-size:28px;letter-spacing:4px}
+  .sub{color:var(--dim);font-size:13px;line-height:1.6}
+  .card{background:linear-gradient(180deg,#1d1610,#100c08);border:1px solid #d9b45a55;border-radius:14px;padding:16px;margin-top:14px}
+  .pills{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+  .pills button{background:#0c0907;border:1px solid var(--line);color:var(--dim);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+  .pills button.on{border-color:var(--gold);color:var(--gold2);background:#d9b45a18}
+  .stars{display:flex;gap:2px;font-size:26px;cursor:pointer;user-select:none} .stars span{color:#3a2f20} .stars span.on{color:var(--gold)}
+  textarea,select{width:100%;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font:14px/1.6 inherit;resize:vertical}
+  select{width:auto;padding:6px 10px}
+  .btn{background:linear-gradient(180deg,#f6e2a2,#d9b45a 50%,#9b7428);color:#2a1a05;border:1px solid #fff3c4;border-radius:10px;padding:10px 26px;font:inherit;font-weight:900;font-size:16px;letter-spacing:2px;cursor:pointer;box-shadow:0 4px 0 #5a3f12}
+  .btn:disabled{opacity:.5;cursor:default}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .fbi{padding:12px;border-radius:10px;background:#0c0907;border:1px solid var(--line);margin-bottom:8px}
+  .hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--dim)}
+  .tx{margin-top:6px;white-space:pre-wrap;word-break:break-word;line-height:1.6;font-size:14px}
+  .rp{margin-top:8px;padding:8px 10px;border-left:3px solid var(--gold);background:#d9b45a10;border-radius:4px;font-size:13px;white-space:pre-wrap;word-break:break-word}
+  .tag{border:1px solid currentColor;border-radius:999px;padding:0 7px;font-size:11px;font-weight:800}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+  .stat{background:#0c0907;border:1px solid var(--line);border-radius:10px;padding:8px 10px} .stat b{display:block;font-size:20px;color:var(--gold2)} .stat span{font-size:11px;color:var(--dim)}
+  .rbox{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:flex-start} .rbox textarea{flex:1;min-width:200px;min-height:40px;font-size:13px}
+  .note{color:var(--red);font-size:13px;margin-top:8px}
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d1610;border:1px solid var(--gold);color:var(--gold2);padding:9px 18px;border-radius:10px;opacity:0;transition:.3s;pointer-events:none;font-weight:800;max-width:calc(100vw - 32px);text-align:center}
+  #toast.show{opacity:1}
+  @media (max-width:520px){ .stats{grid-template-columns:repeat(2,1fr)} h1{font-size:23px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="serif goldtxt">千珠落尽 · 反馈</h1>
+  <div class="sub" style="margin-top:4px">遇到 bug、觉得哪里太难或太简单、想要什么新卡，都可以在这里说。作者会直接回复你。</div>
+  <div id="ownerTabs"></div>
+  <div id="formWrap"></div>
+  <div id="list" style="margin-top:14px"><p class="sub">正在连接反馈服务器…</p></div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('show'),2200); }
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const when=t=>{ const d=(Date.now()-t)/1000; return d<60?'刚刚':d<3600?Math.floor(d/60)+' 分钟前':d<86400?Math.floor(d/3600)+' 小时前':new Date(t).toLocaleDateString('zh-CN'); };
+const FBCAT={bug:{ico:'🐞',name:'Bug',c:'#ff6b5b'},idea:{ico:'💡',name:'建议',c:'#ffcc55'},bal:{ico:'⚖️',name:'数值平衡',c:'#8fb8ff'},love:{ico:'❤️',name:'喜欢',c:'#ff7ad9'},other:{ico:'💬',name:'其他',c:'#b8a98c'}};
+const FBST={new:{name:'新',c:'#ff6b5b'},seen:{name:'已读',c:'#8fb8ff'},plan:{name:'计划中',c:'#ffcc55'},done:{name:'已解决',c:'#7fe0a0'},wont:{name:'暂不处理',c:'#9a8f78'}};
+const CHS=['','第 1 章 · 金库大厅','第 2 章 · 镜之回廊','第 3 章 · 熔炉深处','第 4 章 · 星象穹顶','第 5 章 · 虚空王座','无尽深渊'];
+const FB={db:null,user:null,uid:null,owner:false,canWrite:null,state:'loading',mine:null,myRep:{},all:[],allRep:{},names:{},busy:false,lastSend:0,
+  form:{cat:'idea',rating:0,text:'',ch:0,mobile:matchMedia('(pointer:coarse)').matches},view:'inbox',filter:'open'};
+// 游戏可以通过链接附上进度：…#ch=3&r=40&c=20
+try{ const h=new URLSearchParams(location.hash.slice(1)); if(h.get('ch')) FB.form.ch=Math.min(6,+h.get('ch')||0); FB.ctx={ch:+h.get('ch')||0,round:+h.get('r')||0,cards:+h.get('c')||0}; }catch(e){}
+
+(async function init(){
+  renderAll();
+  const C=window.claude; if(!C||!C.use){ FB.state='off'; renderAll(); return; }
+  const timer=setTimeout(()=>{ if(FB.state==='loading'){ FB.state='slow'; renderAll(); } },10000);
+  try{
+    const [db,user]=await Promise.all([C.use('db'),C.use('user')]);
+    if(!db||!user){ clearTimeout(timer); FB.state='off'; renderAll(); return; }
+    FB.db=db; FB.user=user; FB.uid=await user.id(); FB.owner=!!(await user.isOwner());
+    try{ FB.canWrite=await user.can('data.write'); }catch(e){}
+    if(!FB.uid){ clearTimeout(timer); FB.state='off'; renderAll(); return; }
+    const done=()=>{ clearTimeout(timer); FB.state='ready'; renderList(); renderTabs(); };
+    const fail=()=>{ clearTimeout(timer); FB.state='err'; renderList(); };
+    db.doc('feedback/'+FB.uid).onSnapshot(s=>{ FB.mine=s.exists?s.data():null; if(!s.metadata.fromCache) done(); else renderList(); },fail);
+    db.doc('replies/'+FB.uid).onSnapshot(s=>{ FB.myRep=(s.exists&&s.data().items)||{}; renderList(); },()=>{});
+    if(FB.owner){
+      db.collection('feedback').orderBy('updated','desc').limit(500).onSnapshot(async q=>{ FB.all=q.docs.map(d=>Object.assign({uid:d.id},d.data()));
+        try{ const ps=await user.profiles(FB.all.map(d=>d.uid)); FB.all.forEach(d=>{ FB.names[d.uid]=(ps[d.uid]&&ps[d.uid].name)||''; }); }catch(e){}
+        done(); },fail);
+      db.collection('replies').onSnapshot(q=>{ FB.allRep={}; q.docs.forEach(d=>{ FB.allRep[d.id]=(d.data().items)||{}; }); renderList(); renderTabs(); },()=>{});
+    }
+    renderAll();
+  }catch(e){ clearTimeout(timer); FB.state='off'; renderAll(); }
+})();
+
+function unread(){ let n=0; FB.all.forEach(d=>(d.items||[]).forEach(it=>{ const r=(FB.allRep[d.uid]||{})[it.id]; if(!r||r.status==='new') n++; })); return n; }
+function renderAll(){ renderTabs(); renderForm(); renderList(); }
+function renderTabs(){ const el=$('ownerTabs'); if(!FB.owner){ el.innerHTML=''; return; } const u=unread();
+  el.innerHTML=`<div class="pills" style="margin-top:16px"><button data-v="inbox" class="${FB.view==='inbox'?'on':''}">📥 收件箱${u?` <b style="color:var(--red)">${u}</b>`:''}</button><button data-v="me" class="${FB.view==='me'?'on':''}">✍️ 我自己留言</button></div>`;
+  el.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{ FB.view=b.dataset.v; renderAll(); }); }
+function renderForm(){
+  const el=$('formWrap'); if(FB.owner&&FB.view==='inbox'){ el.innerHTML=''; return; }
+  const off=FB.state==='off';
+  el.innerHTML=`<div class="card">
+    <div class="pills" id="cat">${Object.entries(FBCAT).map(([k,v])=>`<button data-k="${k}" class="${FB.form.cat===k?'on':''}">${v.ico} ${v.name}</button>`).join('')}</div>
+    <div class="row" style="justify-content:flex-start;margin-bottom:8px"><span class="sub">整体评分</span><div class="stars" id="stars">${[1,2,3,4,5].map(i=>`<span data-i="${i}" class="${FB.form.rating>=i?'on':''}">★</span>`).join('')}</div><span class="sub">（可不选）</span></div>
+    <textarea id="text" maxlength="1000" rows="5" placeholder="写下你的想法……">${esc(FB.form.text)}</textarea>
+    <div class="row" style="margin-top:10px">
+      <span class="sub">玩到了 <select id="ch">${CHS.map((n,i)=>`<option value="${i}" ${FB.form.ch===i?'selected':''}>${i?n:'（不填）'}</option>`).join('')}</select></span>
+      <button class="btn" id="send" ${off?'disabled':''}>发送</button></div>
+    ${off?'<div class="note">连不上反馈服务器：需要在 claude.ai 登录后打开这个页面。</div>':''}
+    ${FB.canWrite===false&&!FB.owner?'<div class="note">你现在是「仅查看」权限，留言发不出去。请让作者在分享设置里把你设为「可参与（Contributor）」。</div>':''}
+  </div>`;
+  $('text').oninput=e=>{ FB.form.text=e.target.value; };
+  $('ch').onchange=e=>{ FB.form.ch=+e.target.value; };
+  el.querySelectorAll('#cat button').forEach(b=>b.onclick=()=>{ FB.form.cat=b.dataset.k; el.querySelectorAll('#cat button').forEach(x=>x.classList.toggle('on',x===b)); });
+  el.querySelectorAll('#stars span').forEach(sp=>sp.onclick=()=>{ const i=+sp.dataset.i; FB.form.rating=FB.form.rating===i?0:i; el.querySelectorAll('#stars span').forEach(x=>x.classList.toggle('on',+x.dataset.i<=FB.form.rating)); });
+  $('send').onclick=send;
+}
+async function send(){
+  const text=FB.form.text.trim(); if(!text) return toast('先写点什么吧');
+  if(!FB.db) return toast('反馈服务器连不上'); if(FB.busy) return;
+  if(Date.now()-FB.lastSend<15000) return toast('发太快啦，稍等几秒');
+  FB.busy=true; const sb=$('send'); sb.disabled=true; sb.textContent='发送中…';
+  const it={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t:Date.now(),cat:FB.form.cat,rating:FB.form.rating||0,text:text.slice(0,1000),
+    ctx:{ch:FB.form.ch||0,round:(FB.ctx&&FB.ctx.round)||0,cards:(FB.ctx&&FB.ctx.cards)||0,mobile:FB.form.mobile}};
+  const items=((FB.mine&&FB.mine.items)||[]).concat(it).slice(-50);
+  try{ await FB.db.doc('feedback/'+FB.uid).set({items,updated:Date.now()}); FB.lastSend=Date.now(); FB.form.text=''; FB.form.rating=0; toast('✉️ 已发送，谢谢你的反馈！'); renderForm(); }
+  catch(e){ toast(e&&e.code==='invalid_argument'?'你在这里没有留言权限（请让作者把你设为可参与）':e&&e.code==='quota_exceeded'?'反馈箱满了，请稍后再试':'发送失败，请稍后再试'); }
+  finally{ FB.busy=false; const b=$('send'); if(b){ b.disabled=false; b.textContent='发送'; } }
+}
+function itemHTML(it,rep,who){
+  const c=FBCAT[it.cat]||FBCAT.other, st=FBST[(rep&&rep.status)||'new'], x=it.ctx||{};
+  const ctx=[x.ch?CHS[Math.min(6,x.ch)]:'',x.round?`第 ${esc(x.round)} 轮`:'',x.cards?`图鉴 ${esc(x.cards)}`:'',x.mobile?'手机':'电脑'].filter(Boolean).join(' · ');
+  return `<div class="hd"><span class="tag" style="color:${c.c}">${c.ico} ${c.name}</span>${it.rating?`<span style="color:var(--gold)">${'★'.repeat(it.rating)}<span style="color:#3a2f20">${'★'.repeat(5-it.rating)}</span></span>`:''}
+      ${who!==undefined?`<b style="color:var(--ink)">${esc(who||'某位玩家')}</b>`:''}<span>${when(it.t)}</span><span class="tag" style="color:${st.c};margin-left:auto">${st.name}</span></div>
+    <div class="tx">${esc(it.text)}</div><div class="sub" style="font-size:11px;margin-top:4px">${ctx}</div>
+    ${rep&&rep.reply?`<div class="rp"><b style="color:var(--gold2)">✦ 作者回复</b>　<span class="sub">${when(rep.t)}</span><br>${esc(rep.reply)}</div>`:''}`;
+}
+function renderList(){
+  const el=$('list');
+  if(FB.state==='off'){ el.innerHTML=''; return; }
+  if(FB.state==='loading'){ el.innerHTML='<p class="sub">正在连接反馈服务器…</p>'; return; }
+  if(FB.state==='err'){ el.innerHTML='<p class="sub">反馈服务器暂时不可用。</p>'; return; }
+  const slow=FB.state==='slow'?'<p class="sub">⚠️ 暂时连不上服务器，下面的内容可能不是最新的。</p>':'';
+  if(FB.owner&&FB.view==='inbox'){
+    const ae=document.activeElement; if(ae&&ae.classList.contains('rT')&&el.contains(ae)){ if(!FB.pend){ FB.pend=true; ae.addEventListener('blur',()=>{ FB.pend=false; setTimeout(renderList,150); },{once:true}); } return; }
+    const rows=[]; FB.all.forEach(d=>(d.items||[]).forEach(it=>rows.push({uid:d.uid,it,rep:(FB.allRep[d.uid]||{})[it.id]})));
+    rows.sort((a,b)=>b.it.t-a.it.t);
+    const isOpen=r=>!r.rep||['new','seen','plan'].includes(r.rep.status);
+    const F={open:['未处理',isOpen],all:['全部',()=>true],...Object.fromEntries(Object.entries(FBCAT).map(([k,v])=>[k,[v.ico+' '+v.name,r=>r.it.cat===k]]))};
+    const shown=rows.filter(F[FB.filter][1]);
+    const rated=rows.filter(r=>r.it.rating), avg=rated.length?(rated.reduce((s,r)=>s+r.it.rating,0)/rated.length).toFixed(1):'—';
+    el.innerHTML=slow+`<div class="stats"><div class="stat"><b>${rows.length}</b><span>条反馈</span></div><div class="stat"><b>${FB.all.length}</b><span>位玩家</span></div><div class="stat"><b>${unread()}</b><span>条新反馈</span></div><div class="stat"><b>${avg}</b><span>平均评分（${rated.length} 人次）</span></div></div>
+      <div class="pills">${Object.entries(F).map(([k,[n,fn]])=>`<button data-f="${k}" class="${FB.filter===k?'on':''}">${n} ${rows.filter(fn).length}</button>`).join('')}</div>`
+      +(shown.length?shown.map(r=>`<div class="fbi">${itemHTML(r.it,r.rep,FB.names[r.uid])}
+        <div class="rbox" data-u="${esc(r.uid)}" data-i="${esc(r.it.id)}"><textarea class="rT" maxlength="1000" placeholder="回复这位玩家（玩家能看到）">${esc((r.rep&&r.rep.reply)||'')}</textarea>
+          <select class="rS">${Object.entries(FBST).map(([k,v])=>`<option value="${k}" ${((r.rep&&r.rep.status)||'new')===k?'selected':''}>${v.name}</option>`).join('')}</select>
+          <button class="ghost rOk">保存</button></div></div>`).join(''):'<p class="sub">这里还没有反馈。把游戏分享给朋友后，他们的留言会出现在这里。</p>');
+    el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ FB.filter=b.dataset.f; renderList(); });
+    el.querySelectorAll('.rOk').forEach(b=>b.onclick=()=>{ const w=b.parentElement; reply(w.dataset.u,w.dataset.i,w.querySelector('.rT').value.trim(),w.querySelector('.rS').value,b); });
+    el.querySelectorAll('.rS').forEach(sel=>sel.onchange=()=>{ const w=sel.parentElement; reply(w.dataset.u,w.dataset.i,w.querySelector('.rT').value.trim(),sel.value,w.querySelector('.rOk')); });
+    return;
+  }
+  const mine=((FB.mine&&FB.mine.items)||[]).slice().reverse();
+  el.innerHTML=slow+(mine.length?`<div class="sub" style="margin-bottom:6px;color:var(--gold)">我的留言 · ${mine.length}</div>`+mine.map(it=>`<div class="fbi">${itemHTML(it,FB.myRep[it.id])}</div>`).join(''):'');
+}
+async function reply(uid,id,text,status,btn){
+  if(FB.busy) return; FB.busy=true; if(btn){ btn.disabled=true; btn.textContent='…'; }
+  const cur=Object.assign({},FB.allRep[uid]||{}); const prev=cur[id]||{};
+  cur[id]={reply:text,status:text&&status==='new'?'seen':status,t:text!==(prev.reply||'')?Date.now():(prev.t||Date.now())};
+  try{ await FB.db.doc('replies/'+uid).set({items:cur}); toast('已保存'); }catch(e){ toast('保存失败'); }
+  finally{ FB.busy=false; if(btn){ btn.disabled=false; btn.textContent='保存'; } }
+}
+</script>
+</body>
+</html>
