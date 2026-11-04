@@ -280,6 +280,29 @@
   @keyframes mrv{0%,100%{transform:translate(-50%,-50%) scale(.96);opacity:.75}50%{transform:translate(-50%,-50%) scale(1.04);opacity:1}}
   #mythPop .mc{isolation:isolate}
   .card{display:flex;flex-direction:column} .card .in{flex:1}
+
+  /* Readable cards and contextual recovery; no extra permanent battle HUD. */
+  .card-detail{margin-top:10px;min-height:44px;position:relative;z-index:2;font-size:14px}
+  .card-details{width:min(480px,calc(100vw - 28px));max-height:85svh;overflow:auto;background:#15120e;color:var(--ink);border:1px solid var(--gold3);border-radius:14px;padding:20px}
+  .card-details::backdrop{background:#000b}
+  .detail-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.detail-head h2{margin:0;font-size:22px}
+  .detail-head button{min-width:44px;min-height:44px}.detail-effect{font-size:16px;line-height:1.9;margin:18px 0;overflow-wrap:anywhere}
+  .save-warning{position:fixed;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(520px,calc(100vw - 24px));padding:14px;background:#24160f;border:1px solid #d88b60;border-radius:10px;z-index:80;font-size:14px;line-height:1.6}
+  .save-warning button,.recovery button,#lbAsk button{min-height:44px}.save-warning button{margin:8px 8px 0 0}
+  .recovery p{font-size:15px;line-height:1.8}.recovery-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .learn-step{padding:12px 14px;margin:12px 0;border:1px solid var(--gold3);border-radius:10px;line-height:1.7;font-size:15px;background:#d9b45a0a}
+  .learn-step button{min-height:44px;margin-top:8px}.first-upgrade{outline:2px solid var(--gold);outline-offset:2px}
+  .card:focus-visible,.card-detail:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
+  @media (max-width:600px){
+    .grid,.deckgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .deckgrid .card .in{padding:10px;min-height:0}.deckgrid .card .ci{height:64px;margin:18px 0 8px;display:flex;align-items:center;justify-content:center}
+    .deckgrid .card .ci svg{width:64px!important;height:64px!important;max-width:100%}
+    .card .cn,.deckgrid .card .cn{font-size:15px;line-height:1.4;letter-spacing:0}
+    .card .cd,.deckgrid .card .cd{font-size:14px;line-height:1.6;display:block;overflow:visible;-webkit-line-clamp:unset;margin-top:8px;padding-top:8px;overflow-wrap:anywhere}
+    .eqbar .ghost,[data-fs],[data-so],[data-ks],.subtabs button{min-height:44px;font-size:14px}
+    .deckgrid .schhead{font-size:15px}.card .cr,.card .lv{font-size:12px}.card-detail{width:100%;padding:8px}
+  }
+
 </style>
 </head>
 <body>
@@ -448,19 +471,90 @@ const KEY='gold-orb-v2';
 const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
   mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0,hc:0,roundCoins:0,chRound:0},tree:{},treeSpent:0,keep:{},treeV:2,
   goal:10,streak:0,bestStreak:0,orbs:{fire:1,heavy:1},routes:null,banned:{},pickRolls:0,unl:{},
-  pid:'',lbName:'',lbSent:{},lbSentName:''});
+  pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{}});
 let M=fresh();
-function save(){ M.lastSeen=Date.now(); try{ localStorage.setItem(KEY,JSON.stringify(M)); }catch(e){} }
-function adopt(d){ M=Object.assign(fresh(),d); M.up=Object.assign(fresh().up,d.up||{}); M.legacy=Object.assign(fresh().legacy,d.legacy||{}); M.best=Object.assign(fresh().best,d.best||{}); M.treeV=d.treeV||0; M.tree=d.tree||{}; M.keep=d.keep||{};
-  for(const k in M.owned) if(!byId[k]) delete M.owned[k]; M.deck=(M.deck||[]).filter(id=>byId[id]); for(const k in M.asc||{}) if(!byId[k]) delete M.asc[k]; }
-function load(){ try{ const r=localStorage.getItem(KEY); if(r) adopt(JSON.parse(r)); }catch(e){} }
+// Validate a detached copy before replacing live state or writing either save slot.
+const BACKUP_KEY=KEY+'-backup';
+let saveBlocked=false, saveIssue=null;
+const saveRecord=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+function normalizeSave(data){
+  const bad=()=>{ throw new Error('存档结构不正确，当前进度未改动'); };
+  const safe=v=>{ if(typeof v==='number'&&!Number.isFinite(v)) bad();
+    if(v&&typeof v==='object') for(const k of Object.keys(v)){ if(['__proto__','constructor','prototype'].includes(k)) bad(); safe(v[k]); } };
+  if(!saveRecord(data)) bad(); safe(data);
+  const d=JSON.parse(JSON.stringify(data)), base=fresh();
+  const check=(v,b)=>{ for(const k of Object.keys(b)) if(Object.hasOwn(v,k)&&b[k]!==null){
+    const x=v[k], def=b[k];
+    if(typeof def==='number'){ if(typeof x!=='number'||!Number.isFinite(x)||x<0) bad(); }
+    else if(typeof def==='boolean'||typeof def==='string'){ if(typeof x!==typeof def) bad(); }
+    else if(Array.isArray(def)){ if(!Array.isArray(x)) bad(); }
+    else { if(!saveRecord(x)) bad(); check(x,def); }
+  } };
+  check(d,base);
+  if(d.saveV>1) throw new Error('这是较新版本的存档，请先更新游戏');
+  const next=Object.assign(base,d);
+  for(const k of ['up','legacy','best']) next[k]=Object.assign(fresh()[k],d[k]||{});
+  next.treeV=d.treeV||0; next.saveV=1;
+  for(const k of ['owned','foil','asc','eggR','shopN','keep','orbs','chalDone','ach'])
+    for(const v of Object.values(next[k])) if(!(typeof v==='number'&&Number.isFinite(v)&&v>=0)&&typeof v!=='boolean') bad();
+  for(const k of ['up','legacy','owned','foil','asc','shopN','keep','orbs'])
+    for(const v of Object.values(next[k])) if(!Number.isSafeInteger(v)||v<0) bad();
+  for(const k of ['tree','banned','unl','guide']) for(const v of Object.values(next[k])) if(![0,1,false,true].includes(v)) bad();
+  for(const k of ['round','pity','opened','ch','chRounds','maxCh','prestiges','bossTries','treeV','goal','streak','bestStreak','pickRolls'])
+    if(!Number.isSafeInteger(next[k])||next[k]<0) bad();
+  if(next.ch<1||next.maxCh<1||next.goal<1||!next.deck.every(id=>typeof id==='string')) bad();
+  for(const k of ['stats','vibe']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
+  for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
+  if(next.routes!==null&&(!Array.isArray(next.routes)||!next.routes.every(r=>['normal','elite','shop','event'].includes(r)))) bad();
+  for(const s of Object.values(next.lbSent)) if(!saveRecord(s)||typeof s.value!=='number'||s.value<0||!Number.isFinite(s.value)||(s.tb!==undefined&&(typeof s.tb!=='number'||s.tb<0||!Number.isFinite(s.tb)))) bad();
+  if(next.bossD!==undefined&&next.bossD!==null){ if(!saveRecord(next.bossD)) bad(); for(const v of Object.values(next.bossD)) if(typeof v!=='number'||!Number.isFinite(v)||v<0) bad(); }
+  if(next.dealtAvg!==undefined&&(typeof next.dealtAvg!=='number'||!Number.isFinite(next.dealtAvg)||next.dealtAvg<0)) bad();
+  if(next.lastBossHp!==undefined&&(typeof next.lastBossHp!=='number'||!Number.isFinite(next.lastBossHp)||next.lastBossHp<0)) bad();
+  if(next.ksOff!==undefined){ if(!saveRecord(next.ksOff)) bad(); for(const v of Object.values(next.ksOff)) if(![0,1,false,true].includes(v)) bad(); }
+  if(next.pid&&!/^[a-f0-9]{24}$/.test(next.pid)) bad();
+  for(const k of ['owned','asc','foil']) for(const id of Object.keys(next[k])) if(!byId[id]) delete next[k][id];
+  next.deck=[...new Set(next.deck.filter(id=>byId[id]))];
+  return next;
+}
+function readSave(raw){ return normalizeSave(JSON.parse(raw)); }
+function backupSave(){ try{ const raw=localStorage.getItem(BACKUP_KEY); return raw?readSave(raw):null; }catch(e){ return null; } }
+function writeSave(state,reset=false){
+  const next=normalizeSave(state), data=JSON.stringify(next), previous=localStorage.getItem(KEY);
+  let validPrevious=null; if(previous) try{ readSave(previous); validPrevious=previous; }catch(e){}
+  const content=s=>{ const value=normalizeSave(s); delete value.lastSeen; return JSON.stringify(value); };
+  const changed=validPrevious&&content(readSave(validPrevious))!==content(next);
+  const backup=reset?data:(changed?validPrevious:(backupSave()?localStorage.getItem(BACKUP_KEY):(validPrevious||data)));
+  // A failed primary write still leaves the previous valid state recoverable.
+  localStorage.setItem(BACKUP_KEY,backup); localStorage.setItem(KEY,data);
+}
+function clearSaveWarning(){ if(typeof document!=='undefined') document.getElementById('saveWarning')?.remove(); }
+function save(){
+  if(saveBlocked) return false;
+  M.lastSeen=Date.now();
+  try{ writeSave(M); clearSaveWarning(); return true; }
+  catch(e){ showSaveFailure(); return false; }
+}
+function adopt(d){ const next=normalizeSave(d); M=next; return next; }
+function load(){
+  saveBlocked=false; saveIssue=null;
+  try{ const raw=localStorage.getItem(KEY);
+    if(raw){ try{ adopt(JSON.parse(raw)); }catch(e){ saveBlocked=true; saveIssue={kind:'corrupt',raw,backup:backupSave()}; } }
+    else { const backup=backupSave(); if(backup){ saveBlocked=true; saveIssue={kind:'missing',raw:'',backup}; } }
+  }catch(e){ saveBlocked=true; saveIssue={kind:'storage',raw:'',backup:null}; }
+}
+function applySavedState(next,reset=false){
+  next=normalizeSave(next); if(!next.pid) next.pid=newPid(); next.lastSeen=Date.now();
+  try{ writeSave(next,reset); }catch(e){ showSaveFailure(); throw new Error('无法保存，当前进度未改动。请检查浏览器存储或先导出存档'); }
+  M=next; saveBlocked=false; saveIssue=null; clearSaveWarning(); return next;
+}
+function restoreBackup(){ const next=backupSave(); if(!next) throw new Error('没有可用的备份，请导入存档码'); return applySavedState(next); }
 // ---- 存档码 ----
 function exportCode(){ const s=JSON.stringify(M); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0;
   return 'JZMC1.'+btoa(unescape(encodeURIComponent(s)))+'.'+(h>>>0).toString(36); }
 function importCode(code){ const m=String(code).trim().match(/^JZMC1\.([A-Za-z0-9+/=]+)\.([a-z0-9]+)$/); if(!m) throw new Error('格式不对');
   const s=decodeURIComponent(escape(atob(m[1]))); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0;
   if((h>>>0).toString(36)!==m[2]) throw new Error('存档码不完整'); const d=JSON.parse(s); if(!d||typeof d.owned!=='object'||typeof d.up!=='object') throw new Error('不是千珠落尽的存档');
-  adopt(d); save(); }
+  applySavedState(normalizeSave(d)); }
 
 // ================= 升级 =================
 const STAGE_G=3.4; // 秘藏等级价格增长：原来 ×5 会在 Lv5 左右卡墙，模拟后改为 ×3.4
@@ -801,6 +895,7 @@ function startRound(boss,opt={}){
   M.routes=null; // 章节进度改为「达成目标」才 +1，见 endRound
   [1,2,3].forEach(t=>{ M.shopN[t]=Math.max(0,(M.shopN[t]||0)-1); });
   M.pickRolls=0; M.round++; running=true; $('ov').classList.remove('show'); renderSide();
+  if(M.round===1) guideTip('aim','瞄准后点击，或按空格');
   if(chal) setTimeout(()=>toast(`${chal.ico} 挑战：${chal.goalTxt}`),300);
   if(boss) setTimeout(()=>{ if(G&&!G.ended) offerBoon(); },500);
 }
@@ -945,6 +1040,7 @@ function giveCard(p,k){
   if(isNew){ G.newIds[c.id]=1; if(equipped().length<maxSlots()){ M.deck.push(c.id); G.R=G.R; renderSide(); } }
   else if(levelOf(M.owned[c.id])>before) G.upIds[c.id]=1;
   G.loot[c.id]=(G.loot[c.id]||0)+1;
+  if(isNew&&!foil) guideTip('card','新卡填入空槽，结算可换');
   G.pops.push({x:p.x+(typeof k==='number'?k:1)*30,y:p.y,c,life:1.5,isNew,foil});
   if(rar==='SSR'||rar==='UR') (G.reveals=G.reveals||[]).push({pop:G.pops[G.pops.length-1],img:rar==='UR'?'secret':'rare',life:1.5});
   if(rar==='SSR') toast(`✦ SSR ✦ ${c.ico} ${c.name}`,{quiet:true});
@@ -981,7 +1077,7 @@ function earn(x,px,py,small){ x*=(1+TS.coin)*(TS.ks.greed?2.5:1)*(G&&G.R&&G.R.ei
 function buzz(pat){ if(M.vibe===false||!navigator.vibrate||(navigator.userActivation&&!navigator.userActivation.hasBeenActive)) return; const n=performance.now(); if(n-(buzz.t||0)<90) return; buzz.t=n; try{ navigator.vibrate(pat); }catch(e){} }
 // ---- 连锁倍率 / 特殊铆钉 / 口袋 / 狂热 ----
 function addMx(b,v){ const before=b.mx; b.mx=Math.min(MX.cap,b.mx+v); if(b.mx>M.best.mx) M.best.mx=b.mx;
-  if(Math.floor(b.mx)>Math.floor(before)){ const n=Math.floor(b.mx); G.fx.push({x:b.x,y:b.y-20,t:'×'+n,c:mxCol(b.mx),life:.7,sz:14+n*3}); G.parts.push({ring:true,x:b.x,y:b.y,r:b.r,max:b.r+18+n*4,life:.3,dur:.3,c:mxCol(b.mx),lw:2}); SFX.play('mxup',n); } }
+  if(Math.floor(b.mx)>Math.floor(before)){ guideTip('multiplier','连撞涨倍率，增伤又增收'); const n=Math.floor(b.mx); G.fx.push({x:b.x,y:b.y-20,t:'×'+n,c:mxCol(b.mx),life:.7,sz:14+n*3}); G.parts.push({ring:true,x:b.x,y:b.y,r:b.r,max:b.r+18+n*4,life:.3,dur:.3,c:mxCol(b.mx),lw:2}); SFX.play('mxup',n); } }
 function chainTick(b,n){ b.ch+=n||1; if(!(G.fever>0)&&!(G.feverCd>0)&&!b.fevered&&!b.reborn&&b.ch>=FEVER.chain) startFever(b); } // 重生的宝珠不再触发狂热
 function hitStop(v,force){ if(!G) return; if(!force&&G.time-(G.hsLast||-9)<.18) return; G.hs=Math.max(G.hs||0,Math.min(.14,v)); G.hsLast=G.time; }
 function pegHit(b,g){ hcTick(b); chainTick(b); b.pot+=POT.peg*packValue(0)*b.mx; addMx(b,MX.peg);
@@ -1407,7 +1503,7 @@ cv.addEventListener('touchend',e=>{ if(!TS.hold) fire(); holding=false; e.preven
 const KONAMI=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA']; let kIdx=0;
 addEventListener('keydown',e=>{
   if(/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  if(e.code==='Space'){ if(!e.repeat) fire(); holding=true; e.preventDefault(); }
+  if(e.code==='Space'&&!$('ov').classList.contains('show')&&!document.activeElement.closest('button,dialog')?.getClientRects().length){ if(!e.repeat) fire(); holding=true; e.preventDefault(); }
   if(e.code==='KeyM'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ M.mute=!M.mute; save(); syncMute(); toast(M.mute?'🔇 音效关闭':'🔊 音效开启'); }
   kIdx=e.code===KONAMI[kIdx]?kIdx+1:(e.code===KONAMI[0]?1:0); if(kIdx===KONAMI.length){ kIdx=0; grantMyth('lord'); } });
 addEventListener('keyup',e=>{ if(e.code==='Space') holding=false; });
@@ -1432,7 +1528,7 @@ function fmt(n){ if(!isFinite(n)) return '∞'; if(n<10) return (Math.round(n*10
 function toast(t,o={}){ if(running&&G&&G.packs){ if(o.quiet) return; G.banner={t,life:1.6}; return; }
   const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('show'),1800); }
 function drawBanner(){ const b=G.banner; if(!b) return; b.life-=1/60; if(b.life<=0){ G.banner=null; return; }
-  ctx.save(); ctx.globalAlpha=Math.min(1,b.life*2)*.9; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='bold 17px sans-serif';
+  ctx.save(); ctx.globalAlpha=Math.min(1,b.life*2)*.9; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font=b.guide?`bold ${Math.round(18*UIK)}px sans-serif`:'bold 17px sans-serif';
   let t=b.t; while(ctx.measureText(t).width>W-200&&t.length>4) t=t.slice(0,-2); if(t!==b.t) t+='…';
   const by=G.isBoss?(MOBILE.matches?206:182):(MOBILE.matches?146+(UIK-1)*22:112); ctx.lineWidth=4; ctx.strokeStyle='#000c'; ctx.strokeText(t,W/2,by); ctx.fillStyle='#e6cf9c'; ctx.fillText(t,W/2,by); ctx.restore(); }
 let lastAmmo=-1;
@@ -1478,7 +1574,7 @@ function cardHTML(id,o={}){
     <div class="cs" style="color:${SCH[c.sch].color}">${SCH[c.sch].ico} ${SCH[c.sch].name}${c.sch2?` <span style="color:${SCH[c.sch2].color}">${SCH[c.sch2].ico} ${SCH[c.sch2].name}</span>`:''}</div>
     <div class="cd">${c.desc(lv,powerOf(lv)*(1+.4*st)*(fo?1.25:1))}</div>
     ${o.count?`<span class="cnt">×${o.count}</span>`:''}${fo?`<span class="fl">✨闪${o.foilNew?' NEW':''}</span>`:''}
-    <div class="cp"><i style="width:${prog}%"></i></div></div></div>`;
+    <div class="cp"><i style="width:${prog}%"></i></div>${o.details?`<button class="ghost card-detail" data-detail="${id}" aria-label="查看${c.name}详情">详情</button>`:''}</div></div>`;
 }
 let tab='loot';
 let instEvt=null; addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); instEvt=e; });
@@ -1503,7 +1599,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-04';
+const GAME_V='2026-11-04.1';
 function statSend(){ if(M.stats===false||!M.pid||!G||!G.packs) return;
   const kind=G.chal?'chal':G.isBoss?'boss':G.route==='elite'?'elite':'normal', win=G.chal?G.chalWin:G.isBoss?G.bossWin:G.goalOk;
   const body={pid:M.pid,kind,ch:G.ch0||M.ch,maxCh:M.maxCh,round:M.round,win:!!win,opened:G.opened,coins:G.earned,dur:Math.round(G.time*10)/10,cards:G.eq||[],chal:G.chal||null,mobile:MOBILE.matches,v:GAME_V};
@@ -1521,11 +1617,12 @@ const cleanLbName=v=>Array.from(String(v||'').replace(/[\u0000-\u001f<>&"'`\\]/g
 const escH=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function lbFetch(path,opt){ const ac=new AbortController(), t=setTimeout(()=>ac.abort(),7000); try{ const r=await fetch(LB_URL+path,{...opt,signal:ac.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); } finally{ clearTimeout(t); } }
 // 只上传比上次传过的更好的成绩；改了昵称就全部重传
-async function lbSubmit(force){ if(!M.lbName||!M.pid) return false; const scores={}, rename=M.lbSentName!==M.lbName;
+async function lbSubmit(force){ if(!M.lbName||!M.pid) return false; const scores={}, name=M.lbName, pid=M.pid, rename=M.lbSentName!==M.lbName;
   for(const k in LB){ const m=LB[k].mine(); if(!m) continue; const s=(M.lbSent||{})[k]; if(force||rename||!s||m.value>s.value||(m.value===s.value&&(m.tb||0)<(s.tb||0))) scores[k]=m; }
   if(!Object.keys(scores).length&&!rename) return true;
-  try{ await lbFetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pid:M.pid,name:M.lbName,scores})});
-    M.lbSent=Object.assign(M.lbSent||{},scores); M.lbSentName=M.lbName; save(); return true; }catch(e){ return false; } }
+  try{ const data=await lbFetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pid,name,scores})});
+    if(!data||data.ok!==true||M.pid!==pid||M.lbName!==name) return false;
+    M.lbSent=Object.assign(M.lbSent||{},scores); M.lbSentName=name; save(); return true; }catch(e){ return false; } }
 let lbBoard='progress';
 function renderRank(body){
   const mine=LB[lbBoard].mine();
@@ -1538,7 +1635,9 @@ function renderRank(body){
     <div id="lbList" style="margin-top:10px"><p class="sub">加载中……</p></div>`;
   body.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ lbBoard=b.dataset.lb; renderRank(body); });
   $('lbSave').onclick=async()=>{ const v=cleanLbName($('lbName').value);
-    if(!v) return toast('先起个昵称'); M.lbName=v; save(); const ok=await lbSubmit(true); toast(ok?'已上榜':'排行榜暂时连不上，下一轮结算时再试'); renderRank(body); };
+    if(!v) return toast('先起个昵称'); const b=$('lbSave'); if(b.disabled) return; M.lbName=v; save(); b.disabled=true;
+    const ok=await lbSubmit(true); if(!b.isConnected) return; b.disabled=false;
+    toast(ok?'已上榜':'排行榜暂时连不上，昵称已保留，可重试'); if(ok) renderRank(body); else b.textContent='重试上榜'; };
   const board=lbBoard;
   lbFetch(`/top?board=${board}&limit=50&pid=${M.pid}&t=${Date.now()}`).then(d=>{ const el=$('lbList'); if(!el||board!==lbBoard) return;
     if(!d.top.length){ el.innerHTML='<p class="sub">还没有人上榜，来当第一个。</p>'; return; }
@@ -1685,8 +1784,8 @@ function renderTree(body){
   if(!TV) TV=tvHome();
   const reps=REP.map(u=>{ const l=M.up[u.id]||0,c=u.cost(l),lock=u.need&&!u.need();
     return `<div class="row ${lock||M.money<c?'off':''}" data-rep="${u.id}"><div class="ico">${u.ico}</div><div class="info"><div class="nm">${u.name} <span class="lvl">Lv${l}</span></div><div class="sub">${u.desc(l)} → ${u.desc(l+1)}</div></div><div class="cost">${lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c)}</div></div>`; }).join('');
-  const n=tCount(), refund=Math.floor((M.treeSpent||0)*.8);
-  body.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 8px">${reps}</div>${ksBar()}
+  const n=tCount(), refund=Math.floor((M.treeSpent||0)*.8), teach=firstUpgradeReady();
+  body.innerHTML=`${teach?'<div class="learn-step" id="firstUpgradeGuide">点下面的「宝珠打磨」，用金币提高下一轮伤害。升级后仍停在这里。</div>':''}<div id="workshopUpgrades" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 8px">${reps}</div>${ksBar()}
     <div class="sub" style="margin:8px 0 6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>🌌 星盘：从中心 ✦ 出发，只能点亮<b style="color:var(--gold2)">与已点亮节点相连</b>的节点。已点亮 <b id="tNodeCount" style="color:var(--gold2)">${n}</b> 个，每多点一个，下一个就更贵。拖动平移，滚轮/双指缩放。</span>
       <span style="display:flex;gap:6px"><button class="ghost" id="tHome">⌂ 回中心</button><button class="ghost" id="tRespec" ${n?'':'disabled'}>洗点（退还 ${f(refund)}）</button></span></div>
     <div id="sky" style="position:relative;height:min(62vh,560px);border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:none;cursor:grab;
@@ -1695,8 +1794,9 @@ function renderTree(body){
     <div id="tlist"></div>`;
   body.querySelectorAll('[data-rep]').forEach(el=>el.onclick=()=>{ const u=REP.find(x=>x.id===el.dataset.rep),l=M.up[u.id]||0,c=u.cost(l);
     if(u.need&&!u.need()) return toast(typeof u.needTxt==='function'?u.needTxt():u.needTxt); if(!spend(c,el)) return;
-    M.up[u.id]=l+1; save(); hud(); refreshTreeView(body); });
+    M.up[u.id]=l+1; save(); hud(); refreshTreeView(body); if(u.id==='dmg'&&l===0&&M.round<=3) toast('打磨完成！下一轮的基础伤害提高了。'); });
   bindKs(body);
+  if(teach) body.querySelector('[data-rep="dmg"]').classList.add('first-upgrade');
   if(!unl('tree')) return treeLocked(body);
   $('tHome').onclick=()=>{ TV=tvHome(); drawSky(); };
   bindTreeRespec(body);
@@ -1755,6 +1855,10 @@ function bindTreeRespec(body){
 }
 function refreshTreeView(body){
   holdBuildView(()=>{
+    const markup=ksBar(), bar=body.querySelector('#ksBar');
+    if(bar){ if(markup) bar.outerHTML=markup; else bar.remove(); }
+    else if(markup) body.querySelector('#workshopUpgrades')?.insertAdjacentHTML('afterend',markup);
+    bindKs(body);
     body.querySelectorAll('[data-rep]').forEach(el=>{
       const u=REP.find(x=>x.id===el.dataset.rep), l=M.up[u.id]||0, c=u.cost(l), lock=u.need&&!u.need();
       el.classList.toggle('off',!!lock||M.money<c);
@@ -1762,6 +1866,10 @@ function refreshTreeView(body){
       el.querySelector('.sub').innerHTML=`${u.desc(l)} → ${u.desc(l+1)}`;
       el.querySelector('.cost').textContent=lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c);
     });
+    if(!firstUpgradeReady()){
+      const guide=$('firstUpgradeGuide'); if(guide){ const h=guide.getBoundingClientRect().height; guide.textContent='打磨完成！下一轮基础伤害已提高。继续打磨，或开始下一轮。'; guide.style.minHeight=h+'px'; }
+      body.querySelector('[data-rep="dmg"]')?.classList.remove('first-upgrade');
+    }
     const count=$('tNodeCount'); if(count) count.textContent=tCount();
     bindTreeRespec(body);
     if(unl('tree')){ drawSky(); tInfo(body); tList(body); }
@@ -1839,17 +1947,55 @@ function skyInput(body){
 }
 function zoomAt(f,cx,cy){ const sky=$('sky'),rc=sky.getBoundingClientRect(); const nz=Math.max(.45,Math.min(3.2,TV.z*f)),r=nz/TV.z;
   const px=cx-rc.left-rc.width/2,py=cy-rc.top-rc.height/2; TV.x=px-(px-TV.x)*r; TV.y=py-(py-TV.y)*r; TV.z=nz; drawSky(); }
+
+function downloadText(name,value){ const a=document.createElement('a'), url=URL.createObjectURL(new Blob([value],{type:'text/plain;charset=utf-8'})); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
+function showSaveFailure(){
+  if(typeof document==='undefined'||!document.body||$('saveWarning')) return;
+  const box=document.createElement('div'); box.id='saveWarning'; box.className='save-warning'; box.setAttribute('role','alert');
+  box.innerHTML='<b>进度还没有保存成功</b><div>浏览器存储可能不可用。当前进度仍在，建议先导出存档。</div><button class="ghost" id="saveExport">导出当前进度</button><button class="ghost" id="saveRetry">重试保存</button>';
+  document.body.append(box); $('saveExport').onclick=()=>downloadText('千珠落尽-存档.txt',exportCode());
+  $('saveRetry').onclick=()=>{ if(saveBlocked) showSaveRecovery(); else if(save()) toast('进度已保存'); };
+}
+function showSaveRecovery(){
+  const issue=saveIssue, box=$('box'); box.classList.add('recovery');
+  box.innerHTML=`<h2 class="serif goldtxt">找回你的进度</h2><p>${issue.kind==='storage'?'浏览器暂时无法读取存档。':'当前存档无法读取，原始记录已保留，没有用新档覆盖。'}</p>
+    ${issue.backup?`<p>找到一份有效备份：第 ${issue.backup.round} 轮 · 最远第 ${issue.backup.maxCh} 章。</p><button class="btn" id="recoverBackup">恢复这份备份</button>`:'<p>可以粘贴之前导出的存档码恢复。</p>'}
+    <label for="recoverCode">导入存档码</label><textarea class="code" id="recoverCode" placeholder="JZMC1.…"></textarea>
+    <div class="recovery-actions"><button class="ghost" id="recoverImport">导入并继续</button>${issue.raw?'<button class="ghost" id="recoverRaw">导出原始记录</button>':''}<button class="ghost" id="recoverRetry">重试读取</button>${issue.kind==='storage'?'<button class="ghost" id="recoverGuest">临时游玩（不保存）</button>':''}<button class="ghost" id="recoverReset">重新开始</button></div><p id="recoverError" role="status"></p>`;
+  const run=fn=>{ try{ fn(); box.classList.remove('recovery'); finishLoad(); }catch(e){ $('recoverError').textContent=e.message; } };
+  if($('recoverBackup')) $('recoverBackup').onclick=()=>run(restoreBackup);
+  $('recoverImport').onclick=()=>run(()=>importCode($('recoverCode').value));
+  if($('recoverRaw')) $('recoverRaw').onclick=()=>downloadText('千珠落尽-原始存档.txt',issue.raw);
+  $('recoverRetry').onclick=()=>{ load(); if(saveBlocked) showSaveRecovery(); else { box.classList.remove('recovery'); finishLoad(); } };
+  if($('recoverGuest')) $('recoverGuest').onclick=()=>{ box.classList.remove('recovery'); finishLoad(); showSaveFailure(); };
+  $('recoverReset').onclick=()=>{ const b=$('recoverReset'); if(!b.dataset.confirm){ b.dataset.confirm='1'; b.textContent='确认放弃原进度并重新开始'; return; } run(()=>applySavedState(fresh(),true)); };
+  $('ov').classList.add('show');
+}
+function showCardDetails(id,trigger){
+  const c=byId[id]; if(!c||!M.owned[id]) return;
+  let dialog=$('cardDetails'); if(!dialog){ dialog=document.createElement('dialog'); dialog.id='cardDetails'; dialog.className='card-details'; dialog.setAttribute('aria-labelledby','detailName'); document.body.append(dialog); }
+  const [lv,p]=cardP(id), scroll=$('ov').scrollTop;
+  dialog.innerHTML=`<div class="detail-head"><h2 id="detailName">${c.name}</h2><button class="ghost" id="detailClose" aria-label="关闭详情">✕</button></div>
+    <p class="sub">${RNAME[c.rar]} · ${SCH[c.sch].name} · Lv${lv} · 已有 ${M.owned[id]} 张</p><p class="detail-effect">${c.desc(lv,p)}</p>
+    <p class="sub">${TRIG[trigOf(c)]} · 按当前构筑加成计算</p><p class="sub">关闭详情后，点击卡牌可装备或卸下。</p>`;
+  $('detailClose').onclick=()=>dialog.close(); dialog.onclose=()=>{ $('ov').scrollTop=scroll; if(trigger?.isConnected) trigger.focus({preventScroll:true}); };
+  dialog.onclick=e=>{ if(e.target!==dialog) return; const r=dialog.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) dialog.close(); };
+  dialog.showModal();
+}
+function guideTip(id,message){
+  if(M.round>3||M.prestiges||M.guide[id]||G?.banner) return;
+  M.guide[id]=1; toast(message); if(G?.banner){ G.banner.life=4; G.banner.guide=true; } save();
+}
+const firstUpgradeReady=()=>M.round>0&&M.round<=3&&!M.prestiges&&M.up.dmg===0&&M.money>=REP[0].cost(0);
+const PLAY_HELP=`<details class="chap"><summary>玩法说明</summary><p style="line-height:1.8">瞄准并点击台面，或按空格发射。撞破卡包获得金币和卡牌，宝珠用完后结算。<br>
+  宝珠连续碰撞会提高倍率；落底时按口袋的 ×1 / ×2 / ×5 兑现珠金，进入金篮会返还一颗。<br>
+  同流派卡牌可产生共鸣，完整效果可在「构筑 → 技能槽 → 详情」查看。<br>
+  达成目标推进首领进度；失败仍保留收获，下轮目标会降低。星盘、路线和珠袋会随进度开放。</p></details>`;
+
 function showIntro(){
   $('box').innerHTML=`<img class="hero" src="${ART.hero}" alt=""><h2 class="serif goldtxt">千珠落尽</h2><div class="sub" style="letter-spacing:3px;margin-top:4px">以珠破封 · 收藏万卡</div>
-    <p style="line-height:2;font-size:15px;color:var(--ink);margin-top:16px">
-    🎯 <b>瞄准，点击发射</b>金色宝珠（也可以按空格）。<br>
-    💥 宝珠会在铆钉和卡包之间来回弹，<b>每撞一次卡包都会造成伤害</b>，撞破封印就能开出卡牌和金币。<br>
-    ✦ 开出的卡牌会成为<b style="color:var(--gold2)">宝珠技能</b>：分裂、闪电、燃烧、腐蚀、磁力……装备越多，宝珠越强。<br>
-    🔗 宝珠<b>每撞一下，倍率就涨一点</b>：它打开的卡包金币按倍率翻倍。撞<b style="color:#ffd76a">金钉</b>倍率大涨，<b style="color:#ff8a6a">爆钉</b>会炸开，<b style="color:#7fd6ff">分裂钉</b>分出两颗小珠。<br>
-    🎯 宝珠落底时，按落进的<b>口袋倍率</b>（×1 / ×2 / ×5）兑现一路攒下的珠金。一颗宝珠连撞 ${FEVER.chain} 下，进入<b style="color:#ffd76a">狂热</b>：伤害和金币 ×2。<br>
-    🎯 每轮有<b>目标</b>（开多少包）：达成拿连胜奖励、推进首领进度；没达成就断连胜。<br>
-    🔓 星盘、路线、珠袋、黑市会随着进度<b>陆续开放</b>，到时候会告诉你怎么用。<br>
-    🧺 宝珠落进底部移动的<b>金篮</b>会返还一颗。宝珠用完，本轮结算。</p>
+    <p style="line-height:1.9;font-size:16px;color:var(--ink);margin-top:16px"><b>瞄准卡包，点击发射。</b><br>宝珠撞破卡包，就能开出金币和新卡。<br>宝珠用完后，用收获升级，再开下一轮。</p>
+    <p class="sub">也可以按空格发射。其他玩法会在遇到时告诉你。</p>
     <div class="foot"><span class="sub schrow">${SCH5.map(k=>`<span>${badge(k)}${SCH[k].name}</span>`).join('')}</span><button class="btn" id="go">开启秘藏</button></div>`;
   $('go').onclick=()=>startRound(false); $('ov').classList.add('show');
 }
@@ -1872,16 +2018,17 @@ function showBetween(){
   const a2hsHTML=MOBILE.matches&&!standalone&&!M.a2hsOff&&M.round>=2&&tab==='loot'?`<div class="chap" id="a2hs" style="margin-top:12px">📱 <b>添加到主屏幕，全屏玩台面更大</b><br><span class="sub">${/iPhone|iPad|iPod/.test(navigator.userAgent)?'iPhone：点 Safari 底部的「分享」→「添加到主屏幕」':'安卓：点浏览器菜单 →「添加到主屏幕」或「安装应用」'}</span>
     <div style="margin-top:6px;display:flex;gap:8px">${instEvt?'<button class="btn" id="a2hsGo" style="padding:6px 14px;font-size:13px;letter-spacing:0">安装</button>':''}<button class="ghost" id="a2hsNo">不再提示</button></div></div>`:'';
   const lbMine=LB.progress.mine();
-  const lbAskHTML=G.packs&&tab==='loot'&&!M.lbName&&!M.lbAskOff&&M.round>=2?`<div class="chap" id="lbAsk" style="margin-top:12px;border-color:var(--gold3)">🏆 <b>起个名字上排行榜</b>　<span class="sub">你的最好：${lbMine?LB.progress.fmt(lbMine.value,lbMine.tb):''}${M.best.roundCoins>0?' · 单轮 ✦'+f(M.best.roundCoins):''}${M.bestStreak?' · '+M.bestStreak+' 连胜':''}</span>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><input id="lbAskName" maxlength="12" placeholder="昵称（最多 12 个字）" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
+  const learnHTML=tab==='loot'&&firstUpgradeReady()?`<div class="learn-step" id="firstUpgradePrompt"><b>用金币，让下一轮更强</b><br>现在可以花 ${f(REP[0].cost(0))} 金币打磨宝珠：基础伤害 ${f(orbDmg(0))} → ${f(orbDmg(1))}。<br><button class="btn" id="learnUpgrade">去升级宝珠</button></div>`:'';
+  const lbAskHTML=G.packs&&tab==='loot'&&(!M.lbName||M.lbSentName!==M.lbName)&&!M.lbAskOff&&M.round>=2?`<div class="chap" id="lbAsk" style="margin-top:12px;border-color:var(--gold3)">🏆 <b>起个名字上排行榜</b>　<span class="sub">你的最好：${lbMine?LB.progress.fmt(lbMine.value,lbMine.tb):''}${M.best.roundCoins>0?' · 单轮 ✦'+f(M.best.roundCoins):''}${M.bestStreak?' · '+M.bestStreak+' 连胜':''}</span>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><input id="lbAskName" maxlength="12" value="${escH(M.lbName||'')}" placeholder="昵称（最多 12 个字）" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
     <button class="btn" id="lbAskGo" style="padding:7px 16px;font-size:14px;letter-spacing:0">上榜</button><button class="ghost" id="lbAskNo">不再提示</button></div>
-    <div class="sub" style="margin-top:4px">昵称会公开显示在「目标 → 排行榜」上，之后也能在那里改名。</div></div>`:'';
+    <div class="sub" style="margin-top:4px">昵称会公开显示在「目标 → 排行榜」上，之后也能在那里改名。</div><div id="lbAskStatus" class="sub" role="status"></div></div>`:'';
   const unlHTML=newU.map(u=>`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔓 <b style="color:var(--gold2)">新玩法：${u.name}</b><br><span class="sub">${u.txt}</span></div>`).join('');
   const RSUB={normal:`开 ${M.goal} 包`,elite:`开 ${Math.ceil(M.goal*1.25)} 包 · SR+ 三选一 · 宝珠`,shop:'卡包 · 选卡 · 封印',event:'随机事件'};
   const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?chalMsg+bossMsg+goalMsg+roundMsg+nextBoss:''}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?chalMsg+bossMsg+goalMsg+roundMsg+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -1892,9 +2039,17 @@ function showBetween(){
   document.querySelectorAll('#box .tab').forEach(b=>b.onclick=()=>{ const g=TGROUPS.find(x=>x.id===b.dataset.g),subs=tSubs(g,canP); tab=subs.includes(TLAST[g.id])?TLAST[g.id]:subs[0]; showBetween(); });
   document.querySelectorAll('#box .subtabs button').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; TLAST[tGroupOf(tab)]=tab; showBetween(); });
   if($('lbAskNo')) $('lbAskNo').onclick=()=>{ M.lbAskOff=1; save(); $('lbAsk').remove(); };
-  if($('lbAskGo')){ const go=async()=>{ const v=cleanLbName($('lbAskName').value); if(!v) return toast('先起个昵称'); M.lbName=v; save(); $('lbAskGo').disabled=true;
-      const ok=await lbSubmit(true); toast(ok?`已上榜：${v}`:'排行榜暂时连不上，下一轮结算时再试'); const el=$('lbAsk'); if(el) el.innerHTML=`🏆 已用「<b>${escH(v)}</b>」上榜，去「目标 → 排行榜」看名次`; };
-    $('lbAskGo').onclick=go; $('lbAskName').onkeydown=e=>{ if(e.key==='Enter') go(); }; }
+  if($('learnUpgrade')) $('learnUpgrade').onclick=()=>{ tab='up'; showBetween(); $('ov').scrollTop=0; };
+  if($('lbAskGo')){
+    const panel=$('lbAsk'), input=$('lbAskName'), button=$('lbAskGo'), status=$('lbAskStatus'); let busy=false;
+    const go=async()=>{ if(busy) return; const v=cleanLbName(input.value); if(!v) return toast('先起个昵称');
+      M.lbName=v; input.value=v; save(); busy=true; button.disabled=true; input.disabled=true; status.textContent='正在提交……';
+      const ok=await lbSubmit(true); if(!panel.isConnected) return;
+      if(ok){ panel.innerHTML=`🏆 已用「<b>${escH(v)}</b>」上榜，去「目标 → 排行榜」看名次`; toast(`已上榜：${v}`); }
+      else { busy=false; button.disabled=false; input.disabled=false; button.textContent='重试上榜'; status.textContent='上传失败，昵称已保留。检查网络后可以重试。'; toast('排行榜暂时连不上，尚未上榜'); }
+    };
+    button.onclick=go; input.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } };
+  }
   if($('a2hsNo')) $('a2hsNo').onclick=()=>{ M.a2hsOff=1; save(); $('a2hs').remove(); };
   if($('a2hsGo')) $('a2hsGo').onclick=async()=>{ const e=instEvt; instEvt=null; e.prompt(); try{ const r=await e.userChoice; if(r.outcome==='accepted'){ M.a2hsOff=1; save(); } }catch(_){} showBetween(); };
   document.querySelectorAll('#box [data-route]').forEach(b=>b.onclick=()=>goRoute(b.dataset.route)); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
@@ -1915,7 +2070,7 @@ function showBetween(){
     const key={rar:c=>[rr(c),SO.indexOf(c.sch)],lv:c=>[-cardLv(c.id),rr(c)],sch:c=>[SO.indexOf(c.sch),rr(c)],trig:c=>[TO.indexOf(trigOf(c)),rr(c)]}[F.sort];
     const list=all.filter(pass).sort((a,b)=>{ const x=key(a),y=key(b); return x[0]-y[0]||x[1]-y[1]||a.name.localeCompare(b.name,'zh'); });
     const grp=F.sort==='sch'?c=>c.sch:F.sort==='trig'?trigOf:null, gName=g=>F.sort==='sch'?`<span style="color:${SCH[g].color}">${SCH[g].ico} ${SCH[g].name}</span>`:TRIG[g];
-    let grid='', last=null; list.forEach(c=>{ if(grp&&grp(c)!==last){ last=grp(c); grid+=`<div class="schhead">${gName(last)}</div>`; } grid+=cardHTML(c.id,{eq:eq.includes(c.id)}); });
+    let grid='', last=null; list.forEach(c=>{ if(grp&&grp(c)!==last){ last=grp(c); grid+=`<div class="schhead">${gName(last)}</div>`; } grid+=cardHTML(c.id,{eq:eq.includes(c.id),details:true}); });
     const chip=(k,label,color,cnt)=>`<button class="ghost" data-fs="${k}" style="${F.sch===k?'border-color:var(--gold);color:var(--gold2);background:#d9b45a18':color?`color:${color}`:''}">${label} <span style="opacity:.7">${cnt}</span></button>`;
     const chips=[chip('all','全部','',all.length)].concat(SO.filter(k=>k!=='myth'||all.some(c=>c.sch==='myth')).map(k=>chip(k,`${SCH[k].ico}${SCH[k].name}${resMult(n[k]||0)>1?` ×${resMult(n[k])}`:''}`,(n[k]||0)>=2?SCH[k].color:'',all.filter(c=>c.sch===k||c.sch2===k).length)),chip('eq','已装备','',eq.length));
     body.innerHTML=`<p class="sub">点击卡牌装备或卸下。同流派装备 2/3/4/5 张，效果 ×1.3/1.6/2/2.6。</p>
@@ -1926,10 +2081,13 @@ function showBetween(){
     body.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{ F.sch=b.dataset.fs; showBetween(); });
     body.querySelectorAll('[data-so]').forEach(b=>b.onclick=()=>{ F.sort=b.dataset.so; showBetween(); });
     body.querySelectorAll('[data-uneq]').forEach(b=>b.onclick=()=>{ M.deck=M.deck.filter(x=>x!==b.dataset.uneq); save(); renderSide(); refreshDeckView(body,b); });
-    body.querySelectorAll('.card').forEach(el=>el.onclick=()=>{ const id=el.dataset.id;
+    body.querySelectorAll('[data-detail]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); showCardDetails(b.dataset.detail,b); });
+    body.querySelectorAll('.card').forEach(el=>{ el.tabIndex=0; el.setAttribute('role','group'); el.setAttribute('aria-label',byId[el.dataset.id].name+'，按回车装备或卸下');
+      el.onkeydown=e=>{ if(e.target===el&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); e.stopPropagation(); el.click(); } };
+      el.onclick=()=>{ const id=el.dataset.id;
       if(M.deck.includes(id)) M.deck=M.deck.filter(x=>x!==id);
       else if(equipped().length<maxSlots()) M.deck=equipped().concat(id); else return toast('技能槽满了，先卸下一张');
-      save(); renderSide(); refreshDeckView(body,el); });
+      save(); renderSide(); refreshDeckView(body,el); if(Object.values(schoolCount()).some(n=>n>=2)) guideTip('resonance','同流派两张起，共鸣加成'); }; });
   } else if(tab==='legacy'){
     const gain=soulGain();
     body.innerHTML=`<div class="chap" style="margin-bottom:12px">🔥 <b>熔金转生</b>：把这一世的金币熔成<b>金魂</b>。会重置金币、工坊（技能槽、共鸣强化、自动发射保留）和章节进度，<b>保留所有卡牌和闪卡</b>。<br>
@@ -1950,20 +2108,22 @@ function showBetween(){
   } else if(tab==='fb'){
     renderFB(body);
   } else if(tab==='sys'){
-    body.innerHTML=`<div class="chap">🔊 音效 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}>开启</label> <span class="sub">（快捷键 M）</span></div>
+    body.innerHTML=`${PLAY_HELP}<div class="chap">🔊 音效 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}>开启</label> <span class="sub">（快捷键 M）</span></div>
       <div class="chap">📳 震动 ${navigator.vibrate?`<label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sVibe" ${M.vibe===false?'':'checked'}>开启</label> <span class="sub">（开出稀有包、×5 大奖、狂热、首领时轻震）</span>`:'<span class="sub">这台设备的浏览器不支持震动</span>'}</div>
       <div class="chap">📊 匿名统计 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sStats" ${M.stats===false?'':'checked'}>开启</label> <span class="sub">每轮结算时匿名上传用的流派和卡、章节、这一轮的成绩，帮作者调平衡。只带一个随机 id，不带昵称和其他个人信息。</span></div>
       <div class="chap"><b>📤 导出存档</b><div class="sub" style="margin:4px 0 6px">复制这段存档码，换设备或清缓存后可以用它恢复进度。</div>
         <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy">复制</button></div></div>
       <div class="chap"><b>📥 导入存档</b><div class="sub" style="margin:4px 0 6px">粘贴存档码。会覆盖当前进度。</div>
         <textarea class="code" id="sIn" placeholder="JZMC1.…"></textarea><div style="margin-top:6px"><button class="ghost" id="sImp">导入</button></div></div>
-      <div class="chap"><b>⚠️ 完全重置</b><div class="sub" style="margin:4px 0 6px">清空所有进度，包括卡牌、秘卡和成就。</div><button class="ghost" id="reset">完全重置</button></div>`;
+      <div class="chap"><b>恢复上一份有效备份</b><div class="sub">自动保留上一次有效保存。恢复会替换当前进度。</div><button class="ghost" id="sRestore" ${backupSave()?'':'disabled'}>恢复备份</button></div>
+       <div class="chap"><b>⚠️ 完全重置</b><div class="sub" style="margin:4px 0 6px">清空所有进度，包括卡牌、秘卡和成就。</div><button class="ghost" id="reset">完全重置</button></div>`;
     $('sMute').onchange=e=>{ M.mute=!e.target.checked; save(); syncMute(); };
     $('sStats').onchange=e=>{ M.stats=e.target.checked; save(); toast(M.stats?'已开启匿名统计':'已关闭匿名统计'); };
     if($('sVibe')) $('sVibe').onchange=e=>{ M.vibe=e.target.checked; save(); if(M.vibe) buzz(30); };
     $('sCopy').onclick=()=>{ const t=$('sCode'); t.select(); try{ navigator.clipboard.writeText(t.value).then(()=>toast('已复制存档码'),()=>{ document.execCommand('copy'); toast('已复制存档码'); }); }catch(e){ document.execCommand('copy'); toast('已复制存档码'); } };
     $('sImp').onclick=()=>{ try{ importCode($('sIn').value); recalcTree(); syncMute(); renderSide(); hud(); G={loot:{}}; tab='loot'; toast('存档导入成功'); showBetween(); }catch(e){ toast('导入失败：'+e.message); } };
-    $('reset').onclick=()=>{ if($('reset').dataset.c){ M=fresh(); try{localStorage.removeItem(KEY)}catch(e){} recalcTree(); G=null; renderSide(); showIntro(); } else { $('reset').dataset.c=1; $('reset').textContent='再点一次确认'; } };
+    $('sRestore').onclick=()=>{ const b=$('sRestore'); if(!b.dataset.c){ b.dataset.c=1; b.textContent='再点一次恢复（覆盖当前进度）'; return; } try{ restoreBackup(); finishLoad(); toast('已恢复上一份有效备份'); }catch(e){ toast(e.message); } };
+    $('reset').onclick=()=>{ if($('reset').dataset.c){ try{ applySavedState(fresh(),true); running=false; ROUND_EQ=null; G=null; recalcTree(); syncMute(); renderSide(); showIntro(); }catch(e){ toast(e.message); } } else { $('reset').dataset.c=1; $('reset').textContent='再点一次确认'; } };
   } else {
     const fc=CARDS.filter(c=>M.foil[c.id]).length, ur=CARDS.filter(c=>c.rar==='UR');
     body.innerHTML=`<p class="sub">✨ 闪卡收集 ${fc}/${CARDS.length} · 每开一张卡有 ${((.005+.0025*M.legacy.shine)*100).toFixed(2)}% 概率是闪卡，拥有闪卡后这张卡效果永久 +25%<br>
@@ -1982,11 +2142,14 @@ function showBetween(){
 let last=performance.now();
 function loop(now){ const dt=Math.min(.033,(now-last)/1000); last=now; if(running) update(dt); draw(); hud(); requestAnimationFrame(loop); }
 $('emb').src=ART.emblem;
-load(); if(!M.pid) M.pid=newPid();
-const MIG=M.round>0?migrateTree():(M.treeV=2,0);
-recalcTree(); syncMute(); buildPockets();
-save(); renderSide(); hud();
-if(M.round>0){ G={loot:{},migrated:MIG}; tab='up'; showBetween(); } else showIntro();
+function finishLoad(){
+  running=false; ROUND_EQ=null; if(!M.pid) M.pid=newPid();
+  const migrated=M.round>0?migrateTree():(M.treeV=2,0);
+  recalcTree(); syncMute(); buildPockets(); save(); renderSide(); hud();
+  if(M.round>0){ G={loot:{},migrated}; tab='up'; showBetween(); } else { G=null; showIntro(); }
+}
+load();
+if(saveBlocked){ recalcTree(); syncMute(); buildPockets(); renderSide(); hud(); showSaveRecovery(); } else finishLoad();
 setInterval(()=>{ if(running) checkAch(); },2500);
 addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
 requestAnimationFrame(loop);
