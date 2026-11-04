@@ -195,6 +195,17 @@
     #wallet{font-size:12px;padding:5px 12px;gap:10px} #wallet b{font-size:15px}
     #toast{width:max-content;max-width:calc(100vw - 24px);text-align:center;font-size:13px}
   }
+  .eqbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#0c0907}
+  .eqbar .ghost{padding:4px 10px;font-size:12px}
+  @media (max-width:600px){
+    .deckgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+    .deckgrid .card .in{min-height:0;padding:5px 5px 6px}
+    .deckgrid .card .ci{height:26px;margin-top:12px} .deckgrid .card .ci svg.ic{width:22px;height:22px}
+    .deckgrid .card .cn{font-size:12px;letter-spacing:0}
+    .deckgrid .card .cs,.deckgrid .card .cp{display:none}
+    .deckgrid .card .cd{font-size:10px;line-height:1.35;margin-top:3px;padding-top:3px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .deckgrid .schhead{font-size:13px;margin-top:4px}
+  }
   #boonPop{position:fixed;inset:0;z-index:48;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:radial-gradient(circle at 50% 45%,#d9b45a22,#000c 65%)}
   #boonPop.show{display:flex;animation:mfade .35s ease-out}
   #boonPop .bt{font-size:24px;letter-spacing:6px;font-weight:900}
@@ -1411,7 +1422,9 @@ function hud(){
   if(G&&G.packs){ $('earned').textContent='+'+f(G.earned);
     const key=G.ammo+'/'+G.maxAmmo; if(key!==lastAmmo){ lastAmmo=key; const tot=Math.max(G.maxAmmo,G.ammo); let h=''; for(let i=0;i<tot;i++) h+=`<i class="${i<G.ammo?'':'used'}"></i>`; $('ammo').innerHTML=h; } }
 }
-function renderSide(){
+function refreshTabs(){ document.querySelectorAll('#box .subtabs button[data-t]').forEach(b=>{ const t=tName(b.dataset.t,lastLootTotal); if(t&&b.textContent!==t) b.textContent=t; }); }
+let lastLootTotal=0;
+function renderSide(){ setTimeout(refreshTabs);
   const eq=equipped(); let h='';
   for(let i=0;i<maxSlots();i++){ const id=eq[i];
     if(!id){ h+=`<div class="slot empty">— 空技能槽 —</div>`; continue; }
@@ -1727,7 +1740,7 @@ function showIntro(){
 }
 function showBetween(){
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
-  const total=ids.reduce((s,id)=>s+G.loot[id],0);
+  const total=ids.reduce((s,id)=>s+G.loot[id],0); lastLootTotal=total;
   const ready=M.chRounds>=3, canP=M.maxCh>=4;
   const mechHTML=bossMechs(M.ch).map(k=>`${MECH[k].ico} <b>${MECH[k].name}</b>：${typeof MECH[k].desc==='function'?MECH[k].desc():MECH[k].desc}`).join('<br>');
   const nextBoss=ready&&!(G.packs&&G.isBoss)?`<div class="chap" style="margin-top:12px;border-color:#ff6b5b66;display:flex;gap:12px;align-items:flex-start"><img src="${ART.p1[bossIdx(M.ch)]}" alt="" style="width:56px;height:84px;object-fit:contain;flex:none;background:#0d0b09;border-radius:6px;border:1px solid var(--line)"><div>👑 首领「<b>${chInfo(M.ch).boss}</b>」已现身<br><span class="sub" style="line-height:1.7">${mechHTML}${p2Mech(M.ch)?`<br>半血进入<b style="color:#e8a090">第二阶段</b>：追加「${MECH[p2Mech(M.ch)].name}」，移动更快，并召唤卡包`:''}</span></div></div>`:'';
@@ -1745,8 +1758,8 @@ function showBetween(){
   const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${chalMsg}${bossMsg}${goalMsg}${unlHTML}${roundMsg}${migHTML}${nextBoss}
-    ${G.packs?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?chalMsg+bossMsg+goalMsg+roundMsg+nextBoss:''}
+    ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
     <div id="tabBody"></div>
@@ -1777,11 +1790,13 @@ function showBetween(){
     const chip=(k,label,color,cnt)=>`<button class="ghost" data-fs="${k}" style="${F.sch===k?'border-color:var(--gold);color:var(--gold2);background:#d9b45a18':color?`color:${color}`:''}">${label} <span style="opacity:.7">${cnt}</span></button>`;
     const chips=[chip('all','全部','',all.length)].concat(SO.filter(k=>k!=='myth'||all.some(c=>c.sch==='myth')).map(k=>chip(k,`${SCH[k].ico}${SCH[k].name}${resMult(n[k]||0)>1?` ×${resMult(n[k])}`:''}`,(n[k]||0)>=2?SCH[k].color:'',all.filter(c=>c.sch===k||c.sch2===k).length)),chip('eq','已装备','',eq.length));
     body.innerHTML=`<p class="sub">点击卡牌装备或卸下。同流派装备 2/3/4/5 张，效果 ×1.3/1.6/2/2.6。</p>
+      <div class="eqbar"><span class="sub">已装备 ${eq.length}/${maxSlots()}</span>${eq.map(id=>`<button class="ghost" data-uneq="${id}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico} ${byId[id].name} ✕</button>`).join('')}${eq.length<maxSlots()?'<span class="sub">· 点下面的卡牌装备</span>':''}</div>
       <div class="res" style="margin:8px 0 6px;gap:6px">${chips.join('')}</div>
       <div class="subtabs" style="margin:0 0 10px"><span class="sub" style="align-self:center;margin-right:4px">排序</span>${Object.entries({rar:'稀有度',lv:'等级',sch:'流派',trig:'触发方式'}).map(([k,v])=>`<button class="${F.sort===k?'on':''}" data-so="${k}">${v}</button>`).join('')}</div>
-      ${all.length?(list.length?`<div class="grid">${grid}</div>`:'<p class="sub">这个筛选下没有卡牌。</p>'):'<p class="sub">还没有卡牌。</p>'}`;
+      ${all.length?(list.length?`<div class="grid deckgrid">${grid}</div>`:'<p class="sub">这个筛选下没有卡牌。</p>'):'<p class="sub">还没有卡牌。</p>'}`;
     body.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{ F.sch=b.dataset.fs; showBetween(); });
     body.querySelectorAll('[data-so]').forEach(b=>b.onclick=()=>{ F.sort=b.dataset.so; showBetween(); });
+    body.querySelectorAll('[data-uneq]').forEach(b=>b.onclick=()=>{ M.deck=M.deck.filter(x=>x!==b.dataset.uneq); save(); renderSide(); showBetween(); });
     body.querySelectorAll('.card').forEach(el=>el.onclick=()=>{ const id=el.dataset.id;
       if(M.deck.includes(id)) M.deck=M.deck.filter(x=>x!==id);
       else if(equipped().length<maxSlots()) M.deck=equipped().concat(id); else return toast('技能槽满了，先卸下一张');
