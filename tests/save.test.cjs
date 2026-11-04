@@ -56,6 +56,15 @@ test('bad checksum and invalid structures leave live state and both slots untouc
   assert.deepEqual(f.state(), before); assert.deepEqual([...f.values], slots);
 });
 
+test('boss HP snapshots survive export/import alongside legacy save compatibility', () => {
+  const f = fixture();
+  f.run('M.bossD={ch:2,d:8,hp:840,v:2};M.lastBossHp=120;save();');
+  const code = f.run('exportCode()');
+  f.run('delete M.bossD;delete M.lastBossHp;'); f.importCode(code);
+  assert.deepEqual(f.state().bossD, {ch:2,d:8,hp:840,v:2});
+  assert.equal(f.state().lastBossHp, 120);
+});
+
 test('nonfinite and prototype-bearing inputs are rejected before live adoption', () => {
   const f = fixture();
   assert.throws(() => f.run('adopt({...fresh(),money:Infinity})'));

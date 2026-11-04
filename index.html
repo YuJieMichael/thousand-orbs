@@ -647,6 +647,7 @@ function prestige(){
   const g=soulGain(); M.soul+=g; M.prestiges++;
   M.keep={slot:upLv('slot'),auto:upLv('auto'),reson:upLv('reson')};
   M.up=fresh().up; M.tree={}; M.treeSpent=0; recalcTree(); M.money=M.legacy.start?200*Math.pow(6,M.legacy.start-1):0;
+  delete M.bossD; delete M.lastBossHp; delete M.dealtAvg;
   M.ch=1; M.chRounds=0; M.life=0; M.rate=0; save(); renderSide(); tab='legacy'; SFX.play('melt'); toast(`🔥 熔金完成，获得 ${g} 金魂`); checkAch(); showBetween();
 }
 
@@ -886,8 +887,7 @@ function startRound(boss,opt={}){
   if(M.nextBoon&&!chal){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} 奇遇祝福：${nb.name}`),400); } }
   const noB=TS.ks.greed||(mut&&mut.noBasket)||(chal&&chal.noBasket); if(noB){ G.basket=null; G.basket2=null; }
   if(chal&&chal.luck) G.bo.luck=chal.luck; if(mut&&mut.luck) G.bo.luck*=mut.luck;
-  if(boss){ if(!M.bossD||M.bossD.ch!==M.ch||M.bossD.dealt===undefined) M.bossD={ch:M.ch,d:D(),dealt:M.dealtAvg||0};
-    const hp=Math.max(bossHp(),M.ch<=BOSS_HITS.length?M.bossD.d*BOSS_HITS[M.ch-1]:0,Math.min(M.bossD.dealt*bossK(M.ch),M.lastBossHp?M.lastBossHp*BOSS_STEP:Infinity)); G.boss={boss:true,x:W/2,y:335,hw:58,hh:76,t:3,hp,max:hp,hit:0,burn:0,acid:0,grow:1,seed:.37,ballHit:{},slot:null,summon:0,
+  if(boss){ const hp=bossHp(); G.boss={boss:true,x:W/2,y:335,hw:58,hh:76,t:3,hp,max:hp,hit:0,burn:0,acid:0,grow:1,seed:.37,ballHit:{},slot:null,summon:0,
       mech:bossMechs(M.ch),shield:0,sT:5,mT:0,immune:false,vT:0,pT:0,p2:false,p2T:0,ph:0};
     G.packs.push(G.boss); M.bossTries++; }
   for(let i=0;i<packN(upLv('packs'))-(boss?3:0);i++) addPack(true);
@@ -902,14 +902,23 @@ function startRound(boss,opt={}){
 function freeSlots(){ return SLOTS.filter(s=>!(G.isBoss&&s.y===335)&&!G.packs.some(p=>p.slot===s)&&!G.refill.some(r=>r.slot===s)); }
 // 前几章首领更弱：第 1~4 章血量 ×0.35 / ×0.5 / ×0.7 / ×0.85，第 5 章起不变
 const BOSS_EASE=[.35,.5,.7,.85];
-// 前三章首领的血量下限：按第一次挑战这一章首领时的宝珠单发伤害算，要挨这么多下；之后再升级就能打得更快
-// （模拟里一场首领战大约能打出 28~51 / 43~147 下）
+// 前三章参考首次挑战的单发伤害；不参考普通轮群伤或过量伤害。
 const BOSS_HITS=[26,34,42];
-// 首领血量至少是「最近普通轮打出的总伤害」的多少倍（按章节；模拟里一场首领战能打出普通轮的 1.3~5.4 倍，二、五章首领技能更难缠）
-const BOSS_K=[2.8,2.4,4.5,3.0,2.0], bossK=ch=>BOSS_K[ch-1]||2.5;
-// 但这个下限最多是「上一个打赢的首领血量 × BOSS_STEP」：靠群伤、燃烧刷卡包的流派普通轮总伤害很高，打单个首领却打不出那么多，不封顶会碰到血量离谱的首领
-const BOSS_STEP=12;
-const bossHp=()=>packHpBase(0)*60*Math.pow(3.2,M.ch-1)*(BOSS_EASE[M.ch-1]||1);
+// 整体血量最多为上一章首领的 12 倍；首章 / 缺少旧记录时用章节基础血量封顶。
+const BOSS_STEP=12, BOSS_HP_V=2;
+function bossHp(){
+  const old=M.bossD&&M.bossD.ch===M.ch?M.bossD:null;
+  if(old&&old.v===BOSS_HP_V&&Number.isFinite(old.hp)&&old.hp>0) return old.hp;
+  const base=packHpBase(0)*60*Math.pow(3.2,M.ch-1)*(BOSS_EASE[M.ch-1]||1);
+  // 旧存档保留已经锁定的单发基准，避免升级后迁移反而抬高首领血量。
+  const d=old&&Number.isFinite(old.d)?old.d:D();
+  const floor=d*(BOSS_HITS[M.ch-1]||0);
+  const previous=M.ch>1&&M.lastBossHp>0?M.lastBossHp:base;
+  const hp=Math.min(Math.max(base,floor),previous*BOSS_STEP);
+  // 整体快照写入原存档；同章重试、刷新、换装或升级都不会重新抬高血量。
+  M.bossD={ch:M.ch,d,hp,v:BOSS_HP_V};
+  return hp;
+}
 const shieldCfg=()=>M.ch<=2?{t:11,n:3}:{t:8,n:6};
 const mirrorCfg=()=>M.ch<=2?{cyc:11,dur:1.8}:{cyc:9,dur:2.5};
 // 第二阶段：半血时追加一个技能（按金盾→镜遁→熔火→星斥→吞噬的顺序取下一个还没有的）
@@ -972,7 +981,7 @@ function dmgPack(p,amt,silent,src){
   if(p.boss){ if(p.p2T>0) return; if(p.immune){ if(!silent){ G.fx.push({x:p.x+rnd(-20,20),y:p.y-p.hh-10,t:'免疫',c:'#9de7ff',life:.5}); SFX.play('immune'); } return; }
     if(src==='fire'&&p.mech.includes('forge')){ amt*=.3; if(!silent) G.fx.push({x:p.x,y:p.y-p.hh-10,t:'熔火 -70%',c:'#ff8a4c',life:.5}); } }
   let ac=p.acid*G.R.acid*G.R.acidX; if(p.boss&&p.mech.includes('forge')) ac*=2;
-  const d=amt*(1+ac); if(!p.boss) G.dealt=(G.dealt||0)+d; p.hp-=d; p.hit=.1;
+  const d=amt*(1+ac); if(!p.boss) G.dealt=(G.dealt||0)+Math.min(Math.max(0,p.hp),d); p.hp-=d; p.hit=.1;
   if(p.boss&&!p.p2&&p.hp<=p.max*.5){ enterP2(p); return; }
   if(p.hp<=0) openPack(p);
 }
@@ -1062,7 +1071,8 @@ function bossDown(p){
   G.bossWin=true; G.opened++; M.lastBossHp=p.max; // 下一章首领血量最多是它的 BOSS_STEP 倍
   SFX.play('bossdown'); buzz([80,50,200]);
   if(G.shots<=G.maxAmmo/2) M.best.quick=true;
-  const coins=packValue(2)*12*(1+.4*M.legacy.rich); // packValue 已经按章节涨了 earn(coins,p.x,p.y);
+  const coins=packValue(2)*12*(1+.4*M.legacy.rich); // packValue 已经按章节涨了
+  earn(coins,p.x,p.y);
   G.death={x:p.x,y:p.y,h:p.hh*2,t:0,img:'p2_'+bossIdx(M.ch)}; shake(6);
   giveCard(p,'SSR'); giveCard(p,0); giveCard(p,2); if(urUnlocked().length&&Math.random()<UR_BOSS) giveCard(p,'UR');
   M.goal=Math.max(GOAL_MIN,Math.round(M.goal*.75)); // 新的一章卡包更硬，目标先降一点
@@ -1599,7 +1609,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-04.1';
+const GAME_V='2026-11-04.2';
 function statSend(){ if(M.stats===false||!M.pid||!G||!G.packs) return;
   const kind=G.chal?'chal':G.isBoss?'boss':G.route==='elite'?'elite':'normal', win=G.chal?G.chalWin:G.isBoss?G.bossWin:G.goalOk;
   const body={pid:M.pid,kind,ch:G.ch0||M.ch,maxCh:M.maxCh,round:M.round,win:!!win,opened:G.opened,coins:G.earned,dur:Math.round(G.time*10)/10,cards:G.eq||[],chal:G.chal||null,mobile:MOBILE.matches,v:GAME_V};
