@@ -1502,6 +1502,7 @@ const LB={
   streak:{name:'最长连胜',ico:'🔗',fmt:v=>`${v} 连胜`,mine:()=>M.bestStreak>0?{value:M.bestStreak}:null,how:'连续达成每轮目标的最多轮数'},
   chain:{name:'单珠连锁',ico:'⚡',fmt:v=>`${v} 下`,mine:()=>M.best.hc>0?{value:M.best.hc}:null,how:'一颗宝珠落底前撞到铆钉和卡包的最多次数'},
 };
+const cleanLbName=v=>Array.from(String(v||'').replace(/[\u0000-\u001f<>&"'`\\]/g,'').replace(/\s+/g,' ').trim()).slice(0,12).join('');
 const escH=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function lbFetch(path,opt){ const ac=new AbortController(), t=setTimeout(()=>ac.abort(),7000); try{ const r=await fetch(LB_URL+path,{...opt,signal:ac.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); } finally{ clearTimeout(t); } }
 // 只上传比上次传过的更好的成绩；改了昵称就全部重传
@@ -1521,7 +1522,7 @@ function renderRank(body){
     <div class="sub">${LB[lbBoard].how}　·　我的最好：<b style="color:var(--gold2)">${mine?LB[lbBoard].fmt(mine.value,mine.tb):'还没有'}</b></div>
     <div id="lbList" style="margin-top:10px"><p class="sub">加载中……</p></div>`;
   body.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ lbBoard=b.dataset.lb; renderRank(body); });
-  $('lbSave').onclick=async()=>{ const v=Array.from($('lbName').value.replace(/[\u0000-\u001f<>&"'`\\]/g,'').replace(/\s+/g,' ').trim()).slice(0,12).join('');
+  $('lbSave').onclick=async()=>{ const v=cleanLbName($('lbName').value);
     if(!v) return toast('先起个昵称'); M.lbName=v; save(); const ok=await lbSubmit(true); toast(ok?'已上榜':'排行榜暂时连不上，下一轮结算时再试'); renderRank(body); };
   const board=lbBoard;
   lbFetch(`/top?board=${board}&limit=50&pid=${M.pid}&t=${Date.now()}`).then(d=>{ const el=$('lbList'); if(!el||board!==lbBoard) return;
@@ -1845,12 +1846,17 @@ function showBetween(){
   const standalone=matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone;
   const a2hsHTML=MOBILE.matches&&!standalone&&!M.a2hsOff&&M.round>=2&&tab==='loot'?`<div class="chap" id="a2hs" style="margin-top:12px">📱 <b>添加到主屏幕，全屏玩台面更大</b><br><span class="sub">${/iPhone|iPad|iPod/.test(navigator.userAgent)?'iPhone：点 Safari 底部的「分享」→「添加到主屏幕」':'安卓：点浏览器菜单 →「添加到主屏幕」或「安装应用」'}</span>
     <div style="margin-top:6px;display:flex;gap:8px">${instEvt?'<button class="btn" id="a2hsGo" style="padding:6px 14px;font-size:13px;letter-spacing:0">安装</button>':''}<button class="ghost" id="a2hsNo">不再提示</button></div></div>`:'';
+  const lbMine=LB.progress.mine();
+  const lbAskHTML=G.packs&&tab==='loot'&&!M.lbName&&!M.lbAskOff&&M.round>=2?`<div class="chap" id="lbAsk" style="margin-top:12px;border-color:var(--gold3)">🏆 <b>起个名字上排行榜</b>　<span class="sub">你的最好：${lbMine?LB.progress.fmt(lbMine.value,lbMine.tb):''}${M.best.roundCoins>0?' · 单轮 ✦'+f(M.best.roundCoins):''}${M.bestStreak?' · '+M.bestStreak+' 连胜':''}</span>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><input id="lbAskName" maxlength="12" placeholder="昵称（最多 12 个字）" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
+    <button class="btn" id="lbAskGo" style="padding:7px 16px;font-size:14px;letter-spacing:0">上榜</button><button class="ghost" id="lbAskNo">不再提示</button></div>
+    <div class="sub" style="margin-top:4px">昵称会公开显示在「目标 → 排行榜」上，之后也能在那里改名。</div></div>`:'';
   const unlHTML=newU.map(u=>`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔓 <b style="color:var(--gold2)">新玩法：${u.name}</b><br><span class="sub">${u.txt}</span></div>`).join('');
   const RSUB={normal:`开 ${M.goal} 包`,elite:`开 ${Math.ceil(M.goal*1.25)} 包 · SR+ 三选一 · 宝珠`,shop:'卡包 · 选卡 · 封印',event:'随机事件'};
   const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${a2hsHTML}${tab==='loot'?chalMsg+bossMsg+goalMsg+roundMsg+nextBoss:''}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?chalMsg+bossMsg+goalMsg+roundMsg+nextBoss:''}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -1860,6 +1866,10 @@ function showBetween(){
 `;
   document.querySelectorAll('#box .tab').forEach(b=>b.onclick=()=>{ const g=TGROUPS.find(x=>x.id===b.dataset.g),subs=tSubs(g,canP); tab=subs.includes(TLAST[g.id])?TLAST[g.id]:subs[0]; showBetween(); });
   document.querySelectorAll('#box .subtabs button').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; TLAST[tGroupOf(tab)]=tab; showBetween(); });
+  if($('lbAskNo')) $('lbAskNo').onclick=()=>{ M.lbAskOff=1; save(); $('lbAsk').remove(); };
+  if($('lbAskGo')){ const go=async()=>{ const v=cleanLbName($('lbAskName').value); if(!v) return toast('先起个昵称'); M.lbName=v; save(); $('lbAskGo').disabled=true;
+      const ok=await lbSubmit(true); toast(ok?`已上榜：${v}`:'排行榜暂时连不上，下一轮结算时再试'); const el=$('lbAsk'); if(el) el.innerHTML=`🏆 已用「<b>${escH(v)}</b>」上榜，去「目标 → 排行榜」看名次`; };
+    $('lbAskGo').onclick=go; $('lbAskName').onkeydown=e=>{ if(e.key==='Enter') go(); }; }
   if($('a2hsNo')) $('a2hsNo').onclick=()=>{ M.a2hsOff=1; save(); $('a2hs').remove(); };
   if($('a2hsGo')) $('a2hsGo').onclick=async()=>{ const e=instEvt; instEvt=null; e.prompt(); try{ const r=await e.userChoice; if(r.outcome==='accepted'){ M.a2hsOff=1; save(); } }catch(_){} showBetween(); };
   document.querySelectorAll('#box [data-route]').forEach(b=>b.onclick=()=>goRoute(b.dataset.route)); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
