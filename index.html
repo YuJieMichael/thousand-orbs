@@ -676,7 +676,7 @@ const pocketAt=x=>POCKETS.find(p=>x>=p.x0&&x<p.x1)||(x<W/2?POCKETS[0]:POCKETS[PO
 const SPEG={gold:{n:2,c:'#ffd76a'},bomb:{n:1,c:'#ff6b4a'},split:{n:1,c:'#7fd6ff'}};
 const FEVER={chain:20,dur:4,slow:.6}; // 一颗宝珠连锁 20 下（撞开卡包算 3 下）进入狂热；模拟下来每轮约 0.5~1 次
 
-// ================= 珠袋：每颗宝珠有类型，能看到下一颗，可以暂存 =================
+// ================= 珠袋：每颗宝珠有类型，能看到接下来的三颗 =================
 const ORBS={
   normal:{name:'金珠',c:'#e6cf9c',ico:'🟡',desc:'普通宝珠'},
   fire:{name:'火珠',c:'#ff8a4c',ico:'🔥',desc:'命中的卡包燃烧 4 秒（每秒 50% 伤害）',price:6},
@@ -692,7 +692,7 @@ const orbCount=()=>Object.values(M.orbs||{}).reduce((a,b)=>a+b,0);
 // ================= 逐步解锁：新玩家一开始只有弹珠和每轮目标 =================
 const UNL=[
   {id:'tree',name:'星盘',txt:'「构筑 → 升级 · 星盘」可以点亮天赋了：更多宝珠、更多卡包、更多技能槽……',ok:()=>M.round>=3||M.maxCh>=2},
-  {id:'routes',name:'路线 · 珠袋',txt:'每轮结束后可以自己选下一轮：普通、精英或奇遇。宝珠开始分类型，发射器右边能看到接下来三颗，按 Q 或点左边的暂存位先存一颗。',ok:()=>M.maxCh>=2},
+  {id:'routes',name:'路线 · 珠袋',txt:'每轮结束后可以自己选下一轮：普通、精英或奇遇。宝珠开始分类型，发射器右边能看到接下来的三颗宝珠。',ok:()=>M.maxCh>=2},
   {id:'market',name:'黑市',txt:'路线里会出现黑市：买卡包、买宝珠、按流派选卡、封印卡牌。',ok:()=>M.maxCh>=3},
   {id:'chal',name:'挑战关卡',txt:'「目标」页开放挑战关卡，第一次通关奖励金魂。',ok:()=>M.maxCh>=3},
 ];
@@ -781,7 +781,6 @@ function startRound(boss,opt={}){
   // 珠袋：特殊宝珠 + 普通宝珠，洗乱；本轮目标（只有普通 / 精英轮有）
   G.bag=[]; G.bagOn=unl('routes'); if(G.bagOn) ORB_SPECIAL.forEach(k=>{ for(let i=0;i<((M.orbs||{})[k]||0);i++) G.bag.push(k); }); G.bag=G.bag.slice(0,am); while(G.bag.length<am) G.bag.push('normal');
   for(let i=G.bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [G.bag[i],G.bag[j]]=[G.bag[j],G.bag[i]]; }
-  G.hold=null; G.holdUsed=false;
   G.route=boss||chal?null:(opt.route||'normal');
   if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*1.25):M.goal; if(G.route==='elite'){ G.mut={hpX:1.6}; G.bo.coin*=1.5; } }
   if(M.nextBoon&&!chal){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} 奇遇祝福：${nb.name}`),400); } }
@@ -856,7 +855,7 @@ function shoot(){ // 真正射出一颗（连射/倾泻会排队调用）
   const a=aimAngle()+(G.queue>1?rnd(-.05,.05):0); const sp=760;
   G.ammo--; G.shots++; G.queue--;
   const b=spawnBall(LAUNCH.x,LAUNCH.y,Math.cos(a)*sp,Math.sin(a)*sp); if(G.qDel) b.dmgX*=1.3;
-  b.manual=!!G.qManual; b.type=nextOrb(true); G.holdUsed=false; applyOrbType(b);
+  b.manual=!!G.qManual; b.type=nextOrb(true); applyOrbType(b);
   for(let i=0;i<G.bo.split;i++){ const a2=a+(i%2?-1:1)*.22*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a2)*sp,Math.sin(a2)*sp,{mini:true}); }
   equipped().forEach((id,i)=>{ const c=byId[id]; if(c.launch){ const [lv,p]=cardP(id); if(c.launch(G,lv,p,b)) flashSlot(i); } });
   burst(LAUNCH.x,LAUNCH.y+10,'#f3dc9a',10); SFX.play('shoot'); rollSpecials();
@@ -983,12 +982,9 @@ function startFever(b){ b.fevered=true; G.fever=FEVER.dur; G.slow=FEVER.slow; G.
   hitStop(.12,true); shake(12); SFX.play('fever'); buzz([40,30,70]); burst(b.x,b.y,'#ffd76a',40); burst(b.x,b.y,'#ff7ad9',20);
   G.fx.push({x:W/2,y:H/2-40,t:'狂 热',c:'#ffd76a',life:1.8,sz:40}); G.fx.push({x:W/2,y:H/2-2,t:'伤害、金币 ×2',c:'#f3dc9a',life:1.8,sz:16}); }
 
-// ---- 珠袋：下一颗 / 暂存 ----
-function nextOrb(take){ if(G.bag&&G.bag.length) return take?G.bag.shift():G.bag[0]; if(G.hold){ const h=G.hold; if(take) G.hold=null; return h; } return 'normal'; }
+// ---- 珠袋：下一颗 ----
+function nextOrb(take){ if(G.bag&&G.bag.length) return take?G.bag.shift():G.bag[0]; return 'normal'; }
 function applyOrbType(b){ const t=b.type; if(t==='heavy'){ b.r*=1.35; b.dmgX*=2; } else if(t==='lucky'){ b.mx=Math.max(b.mx,2); } else if(t==='ghost'){ b.pierce=true; b.dmgX*=1.5; } }
-function holdOrb(){ if(!G||!G.bag||!G.bagOn||G.ended||G.paused||G.ammo<=0||G.holdUsed||!G.bag.length) return;
-  const cur=G.bag.shift(); if(G.hold) G.bag.unshift(G.hold); G.hold=cur; G.holdUsed=true; SFX.play('split'); }
-const HOLD_AT={x:W/2-56,y:58};
 // 自动发射只在已经通关过的章节生效（熔金转生后回头刷）
 const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 // ---- 每轮目标 ----
@@ -1237,14 +1233,12 @@ function draw(){
     ctx.fillStyle='#e6cf9c'; for(let i=0;i<22;i++){ for(let k=0;k<3;k++){ vy+=GRAV*.012; x+=vx*.012; y+=vy*.012; if(x<16||x>W-16) vx=-vx; }
       ctx.globalAlpha=.6*(1-i/22); ctx.beginPath(); ctx.arc(x,y,2.2,0,7); ctx.fill(); } ctx.globalAlpha=1; }
   drawLauncher(aimAngle());
-  // 珠袋：右边是接下来的三颗，左边是暂存位
-  if(G.bag&&G.bagOn&&G.ammo>0){ const q=G.bag.length?G.bag.slice(0,3):(G.hold?[G.hold]:['normal']);
+  // 珠袋：发射器右边显示接下来的三颗
+  if(G.bag&&G.bagOn&&G.ammo>0){ const q=G.bag.length?G.bag.slice(0,3):['normal'];
     q.forEach((t,i)=>{ const o=ORBS[t], k=Math.min(UIK,1.3), x=W/2+40*k+i*24*k-(i?6:0), r=(i?6:9)*k; if(t!=='normal'){ ctx.globalAlpha=.25; ctx.fillStyle=o.c; ctx.beginPath(); ctx.arc(x,58,r+5,0,7); ctx.fill(); ctx.globalAlpha=1; }
       ctx.fillStyle=t==='normal'?'#8a7d68':o.c; ctx.beginPath(); ctx.arc(x,58,r,0,7); ctx.fill(); if(!i){ ctx.strokeStyle='#efe6d2'; ctx.lineWidth=1.2; ctx.stroke(); } });
     const ly=80+(UIK-1)*14; ctx.font=`bold ${Math.round(10*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.fillStyle=q[0]==='normal'?'#8a7d68':ORBS[q[0]].c; ctx.fillText(ORBS[q[0]].name,W/2+40*Math.min(UIK,1.3),ly);
-    const h=G.hold; ctx.strokeStyle=G.holdUsed?'#3a3127':'#8a7d68'; ctx.lineWidth=1.2; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.arc(HOLD_AT.x,HOLD_AT.y,13*Math.min(UIK,1.4),0,7); ctx.stroke(); ctx.setLineDash([]);
-    if(h){ ctx.fillStyle=ORBS[h].c; ctx.beginPath(); ctx.arc(HOLD_AT.x,HOLD_AT.y,8*Math.min(UIK,1.4),0,7); ctx.fill(); }
-    ctx.fillStyle='#8a7d68'; ctx.fillText(h?ORBS[h].name:'暂存',HOLD_AT.x,ly); if(!MOBILE.matches){ ctx.font='9px sans-serif'; ctx.fillText('Q',HOLD_AT.x,92); } }
+  }
   // 闪电
   G.zaps.forEach(z=>{ ctx.strokeStyle=z.c; ctx.globalAlpha=Math.min(1,z.life*4); ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(z.x1,z.y1); let bx=0,by=0;
     for(let k=1;k<7;k++){ const t=k/7, x=z.x1+(z.x2-z.x1)*t+rnd(-8,8), y=z.y1+(z.y2-z.y1)*t+rnd(-8,8); ctx.lineTo(x,y); if(k===3){ bx=x; by=y; } } ctx.lineTo(z.x2,z.y2); ctx.stroke();
@@ -1389,19 +1383,15 @@ function pointer(e){ if(!G||!G.aim) return; const rc=cv.getBoundingClientRect(),
   G.aim.x=(pt.clientX-rc.left)*W/rc.width; G.aim.y=(pt.clientY-rc.top)*H/rc.height; G.aim.t=performance.now(); }
 cv.addEventListener('mousemove',pointer);
 let holding=false;
-// 点在暂存位上：暂存 / 换回宝珠，而不是发射
-const onHold=e=>{ const rc=cv.getBoundingClientRect(),pt=e.touches?e.touches[0]:e; if(!pt||!G||!G.bag||!G.bagOn) return false; const x=(pt.clientX-rc.left)*W/rc.width,y=(pt.clientY-rc.top)*H/rc.height; return Math.hypot(x-HOLD_AT.x,y-HOLD_AT.y)<Math.max(22,24*W/rc.width); };
-let tapHold=false;
-cv.addEventListener('mousedown',e=>{ if(onHold(e)){ holdOrb(); return; } pointer(e);holding=true;fire();});
+cv.addEventListener('mousedown',e=>{ pointer(e);holding=true;fire();});
 addEventListener('mouseup',()=>holding=false);
-cv.addEventListener('touchmove',e=>{ if(!tapHold) pointer(e);e.preventDefault();},{passive:false});
-cv.addEventListener('touchstart',e=>{ tapHold=onHold(e); if(tapHold){ e.preventDefault(); return; } pointer(e);holding=TS.hold?true:false;e.preventDefault();},{passive:false});
-cv.addEventListener('touchend',e=>{ if(tapHold){ tapHold=false; holdOrb(); e.preventDefault(); return; } if(!TS.hold) fire(); holding=false; e.preventDefault(); },{passive:false});
+cv.addEventListener('touchmove',e=>{ pointer(e);e.preventDefault();},{passive:false});
+cv.addEventListener('touchstart',e=>{ pointer(e);holding=TS.hold?true:false;e.preventDefault();},{passive:false});
+cv.addEventListener('touchend',e=>{ if(!TS.hold) fire(); holding=false; e.preventDefault(); },{passive:false});
 const KONAMI=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA']; let kIdx=0;
 addEventListener('keydown',e=>{
   if(/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if(e.code==='Space'){ if(!e.repeat) fire(); holding=true; e.preventDefault(); }
-  if((e.code==='KeyQ'||e.code==='KeyE')&&!e.repeat&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)) holdOrb();
   if(e.code==='KeyM'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ M.mute=!M.mute; save(); syncMute(); toast(M.mute?'🔇 音效关闭':'🔊 音效开启'); }
   kIdx=e.code===KONAMI[kIdx]?kIdx+1:(e.code===KONAMI[0]?1:0); if(kIdx===KONAMI.length){ kIdx=0; grantMyth('lord'); } });
 addEventListener('keyup',e=>{ if(e.code==='Space') holding=false; });
@@ -1661,7 +1651,7 @@ function renderTree(body){
     return `<div class="row ${lock||M.money<c?'off':''}" data-rep="${u.id}"><div class="ico">${u.ico}</div><div class="info"><div class="nm">${u.name} <span class="lvl">Lv${l}</span></div><div class="sub">${u.desc(l)} → ${u.desc(l+1)}</div></div><div class="cost">${lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c)}</div></div>`; }).join('');
   const n=tCount(), refund=Math.floor((M.treeSpent||0)*.8);
   body.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 8px">${reps}</div>
-    <div class="sub" style="margin:8px 0 6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>🌌 星盘：从中心 ✦ 出发，只能点亮<b style="color:var(--gold2)">与已点亮节点相连</b>的节点。已点亮 <b style="color:var(--gold2)">${n}</b> 个，每多点一个，下一个就更贵。拖动平移，滚轮/双指缩放。</span>
+    <div class="sub" style="margin:8px 0 6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>🌌 星盘：从中心 ✦ 出发，只能点亮<b style="color:var(--gold2)">与已点亮节点相连</b>的节点。已点亮 <b id="tNodeCount" style="color:var(--gold2)">${n}</b> 个，每多点一个，下一个就更贵。拖动平移，滚轮/双指缩放。</span>
       <span style="display:flex;gap:6px"><button class="ghost" id="tHome">⌂ 回中心</button><button class="ghost" id="tRespec" ${n?'':'disabled'}>洗点（退还 ${f(refund)}）</button></span></div>
     <div id="sky" style="position:relative;height:min(62vh,560px);border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:none;cursor:grab;
       background:#0f0d0b"><svg id="skySvg" width="100%" height="100%" style="display:block"></svg></div>
@@ -1669,13 +1659,79 @@ function renderTree(body){
     <div id="tlist"></div>`;
   body.querySelectorAll('[data-rep]').forEach(el=>el.onclick=()=>{ const u=REP.find(x=>x.id===el.dataset.rep),l=M.up[u.id]||0,c=u.cost(l);
     if(u.need&&!u.need()) return toast(typeof u.needTxt==='function'?u.needTxt():u.needTxt); if(!spend(c,el)) return;
-    M.up[u.id]=l+1; save(); hud(); renderTree(body); });
+    M.up[u.id]=l+1; save(); hud(); refreshTreeView(body); });
   if(!unl('tree')) return treeLocked(body);
   $('tHome').onclick=()=>{ TV=tvHome(); drawSky(); };
-  const rb=$('tRespec'); rb.onclick=()=>{ if(!n) return; if(!rb.dataset.c){ rb.dataset.c=1; rb.textContent='再点一次确认洗点'; return; }
-    M.money+=refund; M.tree={}; M.treeSpent=0; recalcTree(); save(); hud(); renderSide(); tSel=null; toast(`星盘已重置，退还 ${f(refund)} 金币`); renderTree(body); };
+  bindTreeRespec(body);
   drawSky(); requestAnimationFrame(drawSky); skyInput(body); tInfo(body); tList(body);
 }
+// Build actions update the existing view instead of replacing the whole panel.
+function holdBuildView(update,anchor){
+  const ov=$('ov'), x=window.scrollX, y=window.scrollY;
+  const top=ov?ov.scrollTop:0, left=ov?ov.scrollLeft:0;
+  const target=anchor&&anchor.isConnected?anchor:null, targetTop=target?target.getBoundingClientRect().top:0;
+  const restore=()=>{
+    if(ov){ ov.scrollTop=top; ov.scrollLeft=left; } window.scrollTo(x,y);
+    if(target&&target.isConnected){ const dy=target.getBoundingClientRect().top-targetTop;
+      if(ov&&ov.contains(target)) ov.scrollTop+=dy; else window.scrollTo(x,y+dy); }
+  };
+  update(); restore(); requestAnimationFrame(restore);
+}
+function refreshDeckView(body,anchor){
+  holdBuildView(()=>{
+    const eq=equipped(), selected=new Set(eq), all=CARDS.filter(c=>M.owned[c.id]), n=schoolCount(), F=deckF;
+    body.querySelectorAll('.card[data-id]').forEach(el=>{
+      el.classList.toggle('eq',selected.has(el.dataset.id));
+      if(F.sch==='eq'&&!selected.has(el.dataset.id)) el.remove();
+    });
+    const bar=body.querySelector('.eqbar');
+    if(bar){
+      bar.innerHTML=`<span class="sub">已装备 ${eq.length}/${maxSlots()}</span>${eq.map(id=>`<button class="ghost" data-uneq="${id}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico} ${byId[id].name} ✕</button>`).join('')}${eq.length<maxSlots()?'<span class="sub">· 点下面的卡牌装备</span>':''}`;
+      bar.querySelectorAll('[data-uneq]').forEach(b=>b.onclick=()=>{ M.deck=M.deck.filter(x=>x!==b.dataset.uneq); save(); renderSide(); refreshDeckView(body,b); });
+    }
+    body.querySelectorAll('[data-fs]').forEach(b=>{
+      const k=b.dataset.fs, school=SCH[k];
+      const label=k==='all'?'全部':k==='eq'?'已装备':`${school.ico}${school.name}${resMult(n[k]||0)>1?` ×${resMult(n[k])}`:''}`;
+      const count=k==='all'?all.length:k==='eq'?eq.length:all.filter(c=>c.sch===k||c.sch2===k).length;
+      b.innerHTML=`${label} <span style="opacity:.7">${count}</span>`;
+      b.style.cssText=F.sch===k?'border-color:var(--gold);color:var(--gold2);background:#d9b45a18':school&&(n[k]||0)>=2?`color:${school.color}`:'';
+    });
+    const grid=body.querySelector('.deckgrid');
+    if(grid&&F.sch==='eq'){
+      grid.querySelectorAll('.schhead').forEach(h=>{ let next=h.nextElementSibling; if(!next||next.classList.contains('schhead')) h.remove(); });
+      let empty=body.querySelector('[data-deck-empty]');
+      if(!grid.querySelector('.card')){ if(!empty){ empty=document.createElement('p'); empty.className='sub'; empty.dataset.deckEmpty=''; empty.textContent='这个筛选下没有卡牌。'; grid.after(empty); } }
+    }
+    const nav=document.querySelector('#box [data-t="deck"]'); if(nav) nav.textContent=tName('deck',0);
+  },anchor);
+}
+function bindTreeRespec(body){
+  const rb=$('tRespec'); if(!rb) return;
+  const count=tCount(), refund=Math.floor((M.treeSpent||0)*.8);
+  rb.disabled=!count; delete rb.dataset.c; rb.textContent=`洗点（退还 ${f(refund)}）`;
+  rb.onclick=()=>{
+    const n=tCount(), amount=Math.floor((M.treeSpent||0)*.8); if(!n) return;
+    if(!rb.dataset.c){ rb.dataset.c=1; rb.textContent='再点一次确认洗点'; return; }
+    M.money+=amount; M.tree={}; M.treeSpent=0; recalcTree(); save(); hud(); renderSide(); tSel=null;
+    toast(`星盘已重置，退还 ${f(amount)} 金币`); refreshTreeView(body);
+  };
+}
+function refreshTreeView(body){
+  holdBuildView(()=>{
+    body.querySelectorAll('[data-rep]').forEach(el=>{
+      const u=REP.find(x=>x.id===el.dataset.rep), l=M.up[u.id]||0, c=u.cost(l), lock=u.need&&!u.need();
+      el.classList.toggle('off',!!lock||M.money<c);
+      el.querySelector('.lvl').textContent=`Lv${l}`;
+      el.querySelector('.sub').innerHTML=`${u.desc(l)} → ${u.desc(l+1)}`;
+      el.querySelector('.cost').textContent=lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c);
+    });
+    const count=$('tNodeCount'); if(count) count.textContent=tCount();
+    bindTreeRespec(body);
+    if(unl('tree')){ drawSky(); tInfo(body); tList(body); }
+  });
+}
+
+
 const treeLocked=body=>{ const sky=$('sky'); if(!sky) return; ['tHome','tRespec','tinfo','tlist'].forEach(id=>{ const e=$(id); if(e) e.remove(); }); const tip=sky.previousElementSibling; if(tip) tip.remove();
   sky.outerHTML='<div class="chap" style="text-align:center;padding:18px">🔒 <b>星盘</b>：再打完 '+Math.max(1,3-M.round)+' 轮就开放。先用金币升级上面的「宝珠打磨」吧。</div>'; };
 // 「可以点亮」清单：不用在星盘上找，直接点
@@ -1730,7 +1786,7 @@ function tInfo(body){
 }
 function buyNode(id,body){ const n=TNB[id]; if(!tOpen(id)) return; const c=tCost(n); if(!spend(c,document.querySelector(`[data-buyn="${id}"]`)||$('tBuy')||$('sky'))) return;
   M.treeSpent=(M.treeSpent||0)+c; M.tree[id]=1; recalcTree(); save(); hud(); renderSide(); if(n.t!=='s') SFX.play('raise');
-  toast(n.t==='k'?`基石「${n.name}」已点亮！`:`${n.name} 点亮！`); renderTree(body); }
+  toast(n.t==='k'?`基石「${n.name}」已点亮！`:`${n.name} 点亮！`); refreshTreeView(body); }
 const TAPMOVE=12; // 手指移动 12 像素以内算点击
 function skyInput(body){
   const sky=$('sky'); const pts=new Map(); let moved=0,pinch=0,downId=null;
@@ -1802,7 +1858,7 @@ function showBetween(){
   if(tab==='loot'){
     body.innerHTML=ids.length?`<div class="grid">${ids.map((id,i)=>cardHTML(id,{pop:1,delay:i*.07,count:G.loot[id],isNew:G.newIds[id],up:G.upIds[id],foilNew:G.foilIds&&G.foilIds[id]})).join('')}</div>`:'<p class="sub">这一轮还没开出卡牌。试试瞄准卡包密集的地方！</p>';
   } else if(tab==='bag'){
-    body.innerHTML=`<p class="sub">每轮开局，珠袋里的特殊宝珠会和普通金珠一起洗进弹药（超出本轮宝珠数的不上场）。台面上方能看到接下来的三颗；按 <b>Q</b> 或点发射器左边的暂存位，可以把下一颗先存起来、之后再换回。<br>新宝珠在路线「黑市」和「奇遇」里获得。</p>`+ORB_SPECIAL.map(k=>{ const o=ORBS[k],n=M.orbs[k]||0; return `<div class="ach ${n?'yes':'no'}"><div class="ico" style="color:${o.c}">${o.ico}</div><div><div style="font-weight:800;color:${o.c}">${o.name}</div><div class="sub">${o.desc}</div></div><div class="rw">× ${n}</div></div>`; }).join('');
+    body.innerHTML=`<p class="sub">每轮开局，珠袋里的特殊宝珠会和普通金珠一起洗进弹药（超出本轮宝珠数的不上场）。发射器右边会显示接下来的三颗宝珠，按珠袋顺序发射。<br>新宝珠在路线「黑市」和「奇遇」里获得。</p>`+ORB_SPECIAL.map(k=>{ const o=ORBS[k],n=M.orbs[k]||0; return `<div class="ach ${n?'yes':'no'}"><div class="ico" style="color:${o.c}">${o.ico}</div><div><div style="font-weight:800;color:${o.c}">${o.name}</div><div class="sub">${o.desc}</div></div><div class="rw">× ${n}</div></div>`; }).join('');
   } else if(tab==='up'){
     renderTree(body);
   } else if(tab==='deck'){
@@ -1823,11 +1879,11 @@ function showBetween(){
       ${all.length?(list.length?`<div class="grid deckgrid">${grid}</div>`:'<p class="sub">这个筛选下没有卡牌。</p>'):'<p class="sub">还没有卡牌。</p>'}`;
     body.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{ F.sch=b.dataset.fs; showBetween(); });
     body.querySelectorAll('[data-so]').forEach(b=>b.onclick=()=>{ F.sort=b.dataset.so; showBetween(); });
-    body.querySelectorAll('[data-uneq]').forEach(b=>b.onclick=()=>{ M.deck=M.deck.filter(x=>x!==b.dataset.uneq); save(); renderSide(); showBetween(); });
+    body.querySelectorAll('[data-uneq]').forEach(b=>b.onclick=()=>{ M.deck=M.deck.filter(x=>x!==b.dataset.uneq); save(); renderSide(); refreshDeckView(body,b); });
     body.querySelectorAll('.card').forEach(el=>el.onclick=()=>{ const id=el.dataset.id;
       if(M.deck.includes(id)) M.deck=M.deck.filter(x=>x!==id);
       else if(equipped().length<maxSlots()) M.deck=equipped().concat(id); else return toast('技能槽满了，先卸下一张');
-      save(); renderSide(); showBetween(); });
+      save(); renderSide(); refreshDeckView(body,el); });
   } else if(tab==='legacy'){
     const gain=soulGain();
     body.innerHTML=`<div class="chap" style="margin-bottom:12px">🔥 <b>熔金转生</b>：把这一世的金币熔成<b>金魂</b>。会重置金币、工坊（技能槽、共鸣强化、自动发射保留）和章节进度，<b>保留所有卡牌和闪卡</b>。<br>
