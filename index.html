@@ -422,8 +422,9 @@ const PITY=40;
 // ================= 存档 =================
 const KEY='gold-orb-v2';
 const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
-  mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0},tree:{},treeSpent:0,keep:{},treeV:2,
-  goal:10,streak:0,bestStreak:0,orbs:{fire:1,heavy:1},routes:null,banned:{},pickRolls:0,unl:{}});
+  mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0,hc:0,roundCoins:0,chRound:0},tree:{},treeSpent:0,keep:{},treeV:2,
+  goal:10,streak:0,bestStreak:0,orbs:{fire:1,heavy:1},routes:null,banned:{},pickRolls:0,unl:{},
+  pid:'',lbName:'',lbSent:{},lbSentName:''});
 let M=fresh();
 function save(){ M.lastSeen=Date.now(); try{ localStorage.setItem(KEY,JSON.stringify(M)); }catch(e){} }
 function adopt(d){ M=Object.assign(fresh(),d); M.up=Object.assign(fresh().up,d.up||{}); M.legacy=Object.assign(fresh().legacy,d.legacy||{}); M.best=Object.assign(fresh().best,d.best||{}); M.treeV=d.treeV||0; M.tree=d.tree||{}; M.keep=d.keep||{};
@@ -851,7 +852,7 @@ function dmgPack(p,amt,silent,src){
   if(p.hp<=0) openPack(p);
 }
 function hitPack(b,p){
-  G.hits++; b.hn=(b.hn||0)+1; if(b.hn>M.best.chain) M.best.chain=b.hn; if(b.hn>=40) grantMyth('echo'); chainTick(b); p.sq=.16;
+  G.hits++; b.hn=(b.hn||0)+1; if(b.hn>M.best.chain) M.best.chain=b.hn; if(b.hn>=40) grantMyth('echo'); hcTick(b); chainTick(b); p.sq=.16;
   G.combo=G.time-G.comboT<.8?G.combo+1:1; G.comboT=G.time; if(G.combo>M.best.combo) M.best.combo=G.combo;
   if(p.boss&&p.shield>0){ p.shield--; p.hit=.08; G.fx.push({x:p.x,y:p.y-p.hh-14,t:p.shield?`🛡 ${p.shield}`:'🛡 破盾！',c:'#ffcc55',life:.6}); burst(b.x,b.y,'#ffcc55',8); SFX.play('shield'); return; }
   SFX.play('hit',G.combo);
@@ -927,7 +928,7 @@ function bossDown(p){
   const coins=packValue(2)*12*Math.pow(1.5,M.ch-1)*(1+.4*M.legacy.rich); earn(coins,p.x,p.y);
   G.death={x:p.x,y:p.y,h:p.hh*2,t:0,img:'p2_'+bossIdx(M.ch)}; shake(6);
   giveCard(p,'SSR'); giveCard(p,0); giveCard(p,2); if(urUnlocked().length&&Math.random()<UR_BOSS) giveCard(p,'UR');
-  const old=M.ch; M.ch++; M.maxCh=Math.max(M.maxCh,M.ch); M.chRounds=0;
+  const old=M.ch; M.ch++; if(M.ch>M.maxCh) M.best.chRound=M.round; M.maxCh=Math.max(M.maxCh,M.ch); M.chRounds=0;
   G.fx.push({x:W/2,y:H/2,t:`${chInfo(old).boss} 被击败！`,c:'#ffcc55',life:2.5});
   toast(`👑 击败首领！第 ${M.ch} 章「${chInfo(M.ch).name}」开启`);
   G.boss=null;
@@ -939,7 +940,7 @@ function addMx(b,v){ const before=b.mx; b.mx=Math.min(MX.cap,b.mx+v); if(b.mx>M.
   if(Math.floor(b.mx)>Math.floor(before)){ const n=Math.floor(b.mx); G.fx.push({x:b.x,y:b.y-20,t:'×'+n,c:mxCol(b.mx),life:.7,sz:14+n*3}); G.parts.push({ring:true,x:b.x,y:b.y,r:b.r,max:b.r+18+n*4,life:.3,dur:.3,c:mxCol(b.mx),lw:2}); SFX.play('mxup',n); } }
 function chainTick(b,n){ b.ch+=n||1; if(!(G.fever>0)&&!b.fevered&&!b.reborn&&b.ch>=FEVER.chain) startFever(b); } // 重生的宝珠不再触发狂热
 function hitStop(v,force){ if(!G) return; if(!force&&G.time-(G.hsLast||-9)<.18) return; G.hs=Math.max(G.hs||0,Math.min(.14,v)); G.hsLast=G.time; }
-function pegHit(b,g){ chainTick(b); b.pot+=POT.peg*packValue(0)*b.mx; addMx(b,MX.peg);
+function pegHit(b,g){ hcTick(b); chainTick(b); b.pot+=POT.peg*packValue(0)*b.mx; addMx(b,MX.peg);
   G.parts.push({ring:true,x:g.x,y:g.y,r:g.r,max:g.r+9,life:.16,dur:.16,c:mxCol(b.mx),lw:1});
   const k=g.kind; if(!k) return; g.kind=null;
   if(k==='gold'){ b.pot+=POT.gold*packValue(0)*b.mx; addMx(b,MX.gold); burst(g.x,g.y,'#ffd76a',22); G.parts.push({ring:true,x:g.x,y:g.y,r:4,max:40,life:.35,dur:.35,c:'#ffd76a',lw:2});
@@ -1123,7 +1124,7 @@ function update(dt){
     if(b.y>H-26){ // 落底
       payPocket(b);
       const caught=!b.mini&&((bk&&Math.abs(b.x-bk.x)<bw/2)||(G.basket2&&Math.abs(b.x-G.basket2.x)<bw/2));
-      if(!caught&&G.R.reborn&&(b.reborn||0)<G.R.reborn){ b.reborn=(b.reborn||0)+1; b.ch=0; b.mx=1; b.y=24; b.vy=180; b.vx*=.6; b.dmgX*=G.R.rebornX; b.trail=[]; b.life=0; burst(b.x,30,'#c58bff',12); continue; }
+      if(!caught&&G.R.reborn&&(b.reborn||0)<G.R.reborn){ b.reborn=(b.reborn||0)+1; b.ch=0; b.hc=0; b.mx=1; b.y=24; b.vy=180; b.vx*=.6; b.dmgX*=G.R.rebornX; b.trail=[]; b.life=0; burst(b.x,30,'#c58bff',12); continue; }
       G.balls.splice(G.balls.indexOf(b),1);
       if(caught){ G.basketIn++; if(refund(b.x,H-50,'🧺 +1 宝珠','#7fe0a0')){ G.parts.push({ring:true,x:b.x,y:H-30,r:4,max:34,life:.4,dur:.4,c:'#79c29a',lw:1.5}); SFX.play('basket'); } else G.fx.push({x:b.x,y:H-50,t:'本轮返还已满',c:'#9a8f78',life:.8}); }
       else if(!b.mini && G.R.recycle && Math.random()<G.R.recycle){ refund(b.x,H-50,'♻️ 回收','#8fb8ff'); }
@@ -1373,6 +1374,7 @@ cv.addEventListener('touchstart',e=>{ tapHold=onHold(e); if(tapHold){ e.preventD
 cv.addEventListener('touchend',e=>{ if(tapHold){ tapHold=false; holdOrb(); e.preventDefault(); return; } if(!TS.hold) fire(); holding=false; e.preventDefault(); },{passive:false});
 const KONAMI=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA']; let kIdx=0;
 addEventListener('keydown',e=>{
+  if(/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if(e.code==='Space'){ if(!e.repeat) fire(); holding=true; e.preventDefault(); }
   if((e.code==='KeyQ'||e.code==='KeyE')&&!e.repeat&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)) holdOrb();
   if(e.code==='KeyM'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ M.mute=!M.mute; save(); syncMute(); toast(M.mute?'🔇 音效关闭':'🔊 音效开启'); }
@@ -1437,16 +1439,59 @@ function cardHTML(id,o={}){
 }
 let tab='loot';
 // 页签分组：5 个大类，大类下面再分小页
-const TGROUPS=[{id:'loot',name:'结算',subs:['loot']},{id:'build',name:'构筑',subs:['up','deck','book','bag']},{id:'goal',name:'目标',subs:['goals']},{id:'more',name:'更多',subs:['legacy','sys','fb']}];
+const TGROUPS=[{id:'loot',name:'结算',subs:['loot']},{id:'build',name:'构筑',subs:['up','deck','book','bag']},{id:'goal',name:'目标',subs:['goals','rank']},{id:'more',name:'更多',subs:['legacy','sys','fb']}];
 const TLAST={};
 const tGroupOf=t=>(TGROUPS.find(g=>g.subs.includes(t))||TGROUPS[0]).id;
 const tSubs=(g,canP)=>g.subs.filter(k=>(k!=='legacy'||canP||M.prestiges||M.soul)&&(k!=='bag'||unl('routes')));
-function tName(k,total){ return {loot:`战利品 ${total}`,deck:`技能槽 ${equipped().length}/${maxSlots()}`,book:`图鉴 ${Object.keys(M.owned).length}/${CARDS.length}`,up:unl('tree')?'升级 · 星盘':'升级',goals:unl('chal')?'挑战 · 成就':'成就',bag:`珠袋 ${orbCount()}`,
+function tName(k,total){ return {loot:`战利品 ${total}`,deck:`技能槽 ${equipped().length}/${maxSlots()}`,book:`图鉴 ${Object.keys(M.owned).length}/${CARDS.length}`,up:unl('tree')?'升级 · 星盘':'升级',goals:unl('chal')?'挑战 · 成就':'成就',rank:'排行榜',bag:`珠袋 ${orbCount()}`,
   chal:`挑战 ${badgeN()}/${CHAL.length}`,ach:`成就 ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'传承',sys:'设置',fb:'反馈'}[k]; }
 function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.ended=true; running=false; clearInterval(boonTimer); $('boonPop').classList.remove('show');
   ROUND_EQ=null; if(G.chal) chalEnd();
   M.best.opened=Math.max(M.best.opened,G.opened); if(G.opened>=30&&!G.basketIn) M.best.nobask=true;
-  settleRoute(); SFX.play('end'); checkAch(); save(); tab='loot'; showBetween(); }
+  settleRoute(); if(!G.chal) M.best.roundCoins=Math.max(M.best.roundCoins||0,G.earned);
+  SFX.play('end'); checkAch(); save(); tab='loot'; showBetween(); lbSubmit(); }
+
+// ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
+const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
+function newPid(){ const a=new Uint8Array(12); crypto.getRandomValues(a); return [...a].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function hcTick(b){ b.hc=(b.hc||0)+1; if(b.hc>(M.best.hc||0)) M.best.hc=b.hc; }
+const chName=v=>v<=5?`第 ${v} 章`:`深渊 ${v-5} 层`;
+const LB={
+  progress:{name:'最远进度',ico:'🏛️',fmt:(v,tb)=>chName(v)+(tb?` · 第 ${tb} 轮到达`:''),mine:()=>M.round>=1?{value:M.maxCh,tb:M.maxCh<=1?0:(M.best.chRound||M.round)}:null,how:'打到第几章 / 深渊第几层；同一章比谁用的轮数少'},
+  coins:{name:'单轮金币',ico:'💰',fmt:v=>'✦ '+f(v),mine:()=>M.best.roundCoins>0?{value:Math.floor(M.best.roundCoins)}:null,how:'一轮里打出的最多金币（挑战关卡不算）'},
+  streak:{name:'最长连胜',ico:'🔗',fmt:v=>`${v} 连胜`,mine:()=>M.bestStreak>0?{value:M.bestStreak}:null,how:'连续达成每轮目标的最多轮数'},
+  chain:{name:'单珠连锁',ico:'⚡',fmt:v=>`${v} 下`,mine:()=>M.best.hc>0?{value:M.best.hc}:null,how:'一颗宝珠落底前撞到铆钉和卡包的最多次数'},
+};
+const escH=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function lbFetch(path,opt){ const ac=new AbortController(), t=setTimeout(()=>ac.abort(),7000); try{ const r=await fetch(LB_URL+path,{...opt,signal:ac.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); } finally{ clearTimeout(t); } }
+// 只上传比上次传过的更好的成绩；改了昵称就全部重传
+async function lbSubmit(force){ if(!M.lbName||!M.pid) return false; const scores={}, rename=M.lbSentName!==M.lbName;
+  for(const k in LB){ const m=LB[k].mine(); if(!m) continue; const s=(M.lbSent||{})[k]; if(force||rename||!s||m.value>s.value||(m.value===s.value&&(m.tb||0)<(s.tb||0))) scores[k]=m; }
+  if(!Object.keys(scores).length&&!rename) return true;
+  try{ await lbFetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pid:M.pid,name:M.lbName,scores})});
+    M.lbSent=Object.assign(M.lbSent||{},scores); M.lbSentName=M.lbName; save(); return true; }catch(e){ return false; } }
+let lbBoard='progress';
+function renderRank(body){
+  const mine=LB[lbBoard].mine();
+  body.innerHTML=`<div class="chap" style="margin-top:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>昵称</b>
+      <input id="lbName" maxlength="12" value="${escH(M.lbName||'')}" placeholder="起个名字才能上榜" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
+      <button class="btn" id="lbSave" style="padding:7px 16px;font-size:14px;letter-spacing:0">${M.lbName?'改名':'上榜'}</button></div>
+    <div class="sub" style="margin-top:6px">昵称会公开显示在排行榜上，不收集其他信息。每轮结算时自动上传刷新的最好成绩。</div></div>
+    <div class="subtabs" style="margin-top:10px">${Object.entries(LB).map(([k,v])=>`<button class="${k===lbBoard?'on':''}" data-lb="${k}">${v.ico} ${v.name}</button>`).join('')}</div>
+    <div class="sub">${LB[lbBoard].how}　·　我的最好：<b style="color:var(--gold2)">${mine?LB[lbBoard].fmt(mine.value,mine.tb):'还没有'}</b></div>
+    <div id="lbList" style="margin-top:10px"><p class="sub">加载中……</p></div>`;
+  body.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ lbBoard=b.dataset.lb; renderRank(body); });
+  $('lbSave').onclick=async()=>{ const v=Array.from($('lbName').value.replace(/[\u0000-\u001f<>&"'`\\]/g,'').replace(/\s+/g,' ').trim()).slice(0,12).join('');
+    if(!v) return toast('先起个昵称'); M.lbName=v; save(); const ok=await lbSubmit(true); toast(ok?'已上榜':'排行榜暂时连不上，下一轮结算时再试'); renderRank(body); };
+  const board=lbBoard;
+  lbFetch(`/top?board=${board}&limit=50&pid=${M.pid}&t=${Date.now()}`).then(d=>{ const el=$('lbList'); if(!el||board!==lbBoard) return;
+    if(!d.top.length){ el.innerHTML='<p class="sub">还没有人上榜，来当第一个。</p>'; return; }
+    const row=(rk,x,me)=>`<div class="row" style="cursor:default;${me?'border-color:var(--gold)':''}"><div class="ico" style="font-weight:900;color:${rk<=3?'var(--gold2)':'var(--dim)'};font-size:${rk<=3?18:14}px">${rk}</div>
+      <div class="info"><div class="nm">${escH(x.name)}${me?' <span class="lvl">（我）</span>':''}</div></div><div class="cost">${LB[board].fmt(x.value,x.tb)}</div></div>`;
+    let h=`<div class="sub" style="margin-bottom:6px">共 ${d.total} 人上榜${d.me?`，我排第 <b style="color:var(--gold2)">${d.me.rank}</b>`:''}</div>`+d.top.map((x,i)=>row(i+1,x,x.me)).join('');
+    if(d.me&&d.me.rank>d.top.length) h+=`<div class="sub" style="text-align:center">……</div>`+row(d.me.rank,{name:M.lbName,value:d.me.value,tb:d.me.tb},true);
+    el.innerHTML=h; }).catch(()=>{ const el=$('lbList'); if(el&&board===lbBoard) el.innerHTML='<p class="sub">排行榜暂时连不上，稍后再看。</p>'; });
+}
 
 // ================= 💬 反馈：单独的反馈页（游戏本身不需要登录） =================
 const FB_URL='https://claude.ai/artifact/HEr4fWnrFfuqkhqYxPp1UF';
@@ -1737,6 +1782,8 @@ function showBetween(){
       if(u.max&&l>=u.max) return; const c=u.cost(l); if(!spend(c,el,true)) return;
       M.legacy[u.id]++; save(); showBetween(); toast(`${u.name} 提升了！`); });
     const mb=$('melt'); if(mb) mb.onclick=()=>{ if(!(canP&&gain>0)) return; if(!mb.dataset.c){ mb.dataset.c=1; mb.textContent='再点一次确认熔金'; return; } prestige(); };
+  } else if(tab==='rank'){
+    renderRank(body);
   } else if(tab==='ach'||tab==='goals'){
     if(tab==='goals'){ body.innerHTML='<div id="gChal"></div><div class="h3" style="margin-top:16px"><span>🏆 成就</span></div><div id="gAch"></div>'; if(unl('chal')) renderChal($('gChal')); else $('gChal').innerHTML='<p class="sub">🔒 挑战关卡：击败第 2 章首领后开放。</p>'; body=$('gAch'); }
     body.innerHTML=`<p class="sub">完成成就可以获得 🔥 金魂（在「传承」里花）。</p>`+ACH.map(a=>{ const ok=M.ach[a.id];
@@ -1768,7 +1815,7 @@ function showBetween(){
 let last=performance.now();
 function loop(now){ const dt=Math.min(.033,(now-last)/1000); last=now; if(running) update(dt); draw(); hud(); requestAnimationFrame(loop); }
 $('emb').src=ART.emblem;
-load();
+load(); if(!M.pid) M.pid=newPid();
 const MIG=M.round>0?migrateTree():(M.treeV=2,0);
 recalcTree(); syncMute(); buildPockets();
 save(); renderSide(); hud();

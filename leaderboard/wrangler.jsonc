@@ -1,0 +1,16 @@
+{
+  // 千珠落尽排行榜。部署：在这个文件夹里运行
+  //   npx wrangler@4.151.1 d1 execute thousand-orbs-board --remote --file schema.sql   （只在第一次或改表时）
+  //   npx wrangler@4.151.1 deploy
+  "name": "thousand-orbs-board",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "thousand-orbs-board",
+      "database_id": "df8c26ac-a85a-45fa-9a0f-ddfb8494bdc1"
+    }
+  ]
+}
