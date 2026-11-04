@@ -35,7 +35,13 @@
 - 数据库：D1 `thousand-orbs-board`，表结构在 `leaderboard/schema.sql`
 - 接口：`GET /top?board=progress|coins|streak|chain&limit=50&pid=…`，`POST /submit`
 - 部署是手动的，在 `leaderboard/` 文件夹里运行 `npx wrangler@4.151.1 deploy`（改表时先跑 `npx wrangler@4.151.1 d1 execute thousand-orbs-board --remote --file schema.sql`）
-- 游戏在浏览器里跑，成绩没法真正防作弊；后端只做格式、范围检查和按 IP 限流（每分钟 20 次）。如果有人刷榜，可以直接在 D1 里删那一行
+- 游戏在浏览器里跑，成绩没法真正防作弊；后端只做格式、范围检查和按 IP 限流（每分钟 60 次）。如果有人刷榜，可以直接在 D1 里删那一行
+
+## 玩家统计
+
+- 每轮结算时游戏匿名上传一条记录（随机玩家 id、轮次类型、章节、是否达成 / 击败、开包数、金币、时长、装备的卡、是否手机），存在 D1 的 `rounds` 表；玩家可以在「更多 → 设置」里关掉
+- 统计页：<https://thousand-orbs-board.achat-vente-garderie.workers.dev/admin>，输入统计密码后看流派人气、最常用的卡、每人玩到第几章、各章首领胜率和目标达成率、挑战关卡、手机玩家占比、每天玩家数
+- 统计密码是 Worker 的 secret `STATS_KEY`，本机副本在 `leaderboard/.stats-key`（不进 git）。换密码：`npx wrangler@4.151.1 secret put STATS_KEY`
 
 ## 致谢
 

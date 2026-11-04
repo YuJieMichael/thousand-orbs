@@ -6,6 +6,8 @@
   "main": "src/index.js",
   "compatibility_date": "2026-11-01",
   "workers_dev": true,
+  // 统计页面 admin.html 作为文本导入
+  "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }],
   "d1_databases": [
     {
       "binding": "DB",

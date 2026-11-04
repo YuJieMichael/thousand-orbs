@@ -16,3 +16,26 @@ CREATE TABLE IF NOT EXISTS hits (
   win INTEGER NOT NULL,
   n   INTEGER NOT NULL
 );
+
+-- 匿名统计：每轮结算一条（只有随机玩家 id，不含昵称）
+CREATE TABLE IF NOT EXISTS rounds (
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts      INTEGER NOT NULL,          -- 毫秒
+  day     TEXT    NOT NULL,          -- UTC 日期 YYYY-MM-DD
+  pid     TEXT    NOT NULL,
+  kind    TEXT    NOT NULL,          -- normal / elite / boss / chal
+  ch      INTEGER NOT NULL,          -- 当前章节
+  max_ch  INTEGER NOT NULL,          -- 最远章节
+  round   INTEGER NOT NULL,          -- 这是玩家的第几轮
+  win     INTEGER NOT NULL,          -- 普通/精英：目标达成；首领：击败；挑战：成功
+  opened  INTEGER NOT NULL,
+  coins   REAL    NOT NULL,
+  dur     REAL    NOT NULL,          -- 这一轮多少秒
+  main_sch TEXT,                     -- 装备最多的流派
+  cards   TEXT,                      -- 装备的卡 id，逗号分隔
+  chal    TEXT,                      -- 挑战关卡 id
+  mobile  INTEGER NOT NULL DEFAULT 0,
+  v       TEXT
+);
+CREATE INDEX IF NOT EXISTS rounds_day ON rounds (day);
+CREATE INDEX IF NOT EXISTS rounds_pid ON rounds (pid);

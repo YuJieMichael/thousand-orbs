@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>千珠落尽 · 统计</title>
+<style>
+  :root{--bg:#0b0a09;--panel:#141210;--line:#2a251f;--ink:#ece6da;--dim:#8f877a;--gold:#c8a464;--gold2:#e6cf9c;--green:#79c29a;--red:#d06a5a}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 "PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 14px 40px}
+  h1{font-size:22px;margin:0 0 4px;color:var(--gold2);letter-spacing:2px} .sub{color:var(--dim);font-size:12px}
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0}
+  input,select,button{background:#0f0d0b;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit}
+  button{cursor:pointer;border-color:var(--gold);color:var(--gold2)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .card h2{font-size:14px;margin:0 0 10px;color:var(--gold);letter-spacing:1px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px} .kpi b{display:block;font-size:24px;color:var(--gold2);font-variant-numeric:tabular-nums} .kpi span{color:var(--dim);font-size:12px}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums} th,td{text-align:left;padding:5px 6px;border-bottom:1px solid #1d1a16;font-size:13px} th{color:var(--dim);font-weight:600}
+  td.n{text-align:right} .hb{height:8px;border-radius:4px;background:var(--gold);min-width:2px}
+  .day{display:flex;align-items:flex-end;gap:3px;height:120px;padding-top:6px} .day div{flex:1;background:var(--gold);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+  .day div:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#000;padding:2px 6px;border-radius:4px;white-space:nowrap;font-size:11px}
+  .err{color:var(--red)} .ok{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>千珠落尽 · 玩家统计</h1>
+  <div class="sub">每轮结算时游戏匿名上传一条记录（随机玩家 id，不含昵称）。玩家可以在游戏「设置」里关掉。</div>
+  <div class="bar">
+    <input id="key" type="password" placeholder="统计密码" autocomplete="current-password" style="width:240px">
+    <select id="days"><option value="7">最近 7 天</option><option value="30" selected>最近 30 天</option><option value="90">最近 90 天</option><option value="3650">全部</option></select>
+    <button id="go">查看</button><span id="msg" class="sub"></span>
+  </div>
+  <div id="out"></div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '-';
+const num = (n) => n == null ? '-' : Math.round(n).toLocaleString();
+const chName = (c) => c <= 5 ? '第 ' + c + ' 章' : '深渊 ' + (c - 5) + ' 层';
+const SCH = { combo: '⚡ 连击', fire: '🔥 灼烧', acid: '🧪 腐蚀', gold: '💰 财富', grav: '🌀 引力', myth: '✦ 秘藏', none: '没装卡' };
+const CHAL = { mono: '一脉单传', five: '五珠定乾坤', blitz: '闪电战', bare: '赤手空拳', combo: '连击大师', one: '一珠入魂', hunter: '黑金猎人' };
+$('key').value = localStorage.getItem('to-stats-key') || '';
+function bars(rows, label, val, sub) {
+  const max = Math.max(1, ...rows.map(val));
+  return '<table><tbody>' + rows.map((r) => '<tr><td style="width:34%">' + label(r) + '</td><td><div class="hb" style="width:' + (val(r) / max * 100) + '%"></div></td><td class="n" style="width:22%">' + (sub ? sub(r) : num(val(r))) + '</td></tr>').join('') + '</tbody></table>';
+}
+function render(d) {
+  const t = d.total || {}, mob = d.mobile || [], mobN = (mob.find((x) => x.mobile === 1) || {}).players || 0, allP = mob.reduce((a, x) => a + x.players, 0);
+  const perDay = d.perDay || [], maxR = Math.max(1, ...perDay.map((x) => x.players));
+  let h = '<div class="kpis">' +
+    '<div class="kpi"><b>' + num(t.players) + '</b><span>玩家（' + d.days + ' 天内玩过）</span></div>' +
+    '<div class="kpi"><b>' + num(t.rounds) + '</b><span>总轮数</span></div>' +
+    '<div class="kpi"><b>' + (t.players ? (t.rounds / t.players).toFixed(1) : '-') + '</b><span>人均轮数</span></div>' +
+    '<div class="kpi"><b>' + (t.dur ? Math.round(t.dur) + ' 秒' : '-') + '</b><span>平均每轮时长</span></div>' +
+    '<div class="kpi"><b>' + pct(mobN, allP) + '</b><span>手机玩家</span></div>' +
+    '<div class="kpi"><b>' + num(d.leaderboardPlayers) + '</b><span>上过排行榜的人</span></div></div>';
+  h += '<div class="grid">';
+  h += '<div class="card"><h2>每天玩家数</h2>' + (perDay.length ? '<div class="day">' + perDay.map((x) => '<div style="height:' + (x.players / maxR * 100) + '%" data-t="' + esc(x.day) + '：' + x.players + ' 人 / ' + x.rounds + ' 轮"></div>').join('') + '</div><div class="sub">' + esc(perDay[0].day) + ' → ' + esc(perDay[perDay.length - 1].day) + '（鼠标放上去看数字）</div>' : '<div class="sub">还没有数据</div>') +
+    '<div class="sub" style="margin-top:8px">新玩家：' + (d.newPerDay || []).map((x) => esc(x.day.slice(5)) + ' ' + x.n).join(' · ') + '</div></div>';
+  h += '<div class="card"><h2>流派人气（按装备最多的流派）</h2>' + bars(d.schools || [], (r) => SCH[r.sch] || esc(r.name), (r) => r.rounds, (r) => num(r.rounds) + ' 轮 · ' + r.players + ' 人') + '</div>';
+  h += '<div class="card"><h2>玩到哪儿了（每人最远章节）</h2>' + bars(d.progress || [], (r) => chName(r.ch), (r) => r.players, (r) => r.players + ' 人') + '</div>';
+  h += '<div class="card"><h2>首领胜率</h2><table><thead><tr><th>章节</th><th class="n">挑战次数</th><th class="n">击败</th><th class="n">胜率</th></tr></thead><tbody>' +
+    (d.boss || []).map((r) => '<tr><td>' + chName(r.ch) + '</td><td class="n">' + r.n + '</td><td class="n">' + r.w + '</td><td class="n">' + pct(r.w, r.n) + '</td></tr>').join('') + '</tbody></table></div>';
+  h += '<div class="card"><h2>每轮目标达成率</h2><table><thead><tr><th>章节</th><th>类型</th><th class="n">轮数</th><th class="n">达成率</th><th class="n">平均开包</th></tr></thead><tbody>' +
+    (d.goal || []).map((r) => '<tr><td>' + chName(r.ch) + '</td><td>' + (r.kind === 'elite' ? '精英' : '普通') + '</td><td class="n">' + r.n + '</td><td class="n">' + pct(r.w, r.n) + '</td><td class="n">' + Math.round(r.opened) + '</td></tr>').join('') + '</tbody></table></div>';
+  h += '<div class="card"><h2>挑战关卡</h2>' + ((d.chal || []).length ? '<table><thead><tr><th>关卡</th><th class="n">尝试</th><th class="n">成功率</th><th class="n">人数</th></tr></thead><tbody>' +
+    d.chal.map((r) => '<tr><td>' + esc(CHAL[r.chal] || r.chal) + '</td><td class="n">' + r.n + '</td><td class="n">' + pct(r.w, r.n) + '</td><td class="n">' + r.players + '</td></tr>').join('') + '</tbody></table>' : '<div class="sub">还没人打挑战关卡</div>') + '</div>';
+  h += '<div class="card" style="grid-column:1/-1"><h2>最常装备的卡（出现在多少轮里）</h2>' + bars((d.cards || []).slice(0, 25), (r) => esc(r.name) + ' <span class="sub">' + esc(r.rar || '') + ' · ' + (SCH[r.sch] || '') + '</span>', (r) => r.rounds) + '<div class="sub">统计了最近 ' + num(d.cardRoundsSampled) + ' 轮</div></div>';
+  h += '</div>';
+  $('out').innerHTML = h;
+}
+async function load() {
+  const key = $('key').value.trim(); if (!key) { $('msg').textContent = '先输入统计密码'; return; }
+  $('msg').textContent = '加载中……'; $('msg').className = 'sub';
+  try {
+    const r = await fetch('/stats?days=' + $('days').value, { headers: { Authorization: 'Bearer ' + key } });
+    if (r.status === 401) { $('msg').textContent = '密码不对'; $('msg').className = 'err'; return; }
+    const d = await r.json(); localStorage.setItem('to-stats-key', key); render(d); $('msg').textContent = '更新于 ' + new Date().toLocaleTimeString(); $('msg').className = 'ok';
+  } catch (e) { $('msg').textContent = '加载失败：' + e.message; $('msg').className = 'err'; }
+}
+$('go').onclick = load; $('days').onchange = load; $('key').onkeydown = (e) => { if (e.key === 'Enter') load(); };
+if ($('key').value) load();
+</script>
+</body>
+</html>

@@ -784,6 +784,7 @@ function startRound(boss,opt={}){
      mut:mut||{},chal:chal?chal.id:null,chalWin:false,black:0,maxChain:0,paused:false,boons:[],boonNext:boss?0:8,
      bo:{dmg:1,coin:1,split:0,crit:0,basketW:0,luck:1,refill:1,echo:0,chain:0}};
   // 珠袋：特殊宝珠 + 普通宝珠，洗乱；本轮目标（只有普通 / 精英轮有）
+  G.eq=equipped().slice(); G.ch0=M.ch; // 统计用：这一轮开局时的装备和章节
   G.bag=[]; G.bagOn=unl('routes'); if(G.bagOn) ORB_SPECIAL.forEach(k=>{ for(let i=0;i<((M.orbs||{})[k]||0);i++) G.bag.push(k); }); G.bag=G.bag.slice(0,am); while(G.bag.length<am) G.bag.push('normal');
   for(let i=G.bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [G.bag[i],G.bag[j]]=[G.bag[j],G.bag[i]]; }
   G.hold=null; G.holdUsed=false;
@@ -1492,10 +1493,16 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
   M.best.opened=Math.max(M.best.opened,G.opened); if(G.opened>=30&&!G.basketIn) M.best.nobask=true;
   if(!G.isBoss&&!G.chal&&G.dealt>0) M.dealtAvg=M.dealtAvg?M.dealtAvg*.5+G.dealt*.5:G.dealt; // 最近几轮普通轮的输出
   settleRoute(); if(!G.chal) M.best.roundCoins=Math.max(M.best.roundCoins||0,G.earned);
-  SFX.play('end'); checkAch(); save(); tab='loot'; showBetween(); lbSubmit(); }
+  SFX.play('end'); checkAch(); save(); tab='loot'; showBetween(); lbSubmit(); statSend(); }
 
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
+// 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
+const GAME_V='2026-11-04';
+function statSend(){ if(M.stats===false||!M.pid||!G||!G.packs) return;
+  const kind=G.chal?'chal':G.isBoss?'boss':G.route==='elite'?'elite':'normal', win=G.chal?G.chalWin:G.isBoss?G.bossWin:G.goalOk;
+  const body={pid:M.pid,kind,ch:G.ch0||M.ch,maxCh:M.maxCh,round:M.round,win:!!win,opened:G.opened,coins:G.earned,dur:Math.round(G.time*10)/10,cards:G.eq||[],chal:G.chal||null,mobile:MOBILE.matches,v:GAME_V};
+  try{ fetch(LB_URL+'/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true}).catch(()=>{}); }catch(e){} }
 function newPid(){ const a=new Uint8Array(12); crypto.getRandomValues(a); return [...a].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function hcTick(b){ b.hc=(b.hc||0)+1; if(b.hc>(M.best.hc||0)) M.best.hc=b.hc; }
 const chName=v=>v<=5?`第 ${v} 章`:`深渊 ${v-5} 层`;
@@ -1854,12 +1861,14 @@ function showBetween(){
   } else if(tab==='sys'){
     body.innerHTML=`<div class="chap">🔊 音效 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}>开启</label> <span class="sub">（快捷键 M）</span></div>
       <div class="chap">📳 震动 ${navigator.vibrate?`<label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sVibe" ${M.vibe===false?'':'checked'}>开启</label> <span class="sub">（开出稀有包、×5 大奖、狂热、首领时轻震）</span>`:'<span class="sub">这台设备的浏览器不支持震动</span>'}</div>
+      <div class="chap">📊 匿名统计 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sStats" ${M.stats===false?'':'checked'}>开启</label> <span class="sub">每轮结算时匿名上传用的流派和卡、章节、这一轮的成绩，帮作者调平衡。只带一个随机 id，不带昵称和其他个人信息。</span></div>
       <div class="chap"><b>📤 导出存档</b><div class="sub" style="margin:4px 0 6px">复制这段存档码，换设备或清缓存后可以用它恢复进度。</div>
         <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy">复制</button></div></div>
       <div class="chap"><b>📥 导入存档</b><div class="sub" style="margin:4px 0 6px">粘贴存档码。会覆盖当前进度。</div>
         <textarea class="code" id="sIn" placeholder="JZMC1.…"></textarea><div style="margin-top:6px"><button class="ghost" id="sImp">导入</button></div></div>
       <div class="chap"><b>⚠️ 完全重置</b><div class="sub" style="margin:4px 0 6px">清空所有进度，包括卡牌、秘卡和成就。</div><button class="ghost" id="reset">完全重置</button></div>`;
     $('sMute').onchange=e=>{ M.mute=!e.target.checked; save(); syncMute(); };
+    $('sStats').onchange=e=>{ M.stats=e.target.checked; save(); toast(M.stats?'已开启匿名统计':'已关闭匿名统计'); };
     if($('sVibe')) $('sVibe').onchange=e=>{ M.vibe=e.target.checked; save(); if(M.vibe) buzz(30); };
     $('sCopy').onclick=()=>{ const t=$('sCode'); t.select(); try{ navigator.clipboard.writeText(t.value).then(()=>toast('已复制存档码'),()=>{ document.execCommand('copy'); toast('已复制存档码'); }); }catch(e){ document.execCommand('copy'); toast('已复制存档码'); } };
     $('sImp').onclick=()=>{ try{ importCode($('sIn').value); recalcTree(); syncMute(); renderSide(); hud(); G={loot:{}}; tab='loot'; toast('存档导入成功'); showBetween(); }catch(e){ toast('导入失败：'+e.message); } };
