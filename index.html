@@ -950,6 +950,15 @@ function giveCard(p,k){
 }
 // 秘卡：彩蛋只负责解锁；解锁后黑金秘藏每包 4% 开出、击败首领 50% 额外掉落
 const UR_DROP=.04, UR_BOSS=.5;
+// 彩蛋答案（图鉴里「卡住了？看解锁方法」）
+const EGG_HOW={
+  echo:'一颗宝珠在落底之前撞卡包 40 次（撞铆钉不算）。磁石、弹力金珠这类让宝珠在卡包之间多弹的卡最好用。',
+  sun:'让台面上同时有 9 个卡包在燃烧。装火漆、野火，卡包多的时候最容易。',
+  one:'让一个卡包身上叠到 35 层腐蚀。蚀金酸、腐骨、瘟疫之王一起用，打血厚的黄金包或首领。',
+  eight:'金币余额以 888 开头时（比如 888、8,888、8.88万），点一下余额：电脑上点右边面板的金币数，手机和电脑都能点结算页顶部的「余额」条。',
+  sing:'让台面上同时有 15 颗宝珠（小珠也算）。分裂、镜像、星轨、分裂钉、裂珠一起用。',
+  lord:'用键盘依次按 ↑ ↑ ↓ ↓ ← → ← → B A；或者 3 秒内连点 7 下标题「千珠落尽」。手机上：在图鉴里连点 7 下这张还没解锁的秘藏之钥。',
+};
 const urUnlocked=()=>CARDS.filter(c=>c.rar==='UR'&&M.owned[c.id]);
 function bossDown(p){
   G.bossWin=true; G.opened++; SFX.play('bossdown'); buzz([80,50,200]);
@@ -1400,10 +1409,13 @@ addEventListener('keydown',e=>{
   kIdx=e.code===KONAMI[kIdx]?kIdx+1:(e.code===KONAMI[0]?1:0); if(kIdx===KONAMI.length){ kIdx=0; grantMyth('lord'); } });
 addEventListener('keyup',e=>{ if(e.code==='Space') holding=false; });
 // 彩蛋：敲七下门（标题）
-let knocks=[]; $('ttl').addEventListener('click',()=>{ const n=performance.now(); knocks=knocks.filter(t=>n-t<3000); knocks.push(n); SFX.init(); if(SFX.ok()) SFX.tone(140+knocks.length*20,.08,'square',.08);
-  if(knocks.length>=7){ knocks=[]; grantMyth('lord'); } });
+let knocks=[]; function knockDoor(){ const n=performance.now(); knocks=knocks.filter(t=>n-t<3000); knocks.push(n); SFX.init(); if(SFX.ok()) SFX.tone(140+knocks.length*20,.08,'square',.08);
+  if(knocks.length>=7){ knocks=[]; grantMyth('lord'); } }
+$('ttl').addEventListener('click',knockDoor);
 // 彩蛋：金币以 888 开头时碰它
-$('money').parentElement.addEventListener('click',()=>{ const d=f(M.money).replace(/[^0-9]/g,''); if(d.startsWith('888')) grantMyth('eight'); });
+function tapMoney(){ const d=f(M.money).replace(/[^0-9]/g,''); if(d.startsWith('888')) grantMyth('eight'); }
+// 手机上侧栏的金币数藏起来了，所以结算页顶部的「余额」条也能点
+$('money').parentElement.addEventListener('click',tapMoney); $('wallet').addEventListener('click',tapMoney);
 function syncMute(){ $('muteB').textContent=M.mute?'🔇':'🔊'; }
 $('muteB').onclick=()=>{ M.mute=!M.mute; save(); syncMute(); SFX.init(); };
 $('mythPop').onclick=()=>$('mythPop').classList.remove('show');
@@ -1944,7 +1956,11 @@ function showBetween(){
     body.innerHTML=`<p class="sub">✨ 闪卡收集 ${fc}/${CARDS.length} · 每开一张卡有 ${((.005+.0025*M.legacy.shine)*100).toFixed(2)}% 概率是闪卡，拥有闪卡后这张卡效果永久 +25%<br>
       📖 集齐一个流派：该流派所有卡效果 <b style="color:var(--green)">×1.3</b>　·　集齐全部五个流派：宝珠伤害 <b style="color:var(--green)">×1.5</b>${allSets()?' ✓':''}</p>`+'<div class="grid">'+SCH5.map(k=>{ const v=SCH[k],cs=CARDS.filter(c=>c.sch===k&&c.rar!=='UR'&&c.rar!=='FX'),done=setDone(k);
       return `<div class="schhead" style="color:${v.color}">${badge(k)||v.ico} ${v.name} · ${cs.filter(c=>M.owned[c.id]).length}/${cs.length}<span class="setbonus ${done?'on':''}">${done?'✓ 已集齐：效果 ×1.3':'集齐奖励：效果 ×1.3'}</span></div>`+cs.map(c=>cardHTML(c.id,{unknown:!M.owned[c.id]})).join(''); }).join('')
-      +`<div class="schhead" style="color:#ff7ad9">✦ 秘藏 · ${ur.filter(c=>M.owned[c.id]).length}/${ur.length}<span class="setbonus">先按谜语解锁；解锁后，黑金秘藏和首领也会掉落</span></div>`+ur.map(c=>cardHTML(c.id,{unknown:!M.owned[c.id]})).join('')+'</div>';
+      +`<div class="schhead" style="color:#ff7ad9;display:flex;align-items:center;gap:8px;flex-wrap:wrap">✦ 秘藏 · ${ur.filter(c=>M.owned[c.id]).length}/${ur.length}<span class="setbonus">先按谜语解锁；解锁后，黑金秘藏和首领也会掉落</span>${ur.every(c=>M.owned[c.id])?'':'<button class="ghost" id="eggHelp" style="margin-left:auto;font-size:12px;padding:3px 10px;letter-spacing:0">💡 卡住了？看解锁方法</button>'}</div>`
+      +`<div class="chap" id="eggAns" style="grid-column:1/-1;display:none;margin:0;line-height:1.8">${ur.map(c=>`${M.owned[c.id]?'<span style="color:var(--green)">✓</span>':'🔒'} <b style="color:#ff9be6">${c.name}</b>：${EGG_HOW[c.id]||''}`).join('<br>')}</div>`
+      +ur.map(c=>`<div data-ur="${c.id}">${cardHTML(c.id,{unknown:!M.owned[c.id]})}</div>`).join('')+'</div>';
+    const eh=$('eggHelp'); if(eh) eh.onclick=()=>{ if(!eh.dataset.c){ eh.dataset.c=1; eh.textContent='再点一次看答案（会剧透）'; return; } $('eggAns').style.display=''; eh.remove(); };
+    const lk=body.querySelector('[data-ur="lord"]'); if(lk&&!M.owned.lord) lk.onclick=()=>{ knockDoor(); if(M.owned.lord) showBetween(); };
   }
   $('ov').classList.add('show');
 }
