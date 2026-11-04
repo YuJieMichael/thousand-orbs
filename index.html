@@ -526,7 +526,7 @@ let TS={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFast:0,autoFree:0,refill:0,
 function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFast:0,autoFree:0,refill:0,ks:{}};
   Object.keys(M.tree||{}).forEach(id=>{ const n=TNB[id]; if(!n) return; const e=n.e;
     if(e.up) for(const k in e.up) s.up[k]=(s.up[k]||0)+e.up[k];
-    ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks) s.ks[e.ks]=true; });
+    ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks&&!(M.ksOff||{})[e.ks]) s.ks[e.ks]=true; });
   TS=s; }
 function effText(e){ const o=[]; const UPN={crit:'会心 +8%',critx:'会心伤害 +0.5',breaker:'破封：首击倍率 +1',cleave:'碎裂：开包溅射 +50%',ammo:'每轮宝珠 +1',basket:'金篮宽度 +14',basket2:'第二只反向金篮',volley:'开局齐射 +2 颗小宝珠',packs:'台面卡包 +1',luck:'稀有卡包出现率 +30%',pityup:'黑金保底 -4 包',slot:'技能槽 +1',reson:'共鸣倍率 +0.1',auto:'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:'发射间隔 -15%'};
   if(e.up) for(const k in e.up) o.push(e.up[k]>1?`${UPN[k]} ×${e.up[k]}`:UPN[k]);
@@ -793,7 +793,7 @@ function startRound(boss,opt={}){
   const noB=TS.ks.greed||(mut&&mut.noBasket)||(chal&&chal.noBasket); if(noB){ G.basket=null; G.basket2=null; }
   if(chal&&chal.luck) G.bo.luck=chal.luck; if(mut&&mut.luck) G.bo.luck*=mut.luck;
   if(boss){ if(!M.bossD||M.bossD.ch!==M.ch||M.bossD.dealt===undefined) M.bossD={ch:M.ch,d:D(),dealt:M.dealtAvg||0};
-    const hp=Math.max(bossHp(),M.ch<=BOSS_HITS.length?M.bossD.d*BOSS_HITS[M.ch-1]:0,M.bossD.dealt*bossK(M.ch)); G.boss={boss:true,x:W/2,y:335,hw:58,hh:76,t:3,hp,max:hp,hit:0,burn:0,acid:0,grow:1,seed:.37,ballHit:{},slot:null,summon:0,
+    const hp=Math.max(bossHp(),M.ch<=BOSS_HITS.length?M.bossD.d*BOSS_HITS[M.ch-1]:0,Math.min(M.bossD.dealt*bossK(M.ch),M.lastBossHp?M.lastBossHp*BOSS_STEP:Infinity)); G.boss={boss:true,x:W/2,y:335,hw:58,hh:76,t:3,hp,max:hp,hit:0,burn:0,acid:0,grow:1,seed:.37,ballHit:{},slot:null,summon:0,
       mech:bossMechs(M.ch),shield:0,sT:5,mT:0,immune:false,vT:0,pT:0,p2:false,p2T:0,ph:0};
     G.packs.push(G.boss); M.bossTries++; }
   for(let i=0;i<packN(upLv('packs'))-(boss?3:0);i++) addPack(true);
@@ -812,6 +812,8 @@ const BOSS_EASE=[.35,.5,.7,.85];
 const BOSS_HITS=[26,34,42];
 // 首领血量至少是「最近普通轮打出的总伤害」的多少倍（按章节；模拟里一场首领战能打出普通轮的 1.3~5.4 倍，二、五章首领技能更难缠）
 const BOSS_K=[2.8,2.4,4.5,3.0,2.0], bossK=ch=>BOSS_K[ch-1]||2.5;
+// 但这个下限最多是「上一个打赢的首领血量 × BOSS_STEP」：靠群伤、燃烧刷卡包的流派普通轮总伤害很高，打单个首领却打不出那么多，不封顶会碰到血量离谱的首领
+const BOSS_STEP=12;
 const bossHp=()=>packHpBase(0)*60*Math.pow(3.2,M.ch-1)*(BOSS_EASE[M.ch-1]||1);
 const shieldCfg=()=>M.ch<=2?{t:11,n:3}:{t:8,n:6};
 const mirrorCfg=()=>M.ch<=2?{cyc:11,dur:1.8}:{cyc:9,dur:2.5};
@@ -961,7 +963,8 @@ const EGG_HOW={
 };
 const urUnlocked=()=>CARDS.filter(c=>c.rar==='UR'&&M.owned[c.id]);
 function bossDown(p){
-  G.bossWin=true; G.opened++; SFX.play('bossdown'); buzz([80,50,200]);
+  G.bossWin=true; G.opened++; M.lastBossHp=p.max; // 下一章首领血量最多是它的 BOSS_STEP 倍
+  SFX.play('bossdown'); buzz([80,50,200]);
   if(G.shots<=G.maxAmmo/2) M.best.quick=true;
   const coins=packValue(2)*12*(1+.4*M.legacy.rich); // packValue 已经按章节涨了 earn(coins,p.x,p.y);
   G.death={x:p.x,y:p.y,h:p.hh*2,t:0,img:'p2_'+bossIdx(M.ch)}; shake(6);
@@ -1669,12 +1672,21 @@ function buyPacks(t,n,btn,body){
 // ================= 星盘界面 =================
 let TV=null,tSel=null;
 const tvHome=()=>({x:0,y:0,z:MOBILE.matches?2.4:1.5});
+// ---- 基石开关：点亮过的基石可以随时关掉、再打开 ----
+const ownedKs=()=>Object.keys(M.tree||{}).map(id=>TNB[id]).filter(n=>n&&n.t==='k');
+const ksBtn=n=>{ const k=n.e.ks, on=!(M.ksOff||{})[k]; return `<button class="ghost" data-ks="${k}" style="${on?'border-color:var(--gold);color:var(--gold2)':'opacity:.55'}">${n.ico} ${KS[k].name}：${on?'开':'关'}</button>`; };
+function ksBar(){ const ks=ownedKs(); if(!ks.length) return '';
+  return `<div class="chap" id="ksBar" style="margin:8px 0 0"><b>基石开关</b> <span class="sub">基石都有代价，可以随时关掉再打开，不用洗点</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${ks.map(ksBtn).join('')}</div>
+    <div class="sub" style="margin-top:6px;line-height:1.6">${ks.map(n=>`${n.ico} <b>${KS[n.e.ks].name}</b>：${KS[n.e.ks].desc}`).join('<br>')}</div></div>`; }
+function bindKs(body){ body.querySelectorAll('[data-ks]').forEach(b=>b.onclick=()=>{ const k=b.dataset.ks; M.ksOff=M.ksOff||{}; if(M.ksOff[k]) delete M.ksOff[k]; else M.ksOff[k]=1;
+    recalcTree(); save(); renderSide(); hud(); const n=ownedKs().find(x=>x.e.ks===k); b.outerHTML=ksBtn(n); bindKs(body); toast(`${KS[k].name}：${M.ksOff[k]?'已关闭':'已开启'}`); }); }
 function renderTree(body){
   if(!TV) TV=tvHome();
   const reps=REP.map(u=>{ const l=M.up[u.id]||0,c=u.cost(l),lock=u.need&&!u.need();
     return `<div class="row ${lock||M.money<c?'off':''}" data-rep="${u.id}"><div class="ico">${u.ico}</div><div class="info"><div class="nm">${u.name} <span class="lvl">Lv${l}</span></div><div class="sub">${u.desc(l)} → ${u.desc(l+1)}</div></div><div class="cost">${lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c)}</div></div>`; }).join('');
   const n=tCount(), refund=Math.floor((M.treeSpent||0)*.8);
-  body.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 8px">${reps}</div>
+  body.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 8px">${reps}</div>${ksBar()}
     <div class="sub" style="margin:8px 0 6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>🌌 星盘：从中心 ✦ 出发，只能点亮<b style="color:var(--gold2)">与已点亮节点相连</b>的节点。已点亮 <b id="tNodeCount" style="color:var(--gold2)">${n}</b> 个，每多点一个，下一个就更贵。拖动平移，滚轮/双指缩放。</span>
       <span style="display:flex;gap:6px"><button class="ghost" id="tHome">⌂ 回中心</button><button class="ghost" id="tRespec" ${n?'':'disabled'}>洗点（退还 ${f(refund)}）</button></span></div>
     <div id="sky" style="position:relative;height:min(62vh,560px);border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:none;cursor:grab;
@@ -1684,6 +1696,7 @@ function renderTree(body){
   body.querySelectorAll('[data-rep]').forEach(el=>el.onclick=()=>{ const u=REP.find(x=>x.id===el.dataset.rep),l=M.up[u.id]||0,c=u.cost(l);
     if(u.need&&!u.need()) return toast(typeof u.needTxt==='function'?u.needTxt():u.needTxt); if(!spend(c,el)) return;
     M.up[u.id]=l+1; save(); hud(); refreshTreeView(body); });
+  bindKs(body);
   if(!unl('tree')) return treeLocked(body);
   $('tHome').onclick=()=>{ TV=tvHome(); drawSky(); };
   bindTreeRespec(body);
