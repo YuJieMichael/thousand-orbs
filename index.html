@@ -1438,6 +1438,10 @@ function cardHTML(id,o={}){
     <div class="cp"><i style="width:${prog}%"></i></div></div></div>`;
 }
 let tab='loot';
+// 技能页的筛选和排序（只在本次打开期间记住）
+const deckF={sch:'all',sort:'rar'};
+const TRIG={launch:'发射时',hit:'命中时',open:'开包时',wall:'撞墙时',peg:'撞铆钉时',passive:'常驻'};
+const trigOf=c=>c.launch?'launch':c.hit?'hit':c.open?'open':c.wall?'wall':c.peg?'peg':'passive';
 // 页签分组：5 个大类，大类下面再分小页
 const TGROUPS=[{id:'loot',name:'结算',subs:['loot']},{id:'build',name:'构筑',subs:['up','deck','book','bag']},{id:'goal',name:'目标',subs:['goals','rank']},{id:'more',name:'更多',subs:['legacy','sys','fb']}];
 const TLAST={};
@@ -1762,11 +1766,22 @@ function showBetween(){
   } else if(tab==='up'){
     renderTree(body);
   } else if(tab==='deck'){
-    const owned=CARDS.filter(c=>M.owned[c.id]).map(c=>c.id).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
-    const n=schoolCount();
+    // 技能筛选：按流派 / 已装备筛，按稀有度 / 等级 / 流派 / 触发方式排
+    const all=CARDS.filter(c=>M.owned[c.id]), eq=equipped(), n=schoolCount(), F=deckF;
+    const pass=c=>F.sch==='all'||(F.sch==='eq'?eq.includes(c.id):c.sch===F.sch||c.sch2===F.sch);
+    const SO=Object.keys(SCH), TO=Object.keys(TRIG), rr=c=>-RO.indexOf(c.rar);
+    const key={rar:c=>[rr(c),SO.indexOf(c.sch)],lv:c=>[-cardLv(c.id),rr(c)],sch:c=>[SO.indexOf(c.sch),rr(c)],trig:c=>[TO.indexOf(trigOf(c)),rr(c)]}[F.sort];
+    const list=all.filter(pass).sort((a,b)=>{ const x=key(a),y=key(b); return x[0]-y[0]||x[1]-y[1]||a.name.localeCompare(b.name,'zh'); });
+    const grp=F.sort==='sch'?c=>c.sch:F.sort==='trig'?trigOf:null, gName=g=>F.sort==='sch'?`<span style="color:${SCH[g].color}">${SCH[g].ico} ${SCH[g].name}</span>`:TRIG[g];
+    let grid='', last=null; list.forEach(c=>{ if(grp&&grp(c)!==last){ last=grp(c); grid+=`<div class="schhead">${gName(last)}</div>`; } grid+=cardHTML(c.id,{eq:eq.includes(c.id)}); });
+    const chip=(k,label,color,cnt)=>`<button class="ghost" data-fs="${k}" style="${F.sch===k?'border-color:var(--gold);color:var(--gold2);background:#d9b45a18':color?`color:${color}`:''}">${label} <span style="opacity:.7">${cnt}</span></button>`;
+    const chips=[chip('all','全部','',all.length)].concat(SO.filter(k=>k!=='myth'||all.some(c=>c.sch==='myth')).map(k=>chip(k,`${SCH[k].ico}${SCH[k].name}${resMult(n[k]||0)>1?` ×${resMult(n[k])}`:''}`,(n[k]||0)>=2?SCH[k].color:'',all.filter(c=>c.sch===k||c.sch2===k).length)),chip('eq','已装备','',eq.length));
     body.innerHTML=`<p class="sub">点击卡牌装备或卸下。同流派装备 2/3/4/5 张，效果 ×1.3/1.6/2/2.6。</p>
-      <div class="res" style="margin:8px 0 12px">${Object.entries(SCH).filter(([k])=>k!=='myth').map(([k,v])=>`<span style="color:${(n[k]||0)>=2?v.color:'#5a4e3a'}">${v.ico}${v.name} ${n[k]||0}${resMult(n[k]||0)>1?` ×${resMult(n[k])}`:''}</span>`).join('')}</div>
-      ${owned.length?`<div class="grid">${owned.map(id=>cardHTML(id,{eq:equipped().includes(id)})).join('')}</div>`:'<p class="sub">还没有卡牌。</p>'}`;
+      <div class="res" style="margin:8px 0 6px;gap:6px">${chips.join('')}</div>
+      <div class="subtabs" style="margin:0 0 10px"><span class="sub" style="align-self:center;margin-right:4px">排序</span>${Object.entries({rar:'稀有度',lv:'等级',sch:'流派',trig:'触发方式'}).map(([k,v])=>`<button class="${F.sort===k?'on':''}" data-so="${k}">${v}</button>`).join('')}</div>
+      ${all.length?(list.length?`<div class="grid">${grid}</div>`:'<p class="sub">这个筛选下没有卡牌。</p>'):'<p class="sub">还没有卡牌。</p>'}`;
+    body.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{ F.sch=b.dataset.fs; showBetween(); });
+    body.querySelectorAll('[data-so]').forEach(b=>b.onclick=()=>{ F.sort=b.dataset.so; showBetween(); });
     body.querySelectorAll('.card').forEach(el=>el.onclick=()=>{ const id=el.dataset.id;
       if(M.deck.includes(id)) M.deck=M.deck.filter(x=>x!==id);
       else if(equipped().length<maxSlots()) M.deck=equipped().concat(id); else return toast('技能槽满了，先卸下一张');
