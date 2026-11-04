@@ -412,7 +412,7 @@ const PITY=40;
 // ================= 存档 =================
 const KEY='gold-orb-v2';
 const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
-  mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false},tree:{},treeSpent:0,keep:{},treeV:2});
+  mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0},tree:{},treeSpent:0,keep:{},treeV:2});
 let M=fresh();
 function save(){ M.lastSeen=Date.now(); try{ localStorage.setItem(KEY,JSON.stringify(M)); }catch(e){} }
 function adopt(d){ M=Object.assign(fresh(),d); M.up=Object.assign(fresh().up,d.up||{}); M.legacy=Object.assign(fresh().legacy,d.legacy||{}); M.best=Object.assign(fresh().best,d.best||{}); M.treeV=d.treeV||0; M.tree=d.tree||{}; M.keep=d.keep||{};
@@ -534,6 +534,8 @@ const ACH=[
   {id:'b10',ico:'🌀',name:'深渊行者',desc:'到达无尽深渊第 5 层',soul:5,ok:()=>M.maxCh>=10},
   {id:'chain30',ico:'🔗',name:'珠连三十',desc:'一颗宝珠落底前命中 30 次',soul:1,ok:()=>M.best.chain>=30},
   {id:'combo50',ico:'🎼',name:'余音绕梁',desc:'连击数达到 50',soul:1,ok:()=>M.best.combo>=50},
+  {id:'mx5',ico:'💥',name:'五倍金珠',desc:'让一颗宝珠的倍率涨到 ×5',soul:1,ok:()=>M.best.mx>=5},
+  {id:'fever3',ico:'🔥',name:'热浪',desc:'一轮内进入 3 次狂热',soul:2,ok:()=>M.best.fever>=3},
   {id:'round50',ico:'💥',name:'满堂红',desc:'一轮内打开 50 个卡包',soul:2,ok:()=>M.best.opened>=50},
   {id:'res5',ico:'🔔',name:'五音齐鸣',desc:'同一流派装备 5 张卡',soul:2,ok:()=>Object.values(schoolCount()).some(v=>v>=5)},
   {id:'foil',ico:'✨',name:'流光',desc:'获得第一张闪卡',soul:1,ok:()=>Object.keys(M.foil).length>0},
@@ -580,7 +582,12 @@ const SFX={ac:null,last:{},
   arp(fs,step,type,vol,dur){ fs.forEach((f,i)=>this.tone(f,dur||.25,type||'triangle',vol||.14,0,i*step)); },
   play(k,a){ if(!this.ok()) return; try{ switch(k){
     case 'shoot': this.tone(300,.12,'triangle',.16,2.2); this.noise(.06,.08,3000,'highpass'); break;
-    case 'peg': if(this.gate('peg',28)) this.tone(1500+Math.random()*500,.05,'sine',.05); break;
+    case 'peg': if(this.gate('peg',28)){ const n=Math.min(a||0,16), sc=[0,2,4,7,9], semi=sc[n%5]+12*Math.floor(n/5); this.tone(784*Math.pow(2,semi/12),.07,'sine',.06); } break;
+    case 'mxup': this.arp([1047,1319,1568,2093].slice(0,Math.min(4,1+(a||1))).map(x=>x*Math.pow(2,((a||1)-1)/12)),.04,'triangle',.09,.16); break;
+    case 'goldpeg': this.tone(1568,.14,'triangle',.12); this.tone(2093,.22,'sine',.09,0,.05); this.noise(.12,.06,7000,'highpass',.02); break;
+    case 'split': this.tone(900,.1,'triangle',.08,1.6); this.tone(1350,.1,'triangle',.06,1.6,.04); break;
+    case 'pocket': if(a>=5){ this.arp([784,988,1175,1568,1976,2349],.05,'triangle',.12,.3); this.noise(.4,.08,8000,'highpass',.1); } else if(a>1) this.arp([880,1319],.06,'triangle',.1,.2); else this.tone(660,.08,'sine',.06); break;
+    case 'fever': this.tone(180,.8,'sawtooth',.06,5); this.arp([523,659,784,1047,1319,1568,2093],.06,'triangle',.12,.5); this.noise(.9,.1,6000,'highpass',.2); this.tone(65,.8,'sine',.3,.6); break;
     case 'hit': if(this.gate('hit',26)){ const f=294*Math.pow(2,Math.min(a||0,24)/12); this.tone(f,.1,'triangle',.15); this.tone(f*2,.05,'sine',.05); } break;
     case 'crit': if(this.gate('crit',60)){ this.tone(1100,.14,'square',.07,.45); this.noise(.08,.12,2500); } break;
     case 'open': if(this.gate('open',40)){ this.noise(.22,.22,1800,'bandpass',0,.7); const b=[523,587,659,784][a||0]; this.tone(b,.18,'triangle',.12,1.5); if(a>=2) this.arp([b,b*1.25,b*1.5,b*2],.05,'triangle',.1); } break;
@@ -622,6 +629,19 @@ const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
 const packValue=t=>PT[t].val*3*Math.pow(VAL_G,M.up.stage);
 const stageCap=()=>2*M.maxCh; // 秘藏等级上限：最远章节 ×2
 
+// ================= 连锁倍率 · 特殊铆钉 · 底部口袋 · 狂热 =================
+// 每颗宝珠自带倍率：撞铆钉 / 卡包都会涨，它打开的卡包金币 ×倍率，伤害按一半涨幅算
+const MX={peg:.08,pack:.15,gold:.5,cap:5,dmgK:.5,coin:.65}; // coin：卡包基础金币折算，抵消倍率带来的平均涨幅（模拟后取 .65）
+const mxDmg=b=>1+(b.mx-1)*MX.dmgK;
+const mxCol=m=>m>=4.5?'#ff7ad9':m>=3.5?'#ff6b5b':m>=2.5?'#ff9f4a':m>=1.5?'#f3c86a':'#e6cf9c';
+// 珠金：宝珠一路攒下的奖励，落底时按口袋倍率兑现
+const POT={peg:.008,pack:.015,gold:.08};
+const POCKETS=(()=>{ let x=9; return [[100,1],[75,2],[60,1],[52,5],[60,1],[75,2],[100,1]].map(([w,m])=>{ const p={x0:x,x1:x+w,m,flash:0}; x+=w; return p; }); })();
+const pocketAt=x=>POCKETS.find(p=>x>=p.x0&&x<p.x1)||(x<W/2?POCKETS[0]:POCKETS[POCKETS.length-1]);
+// 特殊铆钉：每发宝珠射出时补满；被撞一次就失效
+const SPEG={gold:{n:2,c:'#ffd76a'},bomb:{n:1,c:'#ff6b4a'},split:{n:1,c:'#7fd6ff'}};
+const FEVER={chain:20,dur:4,slow:.6}; // 一颗宝珠连锁 20 下（撞开卡包算 3 下）进入狂热；模拟下来每轮约 0.5~1 次
+
 // ================= 台面 =================
 const cv=$('cv'),ctx=cv.getContext('2d'); const W=cv.width,H=cv.height;
 const LAUNCH={x:W/2,y:58};
@@ -651,7 +671,7 @@ function buildLayout(ch,boss){
   const isBump=(x,y)=>bumpAt.some(([a,b])=>a===x&&b===y);
   for(let j=0;j<4;j++) for(let i=0;i<4;i++){ const x=120+i*100,y=272+j*125;
     if(boss&&(y===272||y===397)) continue; if(isBump(x,y)) continue; PEGS.push({x,y,r:6}); }
-  for(let j=0;j<4;j++){ PEGS.push({x:18,y:272+j*125,r:6}); PEGS.push({x:W-18,y:272+j*125,r:6}); }
+  for(let j=0;j<4;j++){ PEGS.push({x:18,y:272+j*125,r:6,wall:true}); PEGS.push({x:W-18,y:272+j*125,r:6,wall:true}); }
   for(let i=0;i<6;i++) PEGS.push({x:40+i*92,y:150,r:5,ox:40+i*92,amp:ch>=3?36:0,sp:1.3});
   for(let i=0;i<5;i++) PEGS.push({x:70+i*100,y:700,r:6,ox:70+i*100,amp:ch>=3?40:0,sp:-1.1});
   bumpAt.forEach(([x,y])=>{ if(!(boss&&y===397)) BUMPERS.push({x,y,r:15,flash:0}); });
@@ -659,11 +679,13 @@ function buildLayout(ch,boss){
     if(!boss) ZONES.push({x:170,y:285,w:200,h:110}); }
 }
 buildLayout(1,false);
+function rollSpecials(){ const free=PEGS.filter(g=>!g.kind&&!g.wall);
+  Object.keys(SPEG).forEach(k=>{ let have=PEGS.filter(g=>g.kind===k).length; while(have<SPEG[k].n&&free.length){ const g=free.splice(Math.floor(Math.random()*free.length),1)[0]; g.kind=k; g.born=performance.now(); have++; } }); }
 const PW=26,PH=36; // 卡包半宽/半高
 let G=null,running=false;
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const f=n=>fmt(n);
-function D(){ return orbDmg(M.up.dmg)*G.R.dmg*(1+.3*M.legacy.pow)*(G.R.allSet?1.5:1)*(1+TS.dmg)*(TS.ks.allin?3:1)*(TS.ks.rain?.6:1)*G.bo.dmg; }
+function D(){ return orbDmg(M.up.dmg)*G.R.dmg*(1+.3*M.legacy.pow)*(G.R.allSet?1.5:1)*(1+TS.dmg)*(TS.ks.allin?3:1)*(TS.ks.rain?.6:1)*G.bo.dmg*(G.fever>0?2:1); }
 let ROUND_EQ=null; // 挑战关卡会临时改变生效的卡
 function equipped(){ if(ROUND_EQ) return ROUND_EQ; return M.deck.filter(id=>M.owned[id]).slice(0,maxSlots()); }
 function schoolCount(){ const eq=equipped(),n={}; eq.forEach(id=>{ const c=byId[id]; n[c.sch]=(n[c.sch]||0)+1; if(c.sch2) n[c.sch2]=(n[c.sch2]||0)+1; });
@@ -674,7 +696,7 @@ function cardP(id){ const lv=cardLv(id),c=byId[id],sc=schoolCount(); return [lv,
 
 function startRound(boss,opt={}){
   clearInterval(boonTimer); $('boonPop').classList.remove('show');
-  boss=!!boss; buildLayout(M.ch,boss);
+  boss=!!boss; buildLayout(M.ch,boss); rollSpecials(); POCKETS.forEach(p=>p.flash=0);
   const chal=opt.chal?CHAL.find(c=>c.id===opt.chal):null; ROUND_EQ=null; if(chal&&chal.eq) ROUND_EQ=chal.eq();
   const mut=null;
   const R={burnT:4,burnX:1,bone:false,vip:1,titan:0,lava:0,plague:0,dmg:1,coin:1,burn:0,wild:false,phoenix:0,acid:0,dissolve:0,spread:false,voidAt:0,invest:0,twin:0,size:1,bounce:.72,magnet:0,recycle:0,wallBonus:0,
@@ -728,7 +750,7 @@ function addPack(instant,slot){
 function randPack(){ return G.packs.length?G.packs[Math.floor(Math.random()*G.packs.length)]:null; }
 let ballId=0;
 function spawnBall(x,y,vx,vy,o={}){
-  const b={id:++ballId,x,y,vx,vy,sp:Math.hypot(vx,vy),r:(o.mini?6:9)*G.R.size,dmgX:o.mini?.5:1,mini:!!o.mini,pierce:false,walls:0,trail:[],life:0,still:0};
+  const b={id:++ballId,x,y,vx,vy,sp:Math.hypot(vx,vy),r:(o.mini?6:9)*G.R.size,dmgX:o.mini?.5:1,mini:!!o.mini,pierce:false,walls:0,trail:[],life:0,still:0,mx:o.mx||1,ch:0,pot:0};
   G.balls.push(b); return b;
 }
 function fire(){
@@ -745,7 +767,7 @@ function shoot(){ // 真正射出一颗（连射/倾泻会排队调用）
   const b=spawnBall(LAUNCH.x,LAUNCH.y,Math.cos(a)*sp,Math.sin(a)*sp); if(G.qDel) b.dmgX*=1.3;
   for(let i=0;i<G.bo.split;i++){ const a2=a+(i%2?-1:1)*.22*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a2)*sp,Math.sin(a2)*sp,{mini:true}); }
   equipped().forEach((id,i)=>{ const c=byId[id]; if(c.launch){ const [lv,p]=cardP(id); if(c.launch(G,lv,p,b)) flashSlot(i); } });
-  burst(LAUNCH.x,LAUNCH.y+10,'#f3dc9a',10); SFX.play('shoot');
+  burst(LAUNCH.x,LAUNCH.y+10,'#f3dc9a',10); SFX.play('shoot'); rollSpecials();
   if(G.queue<=0){ G.qDel=false; G.queue=0; }
 }
 function aimAngle(){ let a=Math.atan2(G.aim.y-LAUNCH.y,G.aim.x-LAUNCH.x); const lo=.18,hi=Math.PI-.18; if(a<lo&&a>-Math.PI/2) a=lo; else if(a<=-Math.PI/2||a>hi) a=hi; return a; }
@@ -759,7 +781,7 @@ function dmgPack(p,amt,silent,src){
   if(p.hp<=0) openPack(p);
 }
 function hitPack(b,p){
-  G.hits++; b.hn=(b.hn||0)+1; if(b.hn>M.best.chain) M.best.chain=b.hn; if(b.hn>=40) grantMyth('echo');
+  G.hits++; b.hn=(b.hn||0)+1; if(b.hn>M.best.chain) M.best.chain=b.hn; if(b.hn>=40) grantMyth('echo'); chainTick(b); p.sq=.16;
   G.combo=G.time-G.comboT<.8?G.combo+1:1; G.comboT=G.time; if(G.combo>M.best.combo) M.best.combo=G.combo;
   if(p.boss&&p.shield>0){ p.shield--; p.hit=.08; G.fx.push({x:p.x,y:p.y-p.hh-14,t:p.shield?`🛡 ${p.shield}`:'🛡 破盾！',c:'#ffcc55',life:.6}); burst(b.x,b.y,'#ffcc55',8); SFX.play('shield'); return; }
   SFX.play('hit',G.combo);
@@ -768,7 +790,8 @@ function hitPack(b,p){
   let mult=1;
   const cc=.08*upLv('crit')+G.bo.crit; if(cc&&Math.random()<cc){ mult*=2.5+.5*upLv('critx'); G.fx.push({x:p.x,y:p.y-p.hh-24,t:'会心！',c:'#ff6b5b',life:.6}); SFX.play('crit'); }
   if(upLv('breaker')&&!p.firstHit){ p.firstHit=true; mult*=1+upLv('breaker'); }
-  dmgPack(p,D()*b.dmgX*(1+b.walls*G.R.wallBonus)*fast*mult);
+  p.mx=Math.max(p.mx||1,b.mx); b.pot+=POT.pack*packValue(0)*b.mx;
+  dmgPack(p,D()*b.dmgX*(1+b.walls*G.R.wallBonus)*fast*mult*mxDmg(b)); addMx(b,MX.pack*(b.pierce?.5:1)); if(!p.boss&&!G.packs.includes(p)) chainTick(b,2);
   if(b.hn>G.maxChain) G.maxChain=b.hn;
   if(G.bo.echo&&Math.random()<G.bo.echo&&G.packs.includes(p)){ dmgPack(p,D()*b.dmgX*mult,true); G.fx.push({x:p.x,y:p.y-p.hh-30,t:'余音',c:'#ff9be6',life:.5}); }
   if(G.bo.chain&&G.hits%5===0){ let from=b; for(let i=0;i<2*G.bo.chain;i++){ const t=randPack(); if(!t) break; zap(from,t,'#fff3a0'); dmgPack(t,.5*D()); from=t; } }
@@ -788,10 +811,11 @@ function openPack(p){
   coins*=1+.4*M.legacy.rich;
   if(G.R.acidCoin) coins*=1+p.acid*G.R.acidCoin;
   if(G.R.eight&&Math.random()<.08){ coins*=8; G.fx.push({x:p.x,y:p.y-60,t:'🏮 ×8',c:'#ff6b5b',life:1}); }
-  earn(coins,p.x,p.y); SFX.play('open',p.t);
+  const pm=p.mx||1; coins*=pm*MX.coin; if(pm>=1.5) G.fx.push({x:p.x,y:p.y-p.hh-26,t:'×'+pm.toFixed(1),c:mxCol(pm),life:.9,sz:12+Math.round(pm*3)});
+  earn(coins,p.x,p.y); SFX.play('open',p.t); hitStop(p.t>=2?.07:.035);
   if(G.R.invest) G.investN+=G.R.invest;
   if(G.R.spread&&p.acid>1) G.packs.forEach(o=>{ if(Math.hypot(o.x-p.x,o.y-p.y)<150) o.acid+=Math.ceil(p.acid/2); });
-  tearPack(p); burst(p.x,p.y,PT[p.t].a,8); shake(p.t>=2?3:1.5);
+  tearPack(p); burst(p.x,p.y,PT[p.t].a,16); burst(p.x,p.y,'#f3dc9a',8); shake(p.t>=2?5:2.5);
   const n=(G.R.twin&&Math.random()<G.R.twin)?2:1;
   for(let k=0;k<n;k++) giveCard(p,k);
   equipped().forEach((id,idx)=>{ const c=byId[id]; if(c.open){ const [lv,pw]=cardP(id); if(c.open(G,lv,pw,p)) flashSlot(idx); } });
@@ -832,7 +856,28 @@ function bossDown(p){
   G.boss=null;
 }
 function refund(x,y,label,col){ if(G.refunds>=G.maxAmmo||G.chal==='one') return false; G.refunds++; G.ammo++; G.fx.push({x,y,t:label,c:col,life:1}); return true; }
-function earn(x,px,py,small){ x*=(1+TS.coin)*(TS.ks.greed?2.5:1)*(G&&G.R&&G.R.eight?G.R.eight:1)*(G&&G.bo?G.bo.coin:1); if(small) SFX.play('coin'); M.money+=x; G.earned+=x; M.life+=x; if(px!==undefined&&!small) G.fx.push({x:px,y:py,t:'+'+f(x),c:'#f3dc9a',life:1}); }
+function earn(x,px,py,small){ x*=(1+TS.coin)*(TS.ks.greed?2.5:1)*(G&&G.R&&G.R.eight?G.R.eight:1)*(G&&G.bo?G.bo.coin:1)*(G&&G.fever>0?2:1); if(small) SFX.play('coin'); M.money+=x; G.earned+=x; M.life+=x; if(px!==undefined&&!small) G.fx.push({x:px,y:py,t:'+'+f(x),c:G.fever>0?'#ffd76a':'#f3dc9a',life:1}); return x; }
+// ---- 连锁倍率 / 特殊铆钉 / 口袋 / 狂热 ----
+function addMx(b,v){ const before=b.mx; b.mx=Math.min(MX.cap,b.mx+v); if(b.mx>M.best.mx) M.best.mx=b.mx;
+  if(Math.floor(b.mx)>Math.floor(before)){ const n=Math.floor(b.mx); G.fx.push({x:b.x,y:b.y-20,t:'×'+n,c:mxCol(b.mx),life:.7,sz:14+n*3}); G.parts.push({ring:true,x:b.x,y:b.y,r:b.r,max:b.r+18+n*4,life:.3,dur:.3,c:mxCol(b.mx),lw:2}); SFX.play('mxup',n); } }
+function chainTick(b,n){ b.ch+=n||1; if(!(G.fever>0)&&!b.fevered&&!b.reborn&&b.ch>=FEVER.chain) startFever(b); } // 重生的宝珠不再触发狂热
+function hitStop(v,force){ if(!G) return; if(!force&&G.time-(G.hsLast||-9)<.18) return; G.hs=Math.max(G.hs||0,Math.min(.14,v)); G.hsLast=G.time; }
+function pegHit(b,g){ chainTick(b); b.pot+=POT.peg*packValue(0)*b.mx; addMx(b,MX.peg);
+  G.parts.push({ring:true,x:g.x,y:g.y,r:g.r,max:g.r+9,life:.16,dur:.16,c:mxCol(b.mx),lw:1});
+  const k=g.kind; if(!k) return; g.kind=null;
+  if(k==='gold'){ b.pot+=POT.gold*packValue(0)*b.mx; addMx(b,MX.gold); burst(g.x,g.y,'#ffd76a',22); G.parts.push({ring:true,x:g.x,y:g.y,r:4,max:40,life:.35,dur:.35,c:'#ffd76a',lw:2});
+    G.fx.push({x:g.x,y:g.y-16,t:'金钉 倍率 +'+MX.gold,c:'#ffd76a',life:.8,sz:14}); SFX.play('goldpeg'); hitStop(.03); }
+  else if(k==='bomb'){ boom(g.x,g.y,115,1.5*D()*b.dmgX*mxDmg(b)); G.parts.push({ring:true,x:g.x,y:g.y,r:6,max:115,life:.3,dur:.3,c:'#ff8a6a',lw:3}); burst(g.x,g.y,'#ff6b4a',30); burst(g.x,g.y,'#ffd76a',14);
+    shake(7); hitStop(.06); G.fx.push({x:g.x,y:g.y-18,t:'爆！',c:'#ff8a6a',life:.7,sz:22}); }
+  else if(k==='split'){ const s=Math.max(480,Math.hypot(b.vx,b.vy)), a=Math.atan2(b.vy,b.vx);
+    spawnBall(g.x,g.y,Math.cos(a+.6)*s,Math.sin(a+.6)*s,{mini:true,mx:b.mx}); spawnBall(g.x,g.y,Math.cos(a-.6)*s,Math.sin(a-.6)*s,{mini:true,mx:b.mx});
+    burst(g.x,g.y,'#7fd6ff',18); G.fx.push({x:g.x,y:g.y-16,t:'分裂！',c:'#7fd6ff',life:.7,sz:16}); SFX.play('split'); } }
+function payPocket(b){ const pk=pocketAt(b.x); pk.flash=.4; if(!(b.pot>0)) return; const v=earn(b.pot*pk.m); b.pot=0; G.pocketPaid=(G.pocketPaid||0)+v;
+  const cx=Math.max(44,Math.min(W-44,(pk.x0+pk.x1)/2)); G.fx.push({x:cx,y:H-46,t:'+'+f(v)+(pk.m>1?'  ×'+pk.m:''),c:pk.m>=5?'#ffd76a':pk.m>1?'#f3c86a':'#c9b48a',life:1,sz:pk.m>=5?20:pk.m>1?15:12});
+  if(pk.m>=5){ burst(cx,H-24,'#ffd76a',26); shake(5); hitStop(.05); } SFX.play('pocket',pk.m); }
+function startFever(b){ b.fevered=true; G.fever=FEVER.dur; G.slow=FEVER.slow; G.fevers=(G.fevers||0)+1; if(G.fevers>M.best.fever) M.best.fever=G.fevers;
+  hitStop(.12,true); shake(12); SFX.play('fever'); burst(b.x,b.y,'#ffd76a',40); burst(b.x,b.y,'#ff7ad9',20);
+  G.fx.push({x:W/2,y:H/2-40,t:'狂 热',c:'#ffd76a',life:1.8,sz:40}); G.fx.push({x:W/2,y:H/2-2,t:'伤害、金币 ×2',c:'#f3dc9a',life:1.8,sz:16}); }
 function boom(x,y,r,d){ G.parts.push({ring:true,x,y,r:0,max:r,life:.35}); SFX.play('boom'); G.packs.slice().forEach(o=>{ if(Math.hypot(o.x-x,o.y-y)<r) dmgPack(o,d,true,'fire'); }); }
 function tearPack(p){ const P=PT[p.t], body=p.t===3?'#17130f':P.b, edge=p.t===3?'#c8a464':P.a; G.tears=G.tears||[];
   [-1,1].forEach(sg=>G.tears.push({x:p.x+sg*2,y:p.y+sg*p.hh/2,oy:0,w:p.hw*2,h:p.hh,top:sg<0,body,edge,vy:sg<0?-150:40,rot:0,vr:sg*rnd(1.5,3)*(Math.random()<.5?-1:1),life:.55}));
@@ -857,7 +902,7 @@ function stepBall(b,dt){
   if(b.y<b.r+8){ b.y=b.r+8; b.vy=Math.abs(b.vy)*R.bounce; }
   // 铆钉
   for(const g of PEGS){ const dx=b.x-g.x,dy=b.y-g.y,d=Math.hypot(dx,dy),m=b.r+g.r;
-    if(d<m&&d>0){ const nx=dx/d,ny=dy/d; b.x=g.x+nx*m; b.y=g.y+ny*m; const vn=b.vx*nx+b.vy*ny; if(vn<0){ b.vx-=(1+R.bounce)*vn*nx; b.vy-=(1+R.bounce)*vn*ny; g.flash=.15; G.pegHits++; SFX.play('peg'); pegHook(b); if(G.mut.pegBoom&&!(g.cd>G.time)){ g.cd=G.time+1.2; boom(g.x,g.y,70,.35*D()); } } } }
+    if(d<m&&d>0){ const nx=dx/d,ny=dy/d; b.x=g.x+nx*m; b.y=g.y+ny*m; const vn=b.vx*nx+b.vy*ny; if(vn<0){ b.vx-=(1+R.bounce)*vn*nx; b.vy-=(1+R.bounce)*vn*ny; g.flash=.15; G.pegHits++; SFX.play('peg',b.ch); pegHook(b); pegHit(b,g); if(G.mut.pegBoom&&!(g.cd>G.time)){ g.cd=G.time+1.2; boom(g.x,g.y,70,.35*D()); } } } }
   // 弹射器
   for(const g of BUMPERS){ const dx=b.x-g.x,dy=b.y-g.y,d=Math.hypot(dx,dy),m=b.r+g.r;
     if(d<m&&d>0){ const nx=dx/d,ny=dy/d; b.x=g.x+nx*m; b.y=g.y+ny*m; const sp=Math.max(650,Math.hypot(b.vx,b.vy)*1.1); b.vx=nx*sp; b.vy=ny*sp; if(g.flash<.1) SFX.play('bump'); g.flash=.2; earn(.15*packValue(0),g.x,g.y-24,true); } }
@@ -893,6 +938,11 @@ function wallHook(b){ equipped().forEach((id,i)=>{ const c=byId[id]; if(c.wall){
 function pegHook(b){ equipped().forEach((id,i)=>{ const c=byId[id]; if(c.peg){ const [lv,p]=cardP(id); if(c.peg(G,lv,p,b)) flashSlot(i); } }); }
 function update(dt){
   if(!G||G.ended||G.paused) return;
+  // 打击停顿：短暂冻结一下画面；狂热开始时慢动作
+  if(G.hs>0){ G.hs-=dt; return; }
+  if(G.slow>0){ G.slow-=dt; dt*=.3+.7*Math.max(0,1-G.slow/FEVER.slow)**2; }
+  if(G.fever>0){ G.fever-=dt; if(G.fever<=0){ G.fever=0; G.fx.push({x:W/2,y:H/2,t:'狂热结束',c:'#c9b48a',life:1}); } }
+  POCKETS.forEach(p=>p.flash=Math.max(0,p.flash-dt));
   if(G.mut.speed) dt*=G.mut.speed;
   G.time=(G.time||0)+dt;
   if(G.chal) chalTick(dt); G.cool=Math.max(0,G.cool-dt);
@@ -915,8 +965,9 @@ function update(dt){
     if(Math.hypot(b.vx,b.vy)<40) b.still+=dt; else b.still=0;
     if(b.still>1.2){ b.vx+=rnd(-200,200); b.vy-=200; b.still=0; }
     if(b.y>H-26){ // 落底
+      payPocket(b);
       const caught=!b.mini&&((bk&&Math.abs(b.x-bk.x)<bw/2)||(G.basket2&&Math.abs(b.x-G.basket2.x)<bw/2));
-      if(!caught&&G.R.reborn&&(b.reborn||0)<G.R.reborn){ b.reborn=(b.reborn||0)+1; b.y=24; b.vy=180; b.vx*=.6; b.dmgX*=G.R.rebornX; b.trail=[]; b.life=0; burst(b.x,30,'#c58bff',12); continue; }
+      if(!caught&&G.R.reborn&&(b.reborn||0)<G.R.reborn){ b.reborn=(b.reborn||0)+1; b.ch=0; b.mx=1; b.y=24; b.vy=180; b.vx*=.6; b.dmgX*=G.R.rebornX; b.trail=[]; b.life=0; burst(b.x,30,'#c58bff',12); continue; }
       G.balls.splice(G.balls.indexOf(b),1);
       if(caught){ G.basketIn++; if(refund(b.x,H-50,'🧺 +1 宝珠','#7fe0a0')){ G.parts.push({ring:true,x:b.x,y:H-30,r:4,max:34,life:.4,dur:.4,c:'#79c29a',lw:1.5}); SFX.play('basket'); } else G.fx.push({x:b.x,y:H-50,t:'本轮返还已满',c:'#9a8f78',life:.8}); }
       else if(!b.mini && G.R.recycle && Math.random()<G.R.recycle){ refund(b.x,H-50,'♻️ 回收','#8fb8ff'); }
@@ -925,7 +976,7 @@ function update(dt){
   // 卡包状态
   const R=G.R; let burning=0;
   for(const p of G.packs.slice()){
-    p.grow=Math.min(1,p.grow+dt*3); p.hit=Math.max(0,p.hit-dt);
+    p.grow=Math.min(1,p.grow+dt*3); p.hit=Math.max(0,p.hit-dt); if(p.sq) p.sq=Math.max(0,p.sq-dt);
     if(p.acid>=35) grantMyth('one');
     if(p.burn>0){ burning++; if(!R.sun) p.burn-=dt; if(p.burn<=0&&R.lava){ boom(p.x,p.y,120,R.lava*D()); } dmgPack(p,R.burn*D()*dt,true,'fire'); if(Math.random()<dt*12) G.parts.push({ember:true,x:p.x+rnd(-p.hw+4,p.hw-4),y:p.y+rnd(-p.hh*.3,p.hh*.6),vx:rnd(-8,8),vy:rnd(-70,-40),c:'#d48a5c',life:.7});
       if(R.wild&&Math.random()<dt*1.2){ const n=G.packs.find(o=>o!==p&&o.burn<=0&&Math.hypot(o.x-p.x,o.y-p.y)<140); if(n){ n.burn=R.burnT; zap(p,n,'#ff8a4c'); } } }
@@ -939,7 +990,7 @@ function update(dt){
   if(G.boss){ G.boss.ph+=dt*.55*(G.boss.p2?1.7:1); G.boss.x=W/2+Math.sin(G.boss.ph)*150; bossTick(G.boss,dt); }
   G.refill.forEach(r=>r.t-=dt); G.refill.filter(r=>r.t<=0).forEach(r=>{ G.refill.splice(G.refill.indexOf(r),1); if(r.slot) addPack(false,r.slot); });
   // 特效
-  G.fx.forEach(o=>{o.life-=dt;o.y-=40*dt;}); G.fx=G.fx.filter(o=>o.life>0);
+  G.fx.forEach(o=>{ if(o.L===undefined) o.L=o.life; o.life-=dt; o.y-=(o.sz>=30?8:40)*dt; }); G.fx=G.fx.filter(o=>o.life>0);
   G.parts.forEach(o=>{o.life-=dt; if(o.ring) o.r+=((o.max-(o.r0||0))/(o.dur||.35))*dt; else if(o.shard){ o.x+=o.vx*dt; o.y+=o.vy*dt; o.vy+=600*dt; o.rot+=o.vr*dt; } else if(o.ember){ o.x+=o.vx*dt; o.y+=o.vy*dt; } else {o.x+=o.vx*dt;o.y+=o.vy*dt;o.vx*=.92;o.vy*=.92;}}); G.parts=G.parts.filter(o=>o.life>0);
   (G.tears||[]).forEach(o=>{ o.life-=dt; o.oy+=o.vy*dt; o.vy+=420*dt; o.rot+=o.vr*dt; }); G.tears=(G.tears||[]).filter(o=>o.life>0);
   (G.reveals||[]).forEach(o=>o.life-=dt); G.reveals=(G.reveals||[]).filter(o=>o.life>0);
@@ -966,7 +1017,23 @@ function draw(){
   if(G&&G.shake>0) ctx.translate(rnd(-G.shake,G.shake),rnd(-G.shake,G.shake));
   ctx.drawImage(bgCache,0,0);
   // 铆钉
-  PEGS.forEach(g=>{ ctx.fillStyle=g.flash?'#efe0bb':'#7d6a49'; ctx.beginPath(); ctx.arc(g.x,g.y,g.r-.5,0,7); ctx.fill(); ctx.fillStyle='#ffffff22'; ctx.beginPath(); ctx.arc(g.x-1.5,g.y-1.5,g.r*.4,0,7); ctx.fill(); });
+  const nowT=performance.now();
+  PEGS.forEach(g=>{ const sk=g.kind&&SPEG[g.kind];
+    if(sk){ const pu=.5+.5*Math.sin(nowT/170+g.x), ap=Math.min(1,(nowT-(g.born||0))/250), r=(g.r+2.5)*(.6+.4*ap);
+      ctx.globalAlpha=(.18+.22*pu)*ap; ctx.fillStyle=sk.c; ctx.beginPath(); ctx.arc(g.x,g.y,r+6+3*pu,0,7); ctx.fill(); ctx.globalAlpha=1;
+      ctx.fillStyle=g.flash?'#fff':sk.c; ctx.beginPath(); ctx.arc(g.x,g.y,r,0,7); ctx.fill();
+      ctx.strokeStyle='#17120a'; ctx.lineWidth=1.6; ctx.beginPath();
+      if(g.kind==='gold'){ ctx.moveTo(g.x,g.y-4); ctx.lineTo(g.x+3,g.y); ctx.lineTo(g.x,g.y+4); ctx.lineTo(g.x-3,g.y); ctx.closePath(); }
+      else if(g.kind==='bomb'){ ctx.moveTo(g.x-3,g.y-3); ctx.lineTo(g.x+3,g.y+3); ctx.moveTo(g.x+3,g.y-3); ctx.lineTo(g.x-3,g.y+3); }
+      else { ctx.moveTo(g.x,g.y-4); ctx.lineTo(g.x,g.y+4); ctx.moveTo(g.x-4,g.y); ctx.lineTo(g.x+4,g.y); }
+      ctx.stroke(); return; }
+    ctx.fillStyle=g.flash?'#efe0bb':'#7d6a49'; ctx.beginPath(); ctx.arc(g.x,g.y,g.r-.5,0,7); ctx.fill(); ctx.fillStyle='#ffffff22'; ctx.beginPath(); ctx.arc(g.x-1.5,g.y-1.5,g.r*.4,0,7); ctx.fill(); });
+  // 底部倍率口袋
+  POCKETS.forEach((p,i)=>{ const cx=(p.x0+p.x1)/2, col=p.m>=5?'#ffd76a':p.m>1?'#c8a464':'#5e5446';
+    ctx.fillStyle=p.m>=5?'#ffd76a14':p.m>1?'#c8a4640c':'#00000000'; ctx.fillRect(p.x0,H-30,p.x1-p.x0,21);
+    if(p.flash>0){ ctx.globalAlpha=p.flash/.4*.45; ctx.fillStyle=col; ctx.fillRect(p.x0,H-30,p.x1-p.x0,21); ctx.globalAlpha=1; }
+    if(i){ ctx.fillStyle='#3a3127'; ctx.fillRect(p.x0-1,H-30,2,21); }
+    ctx.fillStyle=col; ctx.font=`bold ${p.m>=5?13:11}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('×'+p.m,cx,H-19); ctx.textBaseline='alphabetic'; });
   // 弹射器 / 传送门 / 双倍区
   ZONES.forEach(z=>{ ctx.fillStyle='#c8a46408'; ctx.fillRect(z.x,z.y,z.w,z.h); ctx.setLineDash([4,6]); ctx.strokeStyle='#c8a46455'; ctx.lineWidth=1.5; ctx.strokeRect(z.x,z.y,z.w,z.h); ctx.setLineDash([]);
     ctx.fillStyle='#d9b45acc'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left'; ctx.fillText('✦ 金币 ×2',z.x+6,z.y+14); });
@@ -993,8 +1060,12 @@ function draw(){
     ctx.fillStyle=z.c; ctx.beginPath(); ctx.arc(z.x2,z.y2,2.4,0,7); ctx.fill(); ctx.globalAlpha=1; });
   // 宝珠
   G.balls.forEach(b=>{
-    b.trail.forEach((t,i)=>{ ctx.globalAlpha=i/b.trail.length*.18; ctx.fillStyle=b.pierce?'#a993d8':'#e6cf9c'; ctx.beginPath(); ctx.arc(t.x,t.y,b.r*.8*(i/b.trail.length),0,7); ctx.fill(); }); ctx.globalAlpha=1;
-    ctx.fillStyle=b.pierce?'#3b2f55':'#e6cf9c'; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.fill();
+    b.trail.forEach((t,i)=>{ ctx.globalAlpha=i/b.trail.length*(G.fever>0?.4:.18+.04*(b.mx-1)); ctx.fillStyle=b.pierce?'#a993d8':mxCol(b.mx); ctx.beginPath(); ctx.arc(t.x,t.y,b.r*.8*(i/b.trail.length),0,7); ctx.fill(); }); ctx.globalAlpha=1;
+    const bc=mxCol(b.mx);
+    if(b.mx>=2){ ctx.globalAlpha=.12+.04*b.mx; ctx.fillStyle=bc; ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(1.5+.15*b.mx),0,7); ctx.fill(); ctx.globalAlpha=1; }
+    ctx.fillStyle=b.pierce?'#3b2f55':bc; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.fill();
+    if(b.mx>=1.5&&(!b.mini||b.mx>=2.5)){ ctx.save(); ctx.font=`bold ${10+Math.round(b.mx*1.6)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const t='×'+b.mx.toFixed(1);
+      ctx.strokeText(t,b.x,b.y-b.r-5); ctx.fillStyle=bc; ctx.fillText(t,b.x,b.y-b.r-5); ctx.restore(); }
     if(b.pierce){ ctx.strokeStyle='#a993d8'; ctx.lineWidth=2; ctx.stroke(); ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(performance.now()/300); ctx.setLineDash([3,5]); ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,0,b.r+6,0,7); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); }
     ctx.fillStyle='#ffffff55'; ctx.beginPath(); ctx.arc(b.x-b.r*.32,b.y-b.r*.32,b.r*.32,0,7); ctx.fill(); });
   // 粒子
@@ -1033,7 +1104,14 @@ function draw(){
   if(G.mut.id||G.chal){ ctx.save(); ctx.font='bold 13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic'; const c=G.chal?CHAL.find(x=>x.id===G.chal):null;
     const t=c?`${c.ico} ${c.name} · ${c.prog(G)}`:`${G.mut.ico} ${G.mut.name} · 金币 ×${G.mut.coinX}`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=c?(G.chalWin?'#7fe0a0':'#9de7ff'):'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
   if(G.paused){ ctx.save(); ctx.fillStyle='#0008'; ctx.fillRect(0,0,W,H); ctx.restore(); }
-  G.fx.forEach(o=>{ ctx.globalAlpha=Math.min(1,o.life*2); ctx.font=`bold ${o.small?12:16}px sans-serif`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(o.t,o.x,o.y); ctx.fillStyle=o.c; ctx.fillText(o.t,o.x,o.y); }); ctx.globalAlpha=1;
+  // 狂热：金色边框 + 倒计时条
+  if(G.fever>0){ const pu=.5+.5*Math.sin(performance.now()/90), k=Math.min(1,G.fever/.6);
+    const vg=ctx.createRadialGradient(W/2,H/2,H*.32,W/2,H/2,H*.72); vg.addColorStop(0,'#ffd76a00'); vg.addColorStop(1,`rgba(255,190,80,${(.16+.1*pu)*k})`); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle=`rgba(255,215,106,${(.45+.35*pu)*k})`; ctx.lineWidth=4; ctx.strokeRect(10,10,W-20,H-20);
+    ctx.fillStyle='#000a'; ctx.fillRect(W/2-80,H-56,160,5); ctx.fillStyle='#ffd76a'; ctx.fillRect(W/2-80,H-56,160*G.fever/FEVER.dur,5);
+    ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText('狂热 ×2',W/2,H-62); ctx.fillStyle='#ffd76a'; ctx.fillText('狂热 ×2',W/2,H-62); }
+  G.fx.forEach(o=>{ ctx.globalAlpha=Math.min(1,o.life*2); const sz=o.sz||(o.small?12:16), pop=o.sz&&o.L?1+.6*Math.max(0,1-(o.L-o.life)/.15):1;
+    ctx.save(); ctx.translate(o.x,o.y); ctx.scale(pop,pop); ctx.font=`bold ${sz}px sans-serif`; ctx.lineWidth=sz>=20?4:3; ctx.strokeStyle='#000c'; ctx.strokeText(o.t,0,0); ctx.fillStyle=o.c; ctx.fillText(o.t,0,0); ctx.restore(); }); ctx.globalAlpha=1;
   ctx.restore();
 }
 const RCOL={N:'#9a9184',R:'#7fa6d6',SR:'#a993d8',SSR:'#d8b36a',UR:'#e08cc0'};
@@ -1044,7 +1122,7 @@ function drawLauncher(a){
   ctx.fillStyle='#17120a'; ctx.font='bold 13px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(G&&G.packs?G.ammo:'✦',LAUNCH.x,LAUNCH.y+1); ctx.textBaseline='alphabetic';
 }
 function drawPack(p){
-  const P=PT[p.t]; ctx.save(); ctx.translate(p.x,p.y); const s=p.grow<1?(.3+.7*p.grow):1; ctx.scale(s,s);
+  const P=PT[p.t]; ctx.save(); ctx.translate(p.x,p.y); const s=p.grow<1?(.3+.7*p.grow):1, q=p.sq?Math.sin(p.sq/.16*Math.PI)*.09:0; ctx.scale(s*(1+q),s*(1-q));
   const w=p.hw*2,h=p.hh*2; if(p.boss) return drawBoss(p);
   const body=p.t===3?'#17130f':P.b, edge=p.t===3?'#c8a464':P.a;
   ctx.fillStyle='#0007'; rr(-w/2+2,-h/2+3,w,h,5); ctx.fill();
@@ -1428,6 +1506,8 @@ function showIntro(){
     🎯 <b>瞄准，点击发射</b>金色宝珠（也可以按空格）。<br>
     💥 宝珠会在铆钉和卡包之间来回弹，<b>每撞一次卡包都会造成伤害</b>，撞破封印就能开出卡牌和金币。<br>
     ✦ 开出的卡牌会成为<b style="color:var(--gold2)">宝珠技能</b>：分裂、闪电、燃烧、腐蚀、磁力……装备越多，宝珠越强。<br>
+    🔗 宝珠<b>每撞一下，倍率就涨一点</b>：它打开的卡包金币按倍率翻倍。撞<b style="color:#ffd76a">金钉</b>倍率大涨，<b style="color:#ff8a6a">爆钉</b>会炸开，<b style="color:#7fd6ff">分裂钉</b>分出两颗小珠。<br>
+    🎯 宝珠落底时，按落进的<b>口袋倍率</b>（×1 / ×2 / ×5）兑现一路攒下的珠金。一颗宝珠连撞 ${FEVER.chain} 下，进入<b style="color:#ffd76a">狂热</b>：伤害和金币 ×2。<br>
     🧺 宝珠落进底部移动的<b>金篮</b>会返还一颗。宝珠用完，本轮结算。</p>
     <div class="foot"><span class="sub">5 大流派：⚡连击 🔥灼烧 🧪腐蚀 💰财富 🌀引力</span><button class="btn" id="go">开启秘藏</button></div>`;
   $('go').onclick=()=>startRound(false); $('ov').classList.add('show');
