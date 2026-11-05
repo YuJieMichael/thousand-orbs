@@ -19,7 +19,7 @@ function fixture() {
     TS: {coin: 0, ks: {}}, PT: [{hp: 1, val: 1}, {hp: 4, val: 4}, {hp: 12, val: 15}],
     SFX: {play() {}}, CHAL: [], ORB_SPECIAL: [], BOONS: [], GOAL_MIN: 8,
     $: () => ({classList: {remove() {}}}),
-    buildLayout() {}, buildPockets() {}, rollSpecials() {}, renderSide() {}, guideTip() {},
+    buildLayout() {}, buildPockets() {}, rollSpecials() {}, renderSide() {}, guideTip() {}, hud() {},
     equipped: () => [], upLv: () => 0, ammoN: () => 8, packN: () => 3, unl: () => false,
     allSets: () => false, bossMechs: () => ['shield'],
     buzz() {}, shake() {}, toast() {}, bossIdx: ch => ch, chInfo: () => ({name: 'test', boss: 'test'}),
@@ -120,4 +120,5 @@ test('prestige clears the prior run boss basis, growth cap and normal-output his
   const {M} = f.state();
   assert.equal(M.ch, 1); assert.equal(M.bossD, undefined);
   assert.equal(M.lastBossHp, undefined); assert.equal(M.dealtAvg, undefined);
+  assert.equal(M.goal, 8); assert.equal(M.streak, 0);                          // 转生后目标和连胜也回到起点
 });

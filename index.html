@@ -682,7 +682,10 @@ function prestige(){
   M.keep={slot:upLv('slot'),auto:upLv('auto'),reson:upLv('reson')};
   M.up=fresh().up; M.tree={}; M.treeSpent=0; recalcTree(); M.money=M.legacy.start?200*Math.pow(6,M.legacy.start-1):0;
   delete M.bossD; delete M.lastBossHp; delete M.dealtAvg;
-  M.ch=1; M.chRounds=0; M.life=0; M.rate=0; save(); renderSide(); tab='legacy'; SFX.play('melt'); toast(`🔥 熔金完成，获得 ${g} 金魂`); checkAch(); showBetween();
+  M.ch=1; M.chRounds=0; M.life=0; M.rate=0; M.goal=GOAL_MIN; M.streak=0; delete M.nextBoon;
+  // 画面也要跟着回到第 1 章：换掉上一轮的结算数据和台面布局，否则要进一轮游戏才看得出变化
+  G={loot:{},reborn:g}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo='';
+  save(); renderSide(); hud(); tab='legacy'; SFX.play('melt'); toast(`🔥 熔金完成，获得 ${g} 金魂`); checkAch(); showBetween();
 }
 
 // ================= 成就 =================
@@ -1776,7 +1779,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.17';
+const GAME_V='2026-11-05.18';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2287,7 +2290,7 @@ function showBetween(){
   const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 不知道某个东西是什么？<span class="sub">手册里都有，打的时候也能随时打开（右上角「📖 手册」）。</span></span><button class="ghost" id="manTipB">打开手册</button></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ 这一轮提前结束了，台面上还在飞的宝珠没有结算。</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):(G.reborn?'熔金转生完成':'欢迎回来')}</h2>${unlHTML}${migHTML}${tab==='loot'?dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2319,7 +2322,7 @@ function showBetween(){
   if($('autoT')) $('autoT').onchange=e=>{ M.autoOn=e.target.checked; save(); };
   let body=$('tabBody');
   if(tab==='loot'){
-    body.innerHTML=ids.length?`<div class="grid">${ids.map((id,i)=>cardHTML(id,{pop:1,delay:i*.07,count:G.loot[id],isNew:G.newIds[id],up:G.upIds[id],foilNew:G.foilIds&&G.foilIds[id]})).join('')}</div>`:'<p class="sub">这一轮还没开出卡牌。试试瞄准卡包密集的地方！</p>';
+    body.innerHTML=ids.length?`<div class="grid">${ids.map((id,i)=>cardHTML(id,{pop:1,delay:i*.07,count:G.loot[id],isNew:G.newIds[id],up:G.upIds[id],foilNew:G.foilIds&&G.foilIds[id]})).join('')}</div>`:G.reborn?`<div class="chap" style="margin-top:0;border-color:var(--gold3)">🔥 <b>熔金完成</b>：获得 <b style="color:var(--gold2)">${G.reborn}</b> 金魂。回到第 1 章重新开始，卡牌、闪卡和图鉴都还在。<br><span class="sub">去「更多 → 传承」用金魂换永久加成，然后开下一轮。</span></div>`:'<p class="sub">这一轮还没开出卡牌。试试瞄准卡包密集的地方！</p>';
   } else if(tab==='bag'){
     body.innerHTML=`<p class="sub">每轮开局，珠袋里的特殊宝珠会和普通金珠一起洗进弹药（超出本轮宝珠数的不上场）。发射器右边会显示接下来的三颗宝珠，按珠袋顺序发射。<br>新的特殊宝珠在「精英」轮达成后、和「奇遇」的铸珠匠那里随机获得。</p>`+ORB_SPECIAL.map(k=>{ const o=ORBS[k],n=M.orbs[k]||0; return `<div class="ach ${n?'yes':'no'}"><div class="ico" style="color:${o.c}">${o.ico}</div><div><div style="font-weight:800;color:${o.c}">${o.name}</div><div class="sub">${o.desc}</div></div><div class="rw">× ${n}</div></div>`; }).join('');
   } else if(tab==='up'){
