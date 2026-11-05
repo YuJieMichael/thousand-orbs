@@ -1,0 +1,1 @@
+{ "private": true, "name": "thousand-orbs-i18n", "description": "生成英文版 en/index.html", "dependencies": { "acorn": "8.14.0", "acorn-walk": "8.3.4" } }

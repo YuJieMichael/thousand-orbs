@@ -145,3 +145,16 @@ node --test tests/save.test.cjs tests/boss.test.cjs
 - 在「更多 → 📖 手册」里，开场画面上也有「📖 游戏手册」按钮。
 - 共 8 节，可以折叠：基本玩法、按钮、卡包和稀有度、技能卡和流派、变强的方法、关卡和玩法、秘卡、新手小技巧。
 - 保底张数、清点术每级加成、每日挑战开放轮数等数字直接读游戏里的常量，以后调整数值，手册会自动跟着变。
+
+## 2026-11-05.14：英文版
+- 英文版地址是 `en/`（例如 https://yujiemichael.github.io/thousand-orbs/en/），和中文版共用同一份存档。
+- 切换语言：开场画面右上角的「English / 中文」，或者「更多 → 设置 → 语言」，选过以后会记住。浏览器语言不是中文的玩家第一次打开，会自动跳到英文版。
+- 英文版的数字单位用 K / M / B / T / Qa…，中文版仍然用 万 / 亿。
+- **`en/index.html` 是生成出来的，不要直接改**。改完 `index.html` 以后要重新生成：
+  ```
+  cd tools/i18n && npm i && cd ../..
+  node tools/i18n/build-en.cjs        # 生成 en/index.html
+  node tools/i18n/build-en.cjs dump   # 列出还没翻译的中文片段
+  ```
+  - 翻译词表在 `tools/i18n/en.json`，按「一段连续中文 → 英文」一条条对应，注释里的中文不翻译。「第 X 章 / 轮 / 次」这类语序问题会自动调整，个别需要整段替换的源码片段放在 `en-sub.json`。
+  - 有新的中文没翻译时，生成会报错并停下。`tests/i18n.test.cjs` 会检查英文版是不是从当前的 `index.html` 生成的。
