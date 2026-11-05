@@ -180,10 +180,11 @@
   @media (max-width:600px){
     .wrap{padding:6px 8px 16px;gap:8px}
     .side{display:contents}
-    .pMoney{order:1;padding:8px 10px;display:grid;grid-template-columns:1fr auto auto;gap:4px 8px;align-items:center}
+    .pMoney{order:1;padding:8px 10px;display:grid;grid-template-columns:1fr auto auto auto;gap:4px 8px;align-items:center}
     .pMoney .title,.pMoney .tagline,.pMoney .money,.pMoney .kv{display:none}
-    .pMoney #muteB{position:static!important;grid-column:3;grid-row:1;padding:2px 8px!important;font-size:14px!important}
-    .pMoney #endB{position:static!important;grid-column:2;grid-row:1;padding:3px 8px!important;font-size:12px!important}
+    .pMoney #spdB{position:static!important;grid-column:2;grid-row:1;padding:3px 8px!important;font-size:12px!important;min-width:0!important}
+    .pMoney #muteB{position:static!important;grid-column:4;grid-row:1;padding:2px 8px!important;font-size:14px!important}
+    .pMoney #endB{position:static!important;grid-column:3;grid-row:1;padding:3px 8px!important;font-size:12px!important}
     .pMoney .ammo{grid-column:1;grid-row:1;margin:0;gap:3px;min-height:10px} .pMoney .ammo i{width:11px;height:11px}
     .pMoney .chap{grid-column:1/-1;margin:2px 0 0;padding:6px 8px;font-size:12px}
     .frame{order:0;padding:5px;border-radius:14px;width:100%;max-width:calc((100svh - 24px) * 540 / 800);margin:0 auto}
@@ -322,6 +323,7 @@
     <div class="plate pMoney">
       <button class="ghost" id="muteB" title="音效（M）" style="position:absolute;top:12px;right:12px;font-size:16px;padding:4px 10px">🔊</button>
       <button class="ghost" id="endB" title="提前结束这一轮（点两次）" style="position:absolute;top:12px;right:62px;font-size:13px;padding:5px 10px;visibility:hidden">⏹ 结束</button>
+      <button class="ghost" id="spdB" title="游戏速度（快捷键 F）" style="position:absolute;top:12px;right:128px;font-size:13px;padding:5px 10px;min-width:44px">×1</button>
       <div class="title serif goldtxt ttlrow" id="ttl" style="user-select:none"><img id="emb" alt="" style="width:34px;height:34px;border-radius:6px">千珠落尽</div>
       <div class="tagline">以珠破封 · 收藏万卡</div>
       <div class="money serif goldtxt" style="margin-top:10px">✦ <span id="money">0</span></div>
@@ -515,6 +517,7 @@ function normalizeSave(data){
     if(!Number.isSafeInteger(next[k])||next[k]<0) bad();
   if(next.ch<1||next.maxCh<1||next.goal<1||!next.deck.every(id=>typeof id==='string')) bad();
   for(const k of ['stats','vibe','dev']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
+  if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
   for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
   if(next.routes!==null&&(!Array.isArray(next.routes)||!next.routes.every(r=>['normal','elite','shop','event'].includes(r)))) bad();
   for(const s of Object.values(next.lbSent)) if(!saveRecord(s)||typeof s.value!=='number'||s.value<0||!Number.isFinite(s.value)||(s.tb!==undefined&&(typeof s.tb!=='number'||s.tb<0||!Number.isFinite(s.tb)))) bad();
@@ -841,7 +844,7 @@ const UNL=[
 const unl=id=>UNL.find(u=>u.id===id).ok();
 // ================= 每轮目标 & 路线 =================
 // 统计显示后期一轮能开 5000 包、金币滚雪球：补货最快 0.45 秒；一轮开到 200 包以后，每包金币按 √(200/已开) 递减
-const REFILL_MIN=.45, PACK_SOFT=200;
+const REFILL_MIN=.45, PACK_SOFT=200, CLEAR_CD=1, CLEAR_REFILL=.15;
 const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
 const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6; // 达成目标后，下一轮目标往这一轮实际开包数靠近 80%，一次最多 +6
 const ROUTES={
@@ -1415,6 +1418,9 @@ function update(dt){
   if(burning>=9) grantMyth('sun');
   G.burnN=burning; mythHintTick(dt);
   if(G.boss){ G.boss.ph+=dt*.55*(G.boss.p2?1.7:1); G.boss.x=W/2+Math.sin(G.boss.ph)*150; bossTick(G.boss,dt); }
+  // 清场速补：台面上一个卡包都不剩、还有宝珠在飞时，空位 0.15 秒内一起补上（每秒最多一次）——多球齐射不再浪费
+  G.clrCd=Math.max(0,(G.clrCd||0)-dt);
+  if(!G.isBoss&&G.packs.length===0&&G.refill.length&&G.balls.length&&G.clrCd<=0){ G.clrCd=CLEAR_CD; G.refill.forEach(r=>{ if(r.slot) r.t=Math.min(r.t,CLEAR_REFILL); }); G.clears=(G.clears||0)+1; G.fx.push({x:W/2,y:H*.5,t:'清场！卡包速补',c:'#ffd76a',life:.9,sz:22,slow:1}); }
   G.refill.forEach(r=>r.t-=dt); G.refill.filter(r=>r.t<=0).forEach(r=>{ G.refill.splice(G.refill.indexOf(r),1); if(r.slot) addPack(false,r.slot); });
   // 特效
   G.fx.forEach(o=>{ if(o.L===undefined) o.L=o.life; o.life-=dt; o.y-=(o.slow?14:o.sz>=30?8:40)*dt;
@@ -1646,6 +1652,7 @@ const KONAMI=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRigh
 addEventListener('keydown',e=>{
   if(/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if(e.code==='Space'&&!$('ov').classList.contains('show')&&!document.activeElement.closest('button,dialog')?.getClientRects().length){ if(!e.repeat) fire(); holding=true; e.preventDefault(); }
+  if(e.code==='KeyF'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ cycleSpeed(); return; }
   if(e.code==='KeyM'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ M.mute=!M.mute; save(); syncMute(); toast(M.mute?'🔇 音效关闭':'🔊 音效开启'); }
   kIdx=e.code===KONAMI[kIdx]?kIdx+1:(e.code===KONAMI[0]?1:0); if(kIdx===KONAMI.length){ kIdx=0; grantMyth('lord'); } });
 addEventListener('keyup',e=>{ if(e.code==='Space') holding=false; });
@@ -1746,7 +1753,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.8';
+const GAME_V='2026-11-05.9';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2279,9 +2286,9 @@ function showBetween(){
     $('sStats').onchange=e=>{ M.stats=e.target.checked; save(); toast(M.stats?'已开启匿名统计':'已关闭匿名统计'); };
     if($('sVibe')) $('sVibe').onchange=e=>{ M.vibe=e.target.checked; save(); if(M.vibe) buzz(30); };
     $('sCopy').onclick=()=>{ const t=$('sCode'); t.select(); try{ navigator.clipboard.writeText(t.value).then(()=>toast('已复制存档码'),()=>{ document.execCommand('copy'); toast('已复制存档码'); }); }catch(e){ document.execCommand('copy'); toast('已复制存档码'); } };
-    $('sImp').onclick=()=>{ try{ importCode($('sIn').value); recalcTree(); syncMute(); renderSide(); hud(); G={loot:{}}; tab='loot'; toast('存档导入成功'); showBetween(); }catch(e){ toast('导入失败：'+e.message); } };
+    $('sImp').onclick=()=>{ try{ importCode($('sIn').value); recalcTree(); syncMute(); syncSpeed(); renderSide(); hud(); G={loot:{}}; tab='loot'; toast('存档导入成功'); showBetween(); }catch(e){ toast('导入失败：'+e.message); } };
     $('sRestore').onclick=()=>{ const b=$('sRestore'); if(!b.dataset.c){ b.dataset.c=1; b.textContent='再点一次恢复（覆盖当前进度）'; return; } try{ restoreBackup(); finishLoad(); toast('已恢复上一份有效备份'); }catch(e){ toast(e.message); } };
-    $('reset').onclick=()=>{ if($('reset').dataset.c){ try{ applySavedState(fresh(),true); running=false; ROUND_EQ=null; G=null; recalcTree(); syncMute(); renderSide(); showIntro(); }catch(e){ toast(e.message); } } else { $('reset').dataset.c=1; $('reset').textContent='再点一次确认'; } };
+    $('reset').onclick=()=>{ if($('reset').dataset.c){ try{ applySavedState(fresh(),true); running=false; ROUND_EQ=null; G=null; recalcTree(); syncMute(); syncSpeed(); renderSide(); showIntro(); }catch(e){ toast(e.message); } } else { $('reset').dataset.c=1; $('reset').textContent='再点一次确认'; } };
   } else {
     const fc=CARDS.filter(c=>M.foil[c.id]).length, ur=CARDS.filter(c=>c.rar==='UR');
     body.innerHTML=`<p class="sub">✨ 闪卡收集 ${fc}/${CARDS.length} · 每开一张卡有 ${((.005+.0025*M.legacy.shine)*100).toFixed(2)}% 概率是闪卡，拥有闪卡后这张卡效果永久 +25%<br>
@@ -2298,16 +2305,21 @@ function showBetween(){
 
 // ================= 主循环 =================
 let last=performance.now();
-function loop(now){ const dt=Math.min(.033,(now-last)/1000); last=now; if(running) update(dt); draw(); hud(); requestAnimationFrame(loop); }
+// 游戏速度 ×1/×2/×3：每帧多跑几步物理，步长不变，所以结果和 ×1 一样，只是更快
+const SPEEDS=[1,2,3];
+function syncSpeed(){ const b=$('spdB'); b.textContent='⏩ ×'+(M.speed||1); b.style.color=(M.speed||1)>1?'var(--gold2)':''; b.style.borderColor=(M.speed||1)>1?'var(--gold)':''; }
+function cycleSpeed(){ const i=SPEEDS.indexOf(M.speed||1); M.speed=SPEEDS[(i+1)%SPEEDS.length]; save(); syncSpeed(); toast(`⏩ 游戏速度 ×${M.speed}`); }
+$('spdB').onclick=cycleSpeed;
+function loop(now){ const dt=Math.min(.033,(now-last)/1000); last=now; if(running){ const n=SPEEDS.includes(M.speed)?M.speed:1; for(let i=0;i<n&&running;i++) update(dt); } draw(); hud(); requestAnimationFrame(loop); }
 $('emb').src=ART.emblem;
 function finishLoad(){
   running=false; ROUND_EQ=null; if(!M.pid) M.pid=newPid();
   const migrated=M.round>0?migrateTree():(M.treeV=2,0);
-  recalcTree(); syncMute(); buildPockets(); save(); renderSide(); hud();
+  recalcTree(); syncMute(); syncSpeed(); buildPockets(); save(); renderSide(); hud();
   if(M.round>0){ G={loot:{},migrated}; tab='up'; showBetween(); } else { G=null; showIntro(); }
 }
 load();
-if(saveBlocked){ recalcTree(); syncMute(); buildPockets(); renderSide(); hud(); showSaveRecovery(); } else finishLoad();
+if(saveBlocked){ recalcTree(); syncMute(); syncSpeed(); buildPockets(); renderSide(); hud(); showSaveRecovery(); } else finishLoad();
 setInterval(()=>{ if(running) checkAch(); },2500);
 addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
 requestAnimationFrame(loop);
