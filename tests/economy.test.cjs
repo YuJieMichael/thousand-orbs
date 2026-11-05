@@ -54,3 +54,18 @@ test('秘卡门槛：无尽回响 50 次命中，奇点 20 颗宝珠', () => {
   assert.match(html, /if\(b\.hn>=50\) grantMyth\('echo'\)/);
   assert.match(html, /if\(G\.balls\.length>=20\) grantMyth\('sing'\)/);
 });
+
+test('普通卡包：金币和血量同步成长，开出好卡的概率随章节提高（第 5 章封顶）', () => {
+  assert.match(html, /const CH_HP=1\.6, CH_VAL=1\.6;/);
+  const PT = [{odds: [72, 23, 4.5, .5]}, {odds: [0, 65, 30, 5]}, {odds: [0, 0, 75, 25]}, {odds: [0, 0, 0, 100]}];
+  const odds = ch => {
+    const ctx = vm.createContext({PT, M: {ch}});
+    vm.runInContext(between('const ODDS_STEP=', 'const packHp') + ';this.o=JSON.stringify([0,1,2,3].map(t=>packOdds(t)));', ctx);
+    return JSON.parse(ctx.o);
+  };
+  for (const ch of [1, 2, 3, 4, 5, 9]) for (const o of odds(ch)) assert.ok(Math.abs(o.reduce((a, b) => a + b, 0) - 100) < 1e-6);
+  assert.deepEqual(odds(1)[0], [72, 23, 4.5, .5]);
+  assert.ok(odds(5)[0][3] > odds(3)[0][3] && odds(3)[0][3] > odds(1)[0][3]);   // 青铜包的 SSR 越往后越多
+  assert.deepEqual(odds(9), odds(5));                                            // 深渊沿用第 5 章
+  assert.deepEqual(odds(5)[3], [0, 0, 0, 100]);                                  // 黑金秘藏不变
+});

@@ -59,7 +59,7 @@ test('boss payout uses the defeated chapter and the existing global economy mult
   const f = fixture();
   f.run('M.ch=3;M.maxCh=3;M.up.stage=2;M.legacy.rich=2;TS.coin=.25;TS.ks.greed=true;');
   f.start(); f.run('G.bo.coin=1.5;G.R.eight=8;G.fever=1;openPack(G.boss);');
-  const expected = 540 * 4 * 1.4 ** 2 * 1.8 * 1.25 * 2.5 * 1.5 * 8 * 2;
+  const expected = 540 * 4 * 1.6 ** 2 * 1.8 * 1.25 * 2.5 * 1.5 * 8 * 2;
   const {M, G} = f.state();
   assert.ok(Math.abs(M.money - expected) < 1e-7); assert.equal(G.earned, M.money);
   assert.equal(M.ch, 4);
