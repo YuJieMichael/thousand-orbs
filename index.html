@@ -593,7 +593,7 @@ const STAGE_G=3.4; // 秘藏等级价格增长：原来 ×5 会在 Lv5 左右卡
 // ---- 可无限升级的两项（不在星盘上） ----
 const REP=[
   {id:'dmg',ico:'💎',name:'宝珠打磨',desc:l=>`宝珠基础伤害 ${f(orbDmg(l))}`,cost:l=>12*Math.pow(1.5,l)},
-  {id:'stage',ico:'🏛️',name:'秘藏等级',desc:l=>`卡包血量 ×${f(Math.pow(1.6,l))}，金币 ×${f(Math.pow(VAL_G,l))}，每个卡包算 ${packWorth(l)} 包`,cost:l=>250*Math.pow(STAGE_G,l),
+  {id:'stage',ico:'🏛️',name:'秘藏等级',desc:l=>`卡包血量 ×${f(Math.pow(1.6,l))}，金币 ×${f(Math.pow(VAL_G,l))}，每个卡包算 ${packWorth(l)} 包${packWorth(l)>=PACK_WORTH_MAX?'（已到上限）':''}`,cost:l=>250*Math.pow(STAGE_G,l),
     need:()=>M.up.dmg>=3&&M.up.stage<stageCap(),needTxt:()=>M.up.dmg<3?'宝珠打磨 Lv3 后开放':`上限 Lv${stageCap()}：击败第 ${M.maxCh} 章首领解锁`},
   {id:'cnt',ico:'🧾',name:'清点术',desc:l=>`开包计数 ×${(1+CNT_STEP*l).toFixed(2)}`,cost:l=>150*Math.pow(1.75,l),need:()=>M.up.dmg>=3,needTxt:'宝珠打磨 Lv3 后开放'},
 ];
@@ -816,7 +816,9 @@ const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
 const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1);
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
 // 秘藏等级：卡包血量 ×1.6^等级，所以开一个卡包也算 round(1.6^等级) 包（血量换数量，目标不会因为升了等级反而完不成）
-const packWorth=(l=M.up.stage)=>DAILY?1:Math.max(1,Math.round(Math.pow(1.6,l)));
+// 上限 10：秘藏等级到后期会到几十级，1.6^等级 会把一包算成上亿包（2026-11-05 玩家截图：一轮 1.97 亿包）
+const PACK_WORTH_MAX=10;
+const packWorth=(l=M.up.stage)=>DAILY?1:Math.min(PACK_WORTH_MAX,Math.max(1,Math.round(Math.pow(1.6,l))));
 // 开包计数倍率：清点术每级 +4%（金币升级，无上限）+ 本轮「清点」祝福每次 +15%；小数部分按概率多算 1 包
 const CNT_STEP=.04;
 const cntMult=()=>DAILY?1:1+CNT_STEP*(M.up.cnt||0)+((G&&G.bo&&G.bo.cnt)||0);
@@ -1774,7 +1776,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.16';
+const GAME_V='2026-11-05.17';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;

@@ -157,8 +157,9 @@ test('秘卡：过半提示，解锁给金币和金魂', () => {
 
 test('秘藏等级：血量 ×1.6^等级，一个卡包也算 round(1.6^等级) 包；祝福节奏和金币递减按真实包数', () => {
   const ctx = vm.createContext({M: {up: {stage: 0}}, DAILY: null, Math});
-  vm.runInContext(between('const packWorth=', '\n') + ';this.w=packWorth;', ctx);
+  vm.runInContext(between('const PACK_WORTH_MAX=', 'const packValue=') + ';this.w=packWorth;', ctx);
   assert.deepEqual([0, 1, 2, 3, 4, 5].map(l => ctx.w(l)), [1, 2, 3, 4, 7, 10]);
+  assert.equal(ctx.w(30), 10); assert.equal(ctx.w(60), 10);                   // 后期秘藏等级几十级：封顶 10，不会一包算上亿包
   ctx.DAILY = {}; assert.equal(ctx.w(5), 1);                                    // 每日挑战不吃养成
   assert.match(html, /G\.opened\+=packCount\(\); G\.realOpened=/);
   assert.match(html, /coins\*=packFatigue\(G\.realOpened\)/);
@@ -167,7 +168,7 @@ test('秘藏等级：血量 ×1.6^等级，一个卡包也算 round(1.6^等级) 
 
 test('开包计数倍率：清点术每级 +4%、清点祝福 +15%，小数按概率；每日挑战固定 1', () => {
   const ctx = vm.createContext({M: {up: {stage: 0, cnt: 5}}, G: {bo: {cnt: .15}}, DAILY: null, Math});
-  vm.runInContext(between('const packWorth=', 'const packValue=') + ';this.m=cntMult;this.c=packCount;', ctx);
+  vm.runInContext(between('const PACK_WORTH_MAX=', 'const packValue=') + ';this.m=cntMult;this.c=packCount;', ctx);
   assert.ok(Math.abs(ctx.m() - 1.35) < 1e-9);
   let n = 0; for (let i = 0; i < 20000; i++) n += ctx.c();
   assert.ok(n / 20000 > 1.32 && n / 20000 < 1.38);
