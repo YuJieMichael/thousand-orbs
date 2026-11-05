@@ -75,3 +75,21 @@ test('SSR 不再太好拿：保底 100 张（黑金之约点满 50），黑金�
   assert.match(html, /if\(r<\(\.002\+\.002\*s\)\*lk\) t=3;/);
   assert.match(html, /odds:\[72\.3,23,4\.5,\.2\]/);
 });
+
+test('提前配装：存三套，开打前按关卡自动换上，存档校验', () => {
+  const ctx = vm.createContext({M: {owned: {a: 1, b: 1, c: 1}, deck: ['a', 'b'], ksOff: {}}, ROUND_EQ: null, toast() {}, save() {}, recalcTree() {}, JSON});
+  vm.runInContext('const maxSlots=()=>2;' + between('function equipped(', 'function loadBar(') + ';this.api={saveLoad,applyLoad,loadKind,equipped:()=>JSON.stringify(equipped())};', ctx);
+  const {api, M} = ctx;
+  assert.equal(api.loadKind(true), 'boss');
+  assert.equal(api.loadKind(false, {route: 'elite'}), 'special');
+  assert.equal(api.loadKind(false, {chal: 'one'}), 'special');
+  assert.equal(api.loadKind(false, {route: 'normal'}), 'farm');
+  api.saveLoad('boss'); assert.equal(M.loadAuto, true);
+  M.deck = ['c']; M.ksOff = {greed: 1}; api.saveLoad('farm');
+  assert.equal(api.applyLoad('boss', true), true); assert.equal(api.equipped(), '["a","b"]'); assert.equal(JSON.stringify(M.ksOff), '{}');
+  assert.equal(api.applyLoad('boss', true), false);                 // 已经是这一套：不重复换
+  api.applyLoad('farm', true); assert.equal(api.equipped(), '["c"]'); assert.equal(M.ksOff.greed, 1);
+  assert.equal(api.applyLoad('special', true), false);              // 没存的不换
+  assert.match(html, /if\(M\.loadAuto\) applyLoad\(loadKind\(boss,opt\)\);[^\n]*\n  if\(chal&&chal\.eq\) ROUND_EQ=chal\.eq\(\);/);
+  assert.match(html, /if\(!\['boss','special','farm'\]\.includes\(k\)/);
+});

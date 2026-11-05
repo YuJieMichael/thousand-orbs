@@ -206,6 +206,13 @@
   }
   .eqbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#0c0907}
   .eqbar .ghost{padding:4px 10px;font-size:12px}
+  .loads{display:grid;gap:6px;margin-top:8px}
+  .lrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#0c0907}
+  .lrow.on{border-color:var(--gold);background:#d9b45a10}
+  .lrow .lnm{min-width:150px;font-size:13px}
+  .lrow .lcards{flex:1;display:flex;gap:4px;flex-wrap:wrap;align-items:center;min-height:22px}
+  .lrow .lbtn{display:flex;gap:6px}
+  .lrow .lbtn .ghost{padding:5px 12px;min-height:32px}
   @media (max-width:600px){
     .deckgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
     .deckgrid .card .in{min-height:0;padding:5px 5px 6px}
@@ -510,6 +517,11 @@ function normalizeSave(data){
   if(next.bossD!==undefined&&next.bossD!==null){ if(!saveRecord(next.bossD)) bad(); for(const v of Object.values(next.bossD)) if(typeof v!=='number'||!Number.isFinite(v)||v<0) bad(); }
   if(next.dealtAvg!==undefined&&(typeof next.dealtAvg!=='number'||!Number.isFinite(next.dealtAvg)||next.dealtAvg<0)) bad();
   if(next.lastBossHp!==undefined&&(typeof next.lastBossHp!=='number'||!Number.isFinite(next.lastBossHp)||next.lastBossHp<0)) bad();
+  if(next.loadAuto!==undefined&&typeof next.loadAuto!=='boolean') bad();
+  if(next.loads!==undefined){ if(!saveRecord(next.loads)) bad();
+    for(const [k,l] of Object.entries(next.loads)){ if(!['boss','special','farm'].includes(k)||!saveRecord(l)||!Array.isArray(l.deck)||!l.deck.every(id=>typeof id==='string')) bad();
+      if(l.ks!==undefined&&(!saveRecord(l.ks)||!Object.values(l.ks).every(v=>[0,1,false,true].includes(v)))) bad();
+      l.deck=[...new Set(l.deck.filter(id=>byId[id]))]; } }
   if(next.ksOff!==undefined){ if(!saveRecord(next.ksOff)) bad(); for(const v of Object.values(next.ksOff)) if(![0,1,false,true].includes(v)) bad(); }
   if(next.pid&&!/^[a-f0-9]{24}$/.test(next.pid)) bad();
   for(const k of ['owned','asc','foil']) for(const id of Object.keys(next[k])) if(!byId[id]) delete next[k][id];
@@ -861,6 +873,25 @@ const f=n=>fmt(n);
 function D(){ return orbDmg(M.up.dmg)*G.R.dmg*(1+.3*M.legacy.pow)*(G.R.allSet?1.5:1)*(1+TS.dmg)*(TS.ks.allin?3:1)*(TS.ks.rain?.6:1)*G.bo.dmg*(G.fever>0?2:1); }
 let ROUND_EQ=null; // 挑战关卡会临时改变生效的卡
 function equipped(){ if(ROUND_EQ) return ROUND_EQ; return M.deck.filter(id=>M.owned[id]).slice(0,maxSlots()); }
+// ---- 提前配装：三套技能卡 + 基石开关，开打前按关卡自动换上 ----
+const LOADS={boss:{ico:'👑',name:'打 Boss',when:'首领战'},special:{ico:'⚔️',name:'特殊关',when:'精英轮 · 挑战关'},farm:{ico:'🪙',name:'打钱',when:'普通轮'}};
+const loadKind=(boss,opt={})=>opt.chal?'special':boss?'boss':opt.route==='elite'?'special':'farm';
+const loadDeck=k=>{ const L=(M.loads||{})[k]; return L?L.deck.filter(id=>M.owned[id]).slice(0,maxSlots()):null; };
+const loadOn=k=>{ const d=loadDeck(k), L=(M.loads||{})[k]; return !!d&&JSON.stringify(d)===JSON.stringify(equipped())&&JSON.stringify(L.ks||{})===JSON.stringify(M.ksOff||{}); };
+function saveLoad(k){ M.loads=M.loads||{}; M.loads[k]={deck:equipped().slice(),ks:Object.assign({},M.ksOff||{})}; if(M.loadAuto===undefined) M.loadAuto=true; save(); }
+function applyLoad(k,quiet){ const d=loadDeck(k); if(!d||loadOn(k)) return false;
+  M.deck=d; M.ksOff=Object.assign({},M.loads[k].ks||{}); recalcTree(); save(); if(!quiet) toast(`${LOADS[k].ico} 已换上「${LOADS[k].name}」配装`); return true; }
+function loadBar(){ const L=M.loads||{};
+  return `<div class="chap" style="margin:0 0 10px"><b>提前配装</b> <span class="sub">把现在装备的技能卡（连同基石开关）存成一套</span>
+    <div class="loads">${Object.entries(LOADS).map(([k,o])=>{ const d=loadDeck(k), on=loadOn(k);
+      return `<div class="lrow${on?' on':''}"><div class="lnm">${o.ico} <b>${o.name}</b> <span class="sub">${o.when}</span></div>
+        <div class="lcards">${d?(d.length?d.map(id=>`<span title="${byId[id].name}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico}</span>`).join(''):'<span class="sub">空</span>'):'<span class="sub">还没存</span>'}</div>
+        <div class="lbtn"><button class="ghost" data-lsave="${k}">${d?'覆盖为当前':'存为当前'}</button>${d?`<button class="ghost" data-luse="${k}" ${on?'disabled style="border-color:var(--gold);color:var(--gold2)"':''}>${on?'使用中':'换上'}</button>`:''}</div></div>`; }).join('')}</div>
+    <label class="sub" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="lAuto" ${M.loadAuto?'checked':''}> 开打前按关卡自动换装（没存的那种关卡不换）</label></div>`; }
+function bindLoadBar(body){
+  body.querySelectorAll('[data-lsave]').forEach(b=>b.onclick=()=>{ const k=b.dataset.lsave; saveLoad(k); SFX.play('buy'); toast(`${LOADS[k].ico} 已存为「${LOADS[k].name}」配装`); showBetween(); });
+  body.querySelectorAll('[data-luse]').forEach(b=>b.onclick=()=>{ applyLoad(b.dataset.luse); renderSide(); hud(); showBetween(); });
+  const a=body.querySelector('#lAuto'); if(a) a.onchange=()=>{ M.loadAuto=a.checked; save(); toast(a.checked?'开打前会自动换装':'已关闭自动换装'); }; }
 function schoolCount(){ const eq=equipped(),n={}; eq.forEach(id=>{ const c=byId[id]; n[c.sch]=(n[c.sch]||0)+1; if(c.sch2) n[c.sch2]=(n[c.sch2]||0)+1; });
   if(eq.includes('lord')){ const k=levelOf(M.owned.lord)>=6?2:1; Object.keys(n).forEach(s=>{ if(s!=='myth') n[s]+=k; }); } return n; }
 const cardLv=id=>{ const c=byId[id]; return c.comps?Math.min(...c.comps.map(x=>levelOf(M.owned[x]||0))):levelOf(M.owned[id]||0); };
@@ -870,7 +901,9 @@ function cardP(id){ const lv=cardLv(id),c=byId[id],sc=schoolCount(); return [lv,
 function startRound(boss,opt={}){
   $('boonPop').classList.remove('show');
   boss=!!boss; buildLayout(M.ch,boss); buildPockets(); rollSpecials();
-  const chal=opt.chal?CHAL.find(c=>c.id===opt.chal):null; ROUND_EQ=null; if(chal&&chal.eq) ROUND_EQ=chal.eq();
+  const chal=opt.chal?CHAL.find(c=>c.id===opt.chal):null; ROUND_EQ=null;
+  if(M.loadAuto) applyLoad(loadKind(boss,opt)); // 提前配装：先换装，挑战关的固定卡组再在这之上生效
+  if(chal&&chal.eq) ROUND_EQ=chal.eq();
   const mut=null;
   const R={burnT:4,burnX:1,bone:false,vip:1,titan:0,lava:0,plague:0,dmg:1,coin:1,burn:0,wild:false,phoenix:0,acid:0,dissolve:0,spread:false,voidAt:0,invest:0,twin:0,size:1,bounce:.72,magnet:0,recycle:0,wallBonus:0,
     sun:false,acidX:1,acidCoin:0,eight:0,reborn:0,rebornX:1,allSet:allSets()};
@@ -1617,7 +1650,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.3';
+const GAME_V='2026-11-05.4';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -1844,6 +1877,7 @@ function refreshDeckView(body,anchor){
       bar.innerHTML=`<span class="sub">已装备 ${eq.length}/${maxSlots()}</span>${eq.map(id=>`<button class="ghost" data-uneq="${id}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico} ${byId[id].name} ✕</button>`).join('')}${eq.length<maxSlots()?'<span class="sub">· 点下面的卡牌装备</span>':''}`;
       bar.querySelectorAll('[data-uneq]').forEach(b=>b.onclick=()=>{ M.deck=M.deck.filter(x=>x!==b.dataset.uneq); save(); renderSide(); refreshDeckView(body,b); });
     }
+    const lb=body.querySelector('.loads'); if(lb){ lb.closest('.chap').outerHTML=loadBar(); bindLoadBar(body); }
     body.querySelectorAll('[data-fs]').forEach(b=>{
       const k=b.dataset.fs, school=SCH[k];
       const label=k==='all'?'全部':k==='eq'?'已装备':`${school.ico}${school.name}${resMult(n[k]||0)>1?` ×${resMult(n[k])}`:''}`;
@@ -2092,10 +2126,11 @@ function showBetween(){
     const chip=(k,label,color,cnt)=>`<button class="ghost" data-fs="${k}" style="${F.sch===k?'border-color:var(--gold);color:var(--gold2);background:#d9b45a18':color?`color:${color}`:''}">${label} <span style="opacity:.7">${cnt}</span></button>`;
     const chips=[chip('all','全部','',all.length)].concat(SO.filter(k=>k!=='myth'||all.some(c=>c.sch==='myth')).map(k=>chip(k,`${SCH[k].ico}${SCH[k].name}${resMult(n[k]||0)>1?` ×${resMult(n[k])}`:''}`,(n[k]||0)>=2?SCH[k].color:'',all.filter(c=>c.sch===k||c.sch2===k).length)),chip('eq','已装备','',eq.length));
     body.innerHTML=`<p class="sub">点击卡牌装备或卸下。同流派装备 2/3/4/5 张，效果 ×1.3/1.6/2/2.6。</p>
-      <div class="eqbar"><span class="sub">已装备 ${eq.length}/${maxSlots()}</span>${eq.map(id=>`<button class="ghost" data-uneq="${id}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico} ${byId[id].name} ✕</button>`).join('')}${eq.length<maxSlots()?'<span class="sub">· 点下面的卡牌装备</span>':''}</div>
+      ${loadBar()}<div class="eqbar"><span class="sub">已装备 ${eq.length}/${maxSlots()}</span>${eq.map(id=>`<button class="ghost" data-uneq="${id}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico} ${byId[id].name} ✕</button>`).join('')}${eq.length<maxSlots()?'<span class="sub">· 点下面的卡牌装备</span>':''}</div>
       <div class="res" style="margin:8px 0 6px;gap:6px">${chips.join('')}</div>
       <div class="subtabs" style="margin:0 0 10px"><span class="sub" style="align-self:center;margin-right:4px">排序</span>${Object.entries({rar:'稀有度',lv:'等级',sch:'流派',trig:'触发方式'}).map(([k,v])=>`<button class="${F.sort===k?'on':''}" data-so="${k}">${v}</button>`).join('')}</div>
       ${all.length?(list.length?`<div class="grid deckgrid">${grid}</div>`:'<p class="sub">这个筛选下没有卡牌。</p>'):'<p class="sub">还没有卡牌。</p>'}`;
+    bindLoadBar(body);
     body.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{ F.sch=b.dataset.fs; showBetween(); });
     body.querySelectorAll('[data-so]').forEach(b=>b.onclick=()=>{ F.sort=b.dataset.so; showBetween(); });
     body.querySelectorAll('[data-uneq]').forEach(b=>b.onclick=()=>{ M.deck=M.deck.filter(x=>x!==b.dataset.uneq); save(); renderSide(); refreshDeckView(body,b); });
