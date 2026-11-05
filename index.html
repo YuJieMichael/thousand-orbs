@@ -47,6 +47,7 @@
   .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
   .kv div{background:#0c0907;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
   .kv small{display:block;color:var(--dim);font-size:11px} .kv b{font-size:16px;font-variant-numeric:tabular-nums}
+  .tools{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px} .tools .ghost{font-size:13px;padding:5px 10px}
   .ammo{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;min-height:16px}
   .ammo i{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#f3dc9a 35%,#b8862a 75%);box-shadow:0 0 6px #d9b45a88}
   .ammo i.used{background:#2a2218;box-shadow:none;border:1px solid #3a2f20}
@@ -180,11 +181,9 @@
   @media (max-width:600px){
     .wrap{padding:6px 8px 16px;gap:8px}
     .side{display:contents}
-    .pMoney{order:1;padding:8px 10px;display:grid;grid-template-columns:1fr auto auto auto;gap:4px 8px;align-items:center}
+    .pMoney{order:1;padding:8px 10px;display:grid;grid-template-columns:1fr auto;gap:4px 6px;align-items:center}
+    .pMoney .tools{grid-column:2;grid-row:1;margin:0;gap:5px} .pMoney .tools .ghost{padding:3px 8px!important;font-size:12px!important}
     .pMoney .title,.pMoney .tagline,.pMoney .money,.pMoney .kv{display:none}
-    .pMoney #spdB{position:static!important;grid-column:2;grid-row:1;padding:3px 8px!important;font-size:12px!important;min-width:0!important}
-    .pMoney #muteB{position:static!important;grid-column:4;grid-row:1;padding:2px 8px!important;font-size:14px!important}
-    .pMoney #endB{position:static!important;grid-column:3;grid-row:1;padding:3px 8px!important;font-size:12px!important}
     .pMoney .ammo{grid-column:1;grid-row:1;margin:0;gap:3px;min-height:10px} .pMoney .ammo i{width:11px;height:11px}
     .pMoney .chap{grid-column:1/-1;margin:2px 0 0;padding:6px 8px;font-size:12px}
     .frame{order:0;padding:5px;border-radius:14px;width:100%;max-width:calc((100svh - 24px) * 540 / 800);margin:0 auto}
@@ -323,9 +322,7 @@
   <div class="frame"><canvas id="cv" width="540" height="800"></canvas><i class="corner c1"></i><i class="corner c2"></i><i class="corner c3"></i><i class="corner c4"></i></div>
   <div class="side">
     <div class="plate pMoney">
-      <button class="ghost" id="muteB" title="音效（M）" style="position:absolute;top:12px;right:12px;font-size:16px;padding:4px 10px">🔊</button>
-      <button class="ghost" id="endB" title="提前结束这一轮（点两次）" style="position:absolute;top:12px;right:62px;font-size:13px;padding:5px 10px;visibility:hidden">⏹ 结束</button>
-      <button class="ghost" id="spdB" title="游戏速度（快捷键 F）" style="position:absolute;top:12px;right:128px;font-size:13px;padding:5px 10px;min-width:44px">×1</button>
+      <div class="tools"><button class="ghost" id="manB" title="游戏手册（快捷键 H）" style="font-size:13px;padding:5px 10px">📖 手册</button><button class="ghost" id="spdB" title="游戏速度（快捷键 F）" style="font-size:13px;padding:5px 10px;min-width:44px">×1</button><button class="ghost" id="endB" title="提前结束这一轮（点两次）" style="font-size:13px;padding:5px 10px;visibility:hidden">⏹ 结束</button><button class="ghost" id="muteB" title="音效（M）" style="font-size:16px;padding:4px 10px">🔊</button></div>
       <div class="title serif goldtxt ttlrow" id="ttl" style="user-select:none"><img id="emb" alt="" style="width:34px;height:34px;border-radius:6px">千珠落尽</div>
       <div class="tagline">以珠破封 · 收藏万卡</div>
       <div class="money serif goldtxt" style="margin-top:10px">✦ <span id="money">0</span></div>
@@ -346,6 +343,7 @@
   </div>
 </div>
 <div class="ov show" id="ov"><div class="box" id="box"></div></div>
+<div class="ov" id="manOv" style="z-index:40"><div class="box" style="max-width:760px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 class="serif goldtxt" style="margin:0">📖 游戏手册</h2><button class="ghost" id="manX">✕ 关闭</button></div><div id="manBody" style="margin-top:12px"></div></div></div>
 <div id="wallet"><span>✦ 余额 <b id="walletN">0</b></span><span>🔥 金魂 <b id="walletS">0</b></span></div>
 <div id="toast"></div>
 <div id="mythPop"></div>
@@ -1673,6 +1671,8 @@ addEventListener('keydown',e=>{
   if(/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if(e.code==='Space'&&!$('ov').classList.contains('show')&&!document.activeElement.closest('button,dialog')?.getClientRects().length){ if(!e.repeat) fire(); holding=true; e.preventDefault(); }
   if(e.code==='KeyF'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ cycleSpeed(); return; }
+  if(e.code==='KeyH'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ $('manOv').classList.contains('show')?closeManual():openManual(); return; }
+  if(e.code==='Escape'&&$('manOv').classList.contains('show')){ closeManual(); return; }
   if(e.code==='KeyM'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){ M.mute=!M.mute; save(); syncMute(); toast(M.mute?'🔇 音效关闭':'🔊 音效开启'); }
   kIdx=e.code===KONAMI[kIdx]?kIdx+1:(e.code===KONAMI[0]?1:0); if(kIdx===KONAMI.length){ kIdx=0; grantMyth('lord'); } });
 addEventListener('keyup',e=>{ if(e.code==='Space') holding=false; });
@@ -1774,7 +1774,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.15';
+const GAME_V='2026-11-05.16';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2183,6 +2183,7 @@ function manualHTML(){
     '<b>⏩ ×1 / ×2 / ×3</b>：游戏加速（快捷键 F），结果和正常速度一样，只是更快。',
     '<b>结束</b>：提前结束这一轮，点两次确认。已经开到的东西都保留，还在飞的宝珠不再结算。',
     '<b>🔊</b>：音效开关（快捷键 M）。',
+    '<b>📖 手册</b>：随时打开这份手册（快捷键 H），打的时候打开会自动暂停。',
     '「更多 → 设置」里可以<b>导出 / 导入存档码</b>，换设备前记得先导出。',
   ]))}
   ${sec('📦','卡包和稀有度',li([
@@ -2249,7 +2250,7 @@ function showIntro(){
     <p class="sub">也可以按空格发射。其他玩法会在遇到时告诉你。</p>
     <div class="foot"><span class="sub schrow">${SCH5.map(k=>`<span>${badge(k)}${SCH[k].name}</span>`).join('')}</span><span style="display:flex;gap:8px"><button class="ghost" id="goMan">📖 游戏手册</button><button class="btn" id="go">开启秘藏</button></span></div>`;
   $('box').insertAdjacentHTML('afterbegin',`<button class="ghost" id="langB" style="position:absolute;top:14px;right:14px;padding:4px 10px;font-size:12px">${LANG==='zh'?'English':'中文'}</button>`); $('langB').onclick=()=>setLang(LANG==='zh'?'en':'zh');
-  $('go').onclick=()=>startRound(false); $('goMan').onclick=()=>{ G={loot:{}}; tab='manual'; showBetween(); }; $('ov').classList.add('show');
+  $('go').onclick=()=>startRound(false); $('goMan').onclick=openManual; $('ov').classList.add('show');
 }
 function showBetween(){
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
@@ -2281,9 +2282,10 @@ function showBetween(){
   const RSUB={normal:`开 ${M.goal} 包`,elite:`开 ${Math.ceil(M.goal*1.25)} 包 · SR+ 三选一 · 宝珠`,shop:'卡包 · 选卡 · 封印',event:'随机事件'};
   const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
+  const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 不知道某个东西是什么？<span class="sub">手册里都有，打的时候也能随时打开（右上角「📖 手册」）。</span></span><button class="ghost" id="manTipB">打开手册</button></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ 这一轮提前结束了，台面上还在飞的宝珠没有结算。</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2293,6 +2295,7 @@ function showBetween(){
 `;
   document.querySelectorAll('#box .tab').forEach(b=>b.onclick=()=>{ const g=TGROUPS.find(x=>x.id===b.dataset.g),subs=tSubs(g,canP); tab=subs.includes(TLAST[g.id])?TLAST[g.id]:subs[0]; showBetween(); });
   document.querySelectorAll('#box .subtabs button').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; TLAST[tGroupOf(tab)]=tab; showBetween(); });
+  if($('manTipB')) $('manTipB').onclick=openManual;
   if($('dailyAgain')) $('dailyAgain').onclick=()=>startRound(false,{daily:1});
   if($('dailyRank')) $('dailyRank').onclick=()=>{ tab='daily'; TLAST.goal='daily'; showBetween(); };
   if($('lbAskNo')) $('lbAskNo').onclick=()=>{ M.lbAskOff=1; save(); $('lbAsk').remove(); };
@@ -2410,6 +2413,12 @@ const SPEEDS=[1,2,3];
 function syncSpeed(){ const b=$('spdB'); b.textContent='⏩ ×'+(M.speed||1); b.style.color=(M.speed||1)>1?'var(--gold2)':''; b.style.borderColor=(M.speed||1)>1?'var(--gold)':''; }
 function cycleSpeed(){ const i=SPEEDS.indexOf(M.speed||1); M.speed=SPEEDS[(i+1)%SPEEDS.length]; save(); syncSpeed(); toast(`⏩ 游戏速度 ×${M.speed}`); }
 $('spdB').onclick=cycleSpeed;
+// 手册弹窗：随时能打开，打的时候会暂停，关掉继续
+function openManual(){ $('manBody').innerHTML=manualHTML(); $('manOv').classList.add('show'); $('manOv').scrollTop=0;
+  if(running&&G&&G.packs&&!G.ended&&!G.paused){ G.paused=true; G.manPause=true; holding=false; } }
+function closeManual(){ $('manOv').classList.remove('show'); if(G&&G.manPause){ G.manPause=false; G.paused=false; G.cool=.25; } }
+$('manB').onclick=openManual; $('manX').onclick=closeManual;
+$('manOv').addEventListener('click',e=>{ if(e.target===$('manOv')) closeManual(); });
 function loop(now){ const dt=Math.min(.033,(now-last)/1000); last=now; if(running){ const n=SPEEDS.includes(M.speed)?M.speed:1; for(let i=0;i<n&&running;i++) update(dt); } draw(); hud(); requestAnimationFrame(loop); }
 $('emb').src=ART.emblem;
 function finishLoad(){

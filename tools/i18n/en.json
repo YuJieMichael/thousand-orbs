@@ -993,5 +993,12 @@
 "先按谜语解锁；解锁后，黑金秘藏和首领也会掉落": "Unlock by solving the riddle first; then Black-Gold Vaults and bosses can drop it",
 "卡住了？看解锁方法": "Stuck? See how to unlock",
 "再点一次看答案（会剧透）": "Tap again for the answer (spoiler)",
-"游戏速度": "Game speed"
+"游戏速度": "Game speed",
+"游戏手册（快捷键 H）": "Game manual (hotkey H)",
+"关闭": "Close",
+"：随时打开这份手册（快捷键 H），打的时候打开会自动暂停。": ": open this manual any time (hotkey H); it pauses the game while open.",
+"不知道某个东西是什么？": "Not sure what something is?",
+"手册里都有，打的时候也能随时打开（右上角「": "It’s all in the manual — open it any time, even mid-round (“",
+"手册」）。": "Manual” at the top right).",
+"打开手册": "Open manual"
 }
