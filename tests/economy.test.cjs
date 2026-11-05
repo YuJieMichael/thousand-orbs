@@ -154,3 +154,13 @@ test('秘卡：过半提示，解锁给金币和金魂', () => {
   assert.match(html, /if\(M\.owned\[id\]\|\|v<n\*\.5\) return;/);
   assert.match(html, /M\.money\+=gold; M\.life\+=gold; if\(live\) G\.earned\+=gold; M\.soul\+=MYTH_SOUL;/);
 });
+
+test('秘藏等级：血量 ×1.6^等级，一个卡包也算 round(1.6^等级) 包；祝福节奏和金币递减按真实包数', () => {
+  const ctx = vm.createContext({M: {up: {stage: 0}}, DAILY: null, Math});
+  vm.runInContext(between('const packWorth=', '\n') + ';this.w=packWorth;', ctx);
+  assert.deepEqual([0, 1, 2, 3, 4, 5].map(l => ctx.w(l)), [1, 2, 3, 4, 7, 10]);
+  ctx.DAILY = {}; assert.equal(ctx.w(5), 1);                                    // 每日挑战不吃养成
+  assert.match(html, /G\.opened\+=packWorth\(\); G\.realOpened=/);
+  assert.match(html, /coins\*=packFatigue\(G\.realOpened\)/);
+  assert.match(html, /G\.realOpened>=G\.boonNext/);
+});

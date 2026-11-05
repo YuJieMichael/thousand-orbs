@@ -584,7 +584,7 @@ const STAGE_G=3.4; // 秘藏等级价格增长：原来 ×5 会在 Lv5 左右卡
 // ---- 可无限升级的两项（不在星盘上） ----
 const REP=[
   {id:'dmg',ico:'💎',name:'宝珠打磨',desc:l=>`宝珠基础伤害 ${f(orbDmg(l))}`,cost:l=>12*Math.pow(1.5,l)},
-  {id:'stage',ico:'🏛️',name:'秘藏等级',desc:l=>`卡包血量 ×${f(Math.pow(1.6,l))}，金币 ×${f(Math.pow(VAL_G,l))}`,cost:l=>250*Math.pow(STAGE_G,l),
+  {id:'stage',ico:'🏛️',name:'秘藏等级',desc:l=>`卡包血量 ×${f(Math.pow(1.6,l))}，金币 ×${f(Math.pow(VAL_G,l))}，每个卡包算 ${packWorth(l)} 包`,cost:l=>250*Math.pow(STAGE_G,l),
     need:()=>M.up.dmg>=3&&M.up.stage<stageCap(),needTxt:()=>M.up.dmg<3?'宝珠打磨 Lv3 后开放':`上限 Lv${stageCap()}：击败第 ${M.maxCh} 章首领解锁`},
 ];
 // ---- 星盘（像 POE 的天赋树）：从中心出发，只能点亮与已点亮节点相连的节点 ----
@@ -803,6 +803,8 @@ const packOdds=t=>{ const k=DAILY?0:Math.min(4,Math.max(0,(M.ch||1)-1)); return 
 const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
 const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1);
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
+// 秘藏等级：卡包血量 ×1.6^等级，所以开一个卡包也算 round(1.6^等级) 包（血量换数量，目标不会因为升了等级反而完不成）
+const packWorth=(l=M.up.stage)=>DAILY?1:Math.max(1,Math.round(Math.pow(1.6,l)));
 const packValue=t=>PT[t].val*3*Math.pow(VAL_G,DAILY?0:M.up.stage)*Math.pow(CH_VAL,(DAILY?1:M.ch)-1);
 const stageCap=()=>3*M.maxCh; // 秘藏等级上限：最远章节 ×3
 
@@ -1144,8 +1146,8 @@ function hitPack(b,p){
 function openPack(p){
   const i=G.packs.indexOf(p); if(i<0) return; G.packs.splice(i,1);
   if(p.boss) return bossDown(p);
-  G.opened++; M.opened++; if(p.t===3) G.black++; goalCheck();
-  if(G.boonNext&&G.opened>=G.boonNext&&G.boons.length<5){ G.boonNext=G.opened+8+6*(G.boons.length+1); setTimeout(()=>{ if(G&&!G.ended&&!G.paused) offerBoon(); },250); }
+  G.opened+=packWorth(); G.realOpened=(G.realOpened||0)+1; M.opened++; if(p.t===3) G.black++; goalCheck(); // 秘藏等级越高，一个卡包算越多包
+  if(G.boonNext&&G.realOpened>=G.boonNext&&G.boons.length<5){ G.boonNext=G.realOpened+8+6*(G.boons.length+1); setTimeout(()=>{ if(G&&!G.ended&&!G.paused) offerBoon(); },250); }
   // 财富卡（聚宝盆、复利、贵宾卡）带来的金币倍率合起来最多 ×6，免得一个流派的收入甩开别人几百倍
   let coins=packValue(p.t)*Math.min(CARD_COIN_CAP,G.R.coin*(1+G.investN)*(p.t>=1?G.R.vip:1));
   if(G.R.phoenix&&p.burn>0) coins*=G.R.phoenix;
@@ -1154,7 +1156,7 @@ function openPack(p){
   if(p.acid>0) coins*=1+Math.min(.6,.02*p.acid);
   if(G.R.acidCoin) coins*=1+p.acid*G.R.acidCoin;
   if(G.R.eight&&Math.random()<.08){ coins*=8; G.fx.push({x:p.x,y:p.y-60,t:'🏮 ×8',c:'#ff6b5b',life:1}); }
-  coins*=packFatigue(G.opened); if(G.opened===PACK_SOFT+1) G.fx.push({x:W/2,y:H/2+70,t:'开包太多：之后每包金币递减',c:'#c9b48a',life:2});
+  coins*=packFatigue(G.realOpened); if(G.realOpened===PACK_SOFT+1) G.fx.push({x:W/2,y:H/2+70,t:'开包太多：之后每包金币递减',c:'#c9b48a',life:2});
   const pm=p.mx||1; coins*=pm*MX.coin; if(pm>=1.5) G.fx.push({x:p.x,y:p.y-p.hh-26,t:'×'+pm.toFixed(1),c:mxCol(pm),life:.9,sz:12+Math.round(pm*3)});
   earn(coins,p.x,p.y); SFX.play('open',p.t); if(p.t>=2) buzz(18); hitStop(p.t>=2?.07:.035);
   if(G.R.invest) G.investN=Math.min(2,G.investN+G.R.invest);
@@ -1549,7 +1551,7 @@ function draw(){
   if(MOBILE.matches){ drawHud(); drawSkillStrip(); }
   drawBanner();
   if(G.mh&&G.mhT>0) drawMythHint();
-  if(G.route){ ctx.save(); ctx.font=`bold ${Math.round(13*UIK)}px sans-serif`; ctx.textAlign='left'; const t=`${G.route==='elite'?'精英 · ':''}目标 ${Math.min(G.opened,G.goal)}/${G.goal} 包${M.streak?` · 连胜 ${M.streak}`:''}`;
+  if(G.route){ ctx.save(); ctx.font=`bold ${Math.round(13*UIK)}px sans-serif`; ctx.textAlign='left'; const t=`${G.route==='elite'?'精英 · ':''}目标 ${Math.min(G.opened,G.goal)}/${G.goal} 包${packWorth()>1?`（每个算 ${packWorth()} 包）`:''}${M.streak?` · 连胜 ${M.streak}`:''}`;
     ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=G.goalHit?'#7fe0a0':G.route==='elite'?'#e8a090':'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
   if(G.mut.id||G.chal){ ctx.save(); ctx.font='bold 13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic'; const c=G.chal?CHAL.find(x=>x.id===G.chal):null;
     const t=c?`${c.ico} ${c.name} · ${c.prog(G)}`:`${G.mut.ico} ${G.mut.name} · 金币 ×${G.mut.coinX}`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=c?(G.chalWin?'#7fe0a0':'#9de7ff'):'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
@@ -1753,7 +1755,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.9';
+const GAME_V='2026-11-05.10';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
