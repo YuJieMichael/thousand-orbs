@@ -939,6 +939,7 @@ function renderDaily(body){ const d=dailyOf(dayKey()), ru=DAILY_RULES.find(x=>x.
       <div style="margin-top:10px"><button class="btn" id="dailyGo">📅 开始每日挑战</button></div></div>
     <div class="h3" style="margin-top:14px"><span>🏆 今日榜</span></div><div id="dailyTop" class="sub">加载中……</div>`;
   $('dailyGo').onclick=()=>startRound(false,{daily:1});
+  if(s) dailySubmit(); // 之前没传上的（比如榜还没开通时打的）补传
   lbFetch(`/top?board=${dailyBoard(d.day)}&limit=10${M.pid?'&pid='+M.pid:''}`).then(r=>{ const el=$('dailyTop'); if(!el) return;
     if(!r||!Array.isArray(r.top)) throw 0;
     el.innerHTML=r.top.length?`<div style="display:grid;gap:6px">${r.top.map((x,i)=>`<div class="tli" style="${x.pid===M.pid?'border-color:var(--gold)':''}"><span>${i<3?['🥇','🥈','🥉'][i]:'#'+(i+1)} ${escH(x.name)}</span><b>${x.value} 包</b></div>`).join('')}</div>${r.me&&r.me.rank>10?`<div class="sub" style="margin-top:6px">你排第 ${r.me.rank} / ${r.total}</div>`:''}`:'今天还没人上榜，第一名等你。';
