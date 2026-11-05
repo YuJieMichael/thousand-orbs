@@ -31,7 +31,7 @@
   <div class="sub">每轮结算时游戏匿名上传一条记录（随机玩家 id，不含昵称）。玩家可以在游戏「设置」里关掉。</div>
   <div class="bar">
     <input id="key" type="password" placeholder="统计密码" autocomplete="current-password" style="width:240px">
-    <select id="days"><option value="7">最近 7 天</option><option value="30" selected>最近 30 天</option><option value="90">最近 90 天</option><option value="3650">全部</option></select>
+    <select id="days"><option value="7">最近 7 天</option><option value="30" selected>最近 30 天</option><option value="90">最近 90 天</option><option value="3650">全部</option></select> <select id="ver"><option value="">全部版本</option><option value="2026-11-05.1" selected>2026-11-05.1 平衡版及以后</option></select>
     <button id="go">查看</button><span id="msg" class="sub"></span>
   </div>
   <div id="out"></div>
@@ -78,12 +78,12 @@ async function load() {
   const key = $('key').value.trim(); if (!key) { $('msg').textContent = '先输入统计密码'; return; }
   $('msg').textContent = '加载中……'; $('msg').className = 'sub';
   try {
-    const r = await fetch('/stats?days=' + $('days').value, { headers: { Authorization: 'Bearer ' + key } });
+    const r = await fetch('/stats?days=' + $('days').value + '&v=' + encodeURIComponent($('ver').value), { headers: { Authorization: 'Bearer ' + key } });
     if (r.status === 401) { $('msg').textContent = '密码不对'; $('msg').className = 'err'; return; }
     const d = await r.json(); localStorage.setItem('to-stats-key', key); render(d); $('msg').textContent = '更新于 ' + new Date().toLocaleTimeString(); $('msg').className = 'ok';
   } catch (e) { $('msg').textContent = '加载失败：' + e.message; $('msg').className = 'err'; }
 }
-$('go').onclick = load; $('days').onchange = load; $('key').onkeydown = (e) => { if (e.key === 'Enter') load(); };
+$('go').onclick = load; $('days').onchange = load; $('ver').onchange = load; $('key').onkeydown = (e) => { if (e.key === 'Enter') load(); };
 if ($('key').value) load();
 </script>
 </body>

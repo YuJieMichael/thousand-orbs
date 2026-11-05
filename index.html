@@ -392,12 +392,12 @@ const CARDS=[
   // ⚡ 连击
   {id:'heavy',sch:'combo',rar:'N',ico:'🔨',name:'沉金宝珠',desc:(lv,p)=>`宝珠伤害 +${pct(.3*p)}`,mods:(R,lv,p)=>{R.dmg*=1+.3*p;}},
   {id:'rico',sch:'combo',rar:'N',ico:'↩️',name:'弹射',desc:(lv,p)=>`宝珠每撞一次墙，本颗伤害 +${pct(.15*p)}`,mods:(R,lv,p)=>{R.wallBonus+=.15*p;}},
-  {id:'chain',sch:'combo',rar:'R',ico:'⚡',name:'连锁闪电',desc:(lv,p)=>`每第 4 次命中，闪电跳向 3 个卡包（各 ${pct(.6*p)} 伤害）`,hit:(G,lv,p,b)=>{ if(G.hits%4===0){ let from=b; for(let i=0;i<3;i++){ const t=randPack(); if(!t) break; zap(from,t,'#fff3a0'); dmgPack(t,.6*p*D()); from=t; } return true; } }},
-  {id:'split',sch:'combo',rar:'SR',ico:'✳️',name:'分裂',desc:lv=>`发射时额外分出 ${lv>=4?2:1} 颗小宝珠（伤害 50%）`,launch:(G,lv,p,b)=>{ const n=lv>=4?2:1; for(let i=0;i<n;i++){ const a=Math.atan2(b.vy,b.vx)+(i%2?-1:1)*.25*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a)*b.sp,Math.sin(a)*b.sp,{mini:true}); } return true; }},
+  {id:'chain',sch:'combo',rar:'R',ico:'⚡',name:'连锁闪电',desc:(lv,p)=>`每第 4 次命中，闪电跳向 3 个卡包（各 ${pct(.5*p)} 伤害）`,hit:(G,lv,p,b)=>{ if(G.hits%4===0){ let from=b; for(let i=0;i<3;i++){ const t=randPack(); if(!t) break; zap(from,t,'#fff3a0'); dmgPack(t,.5*p*D()); from=t; } return true; } }},
+  {id:'split',sch:'combo',rar:'SR',ico:'✳️',name:'分裂',desc:lv=>`发射时额外分出 ${lv>=4?2:1} 颗小宝珠（伤害 40%）`,launch:(G,lv,p,b)=>{ const n=lv>=4?2:1; for(let i=0;i<n;i++){ const a=Math.atan2(b.vy,b.vx)+(i%2?-1:1)*.25*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a)*b.sp,Math.sin(a)*b.sp,{mini:true}); } return true; }},
   {id:'thor',sch:'combo',rar:'SSR',ico:'🌩️',name:'雷霆审判',desc:(lv,p)=>`每命中 15 次，雷击全场所有卡包（各 ${pct(p)} 伤害）`,hit:(G,lv,p)=>{ if(G.hits%15===0){ G.packs.slice().forEach(t=>{ zap({x:t.x,y:0},t,'#fff'); dmgPack(t,p*D()); }); shake(8); return true; } }},
   // 🔥 灼烧
-  {id:'match',sch:'fire',rar:'N',ico:'🔥',name:'火漆',desc:(lv,p)=>`命中的卡包燃烧 4 秒（每秒 ${pct(.35*p)} 伤害）`,mods:(R,lv,p)=>{R.burn+=.35*p;}},
-  {id:'boom',sch:'fire',rar:'R',ico:'💥',name:'爆裂',desc:(lv,p)=>`卡包被打开时爆炸，波及附近卡包（${pct(.8*p)} 伤害）`,open:(G,lv,p,pk)=>{ boom(pk.x,pk.y,130,.8*p*D()); return true; }},
+  {id:'match',sch:'fire',rar:'N',ico:'🔥',name:'火漆',desc:(lv,p)=>`命中的卡包燃烧 4 秒（每秒 ${pct(.45*p)} 伤害）`,mods:(R,lv,p)=>{R.burn+=.45*p;}},
+  {id:'boom',sch:'fire',rar:'R',ico:'💥',name:'爆裂',desc:(lv,p)=>`卡包被打开时爆炸，波及附近卡包（${pct(.95*p)} 伤害）`,open:(G,lv,p,pk)=>{ boom(pk.x,pk.y,130,.95*p*D()); return true; }},
   {id:'wild',sch:'fire',rar:'SR',ico:'🌋',name:'野火',desc:()=>`燃烧的卡包会点燃身边的卡包`,mods:R=>{R.wild=true;}},
   {id:'phoenix',sch:'fire',rar:'SSR',ico:'🐦‍🔥',name:'不死鸟',desc:lv=>`燃烧中被打开的卡包，金币 ×${(2+.5*(lv-1)).toFixed(1)}`,mods:(R,lv)=>{R.phoenix=2+.5*(lv-1);}},
   // 🧪 腐蚀
@@ -423,12 +423,12 @@ const CARDS=[
   {id:'reson',sch:'grav',rar:'R',ch:2,ico:'🔔',name:'铆钉共鸣',desc:(lv,p)=>`宝珠每撞 8 次铆钉，震击随机卡包（${pct(.6*p)} 伤害）`,peg:(G,lv,p,b)=>{ if(G.pegHits%8===0){ const t=randPack(); if(t){ zap(b,t,'#8fb8ff'); dmgPack(t,.6*p*D()); } return true; } }},
   // ===== 第 3 章解锁 =====
   {id:'titan',sch:'combo',rar:'SSR',ch:3,ico:'🗿',name:'千钧',desc:lv=>`宝珠越快伤害越高（最高 ×${(2+.2*(lv-1)).toFixed(1)}）`,mods:(R,lv)=>{R.titan=2+.2*(lv-1);}},
-  {id:'lava',sch:'fire',rar:'SSR',ch:3,ico:'☄️',name:'熔岩核心',desc:(lv,p)=>`卡包燃烧结束时爆炸，波及附近（${pct(.7*p)} 伤害）`,mods:(R,lv,p)=>{R.lava=.7*p;}},
+  {id:'lava',sch:'fire',rar:'SSR',ch:3,ico:'☄️',name:'熔岩核心',desc:(lv,p)=>`卡包燃烧结束时爆炸，波及附近（${pct(.9*p)} 伤害）`,mods:(R,lv,p)=>{R.lava=.9*p;}},
   {id:'plague',sch:'acid',rar:'SSR',ch:3,ico:'☠️',name:'瘟疫之王',desc:lv=>`腐蚀中的卡包每 ${Math.max(.6,2-.15*(lv-1)).toFixed(1)} 秒自动 +1 层`,mods:(R,lv)=>{R.plague=Math.max(.6,2-.15*(lv-1));}},
   {id:'rain',sch:'gold',rar:'SSR',ch:3,ico:'🌧️',name:'黄金雨',desc:lv=>`开包时 ${pct(Math.min(.25,.08+.02*(lv-1)))} 概率返还 1 颗宝珠`,open:(G,lv,p,pk)=>{ if(Math.random()<Math.min(.25,.08+.02*(lv-1))) return refund(pk.x,pk.y,'🌧️ +1 宝珠','#ffcc55'); }},
   {id:'orbit',sch:'grav',rar:'SSR',ch:3,ico:'💫',name:'星轨',desc:()=>`每颗宝珠第一次撞墙时，复制出一颗完整宝珠`,wall:(G,lv,p,b)=>{ if(!b.mini&&!b.copied&&b.walls===1){ b.copied=true; const c=spawnBall(b.x,b.y,-b.vx,b.vy*.8); c.copied=true; c.dmgX=b.dmgX; return true; } }},
   // ===== ✦ 秘 · UR：卡包里永远开不出，只能靠彩蛋 =====
-  {id:'echo',sch:'combo',rar:'UR',ico:'🔁',name:'无尽回响',hint:'一颗宝珠，在坠落之前，<br>命中四十次。',
+  {id:'echo',sch:'combo',rar:'UR',ico:'🔁',name:'无尽回响',hint:'一颗宝珠，在坠落之前，<br>命中五十次。',
     desc:lv=>`每次命中有 ${pct(echoP(lv))} 概率回响，再命中一次；回响还能继续回响`,
     hit:(G,lv,p,b,pk)=>{ let n=0; while(n<12&&Math.random()<echoP(lv)) n++; if(!n) return; for(let i=0;i<n;i++) dmgPack(pk,D()*b.dmgX,true);
       G.fx.push({x:pk.x,y:pk.y-pk.hh-30,t:`回响 ×${n}`,c:'#ff9be6',life:.6}); SFX.play('echo',n); return true; }},
@@ -438,7 +438,7 @@ const CARDS=[
     desc:lv=>`腐蚀的增伤效果 ×2；打开卡包时，每层腐蚀让金币 +${pct(.04+.005*(lv-1))}`,mods:(R,lv)=>{R.acid=Math.max(R.acid,.1); R.acidX=2; R.acidCoin=.04+.005*(lv-1);}},
   {id:'eight',sch:'gold',rar:'UR',ico:'🏮',name:'八方来财',hint:'当你的金币以 888 开头，<br>轻轻碰它一下。',
     desc:lv=>`所有金币 ×${(2+.25*(lv-1)).toFixed(2)}；开包时 8% 概率金币再 ×8`,mods:(R,lv)=>{R.eight=2+.25*(lv-1);}},
-  {id:'sing',sch:'grav',rar:'UR',ico:'🪐',name:'奇点',hint:'让十五颗宝珠，<br>同时在台面上飞舞。',
+  {id:'sing',sch:'grav',rar:'UR',ico:'🪐',name:'奇点',hint:'让二十颗宝珠，<br>同时在台面上飞舞。',
     desc:lv=>`宝珠落底后从顶部重新落下（每颗 ${lv>=5?2:1} 次），重生的宝珠伤害 ×${(1.5+.1*(lv-1)).toFixed(1)}`,mods:(R,lv)=>{R.reborn=lv>=5?2:1; R.rebornX=1.5+.1*(lv-1);}},
   {id:'lord',sch:'myth',rar:'UR',ico:'🗝️',name:'秘藏之钥',hint:'↑↑↓↓←→←→BA<br>或者，在门上敲七下。',
     desc:lv=>`已装备的每个流派，共鸣都按多 ${lv>=6?2:1} 张计算`},
@@ -503,7 +503,7 @@ function normalizeSave(data){
   for(const k of ['round','pity','opened','ch','chRounds','maxCh','prestiges','bossTries','treeV','goal','streak','bestStreak','pickRolls'])
     if(!Number.isSafeInteger(next[k])||next[k]<0) bad();
   if(next.ch<1||next.maxCh<1||next.goal<1||!next.deck.every(id=>typeof id==='string')) bad();
-  for(const k of ['stats','vibe']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
+  for(const k of ['stats','vibe','dev']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
   for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
   if(next.routes!==null&&(!Array.isArray(next.routes)||!next.routes.every(r=>['normal','elite','shop','event'].includes(r)))) bad();
   for(const s of Object.values(next.lbSent)) if(!saveRecord(s)||typeof s.value!=='number'||s.value<0||!Number.isFinite(s.value)||(s.tb!==undefined&&(typeof s.tb!=='number'||s.tb<0||!Number.isFinite(s.tb)))) bad();
@@ -798,6 +798,9 @@ const UNL=[
 ];
 const unl=id=>UNL.find(u=>u.id===id).ok();
 // ================= 每轮目标 & 路线 =================
+// 统计显示后期一轮能开 5000 包、金币滚雪球：补货最快 0.45 秒；一轮开到 200 包以后，每包金币按 √(200/已开) 递减
+const REFILL_MIN=.45, PACK_SOFT=200;
+const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
 const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6; // 达成目标后，下一轮目标往这一轮实际开包数靠近 80%，一次最多 +6
 const ROUTES={
   normal:{name:'普通',ico:'🎯',desc:g=>`目标：开 ${g} 包`},
@@ -986,7 +989,7 @@ function dmgPack(p,amt,silent,src){
   if(p.hp<=0) openPack(p);
 }
 function hitPack(b,p){
-  G.hits++; b.hn=(b.hn||0)+1; if(b.hn>M.best.chain) M.best.chain=b.hn; if(b.hn>=40) grantMyth('echo'); hcTick(b); chainTick(b); p.sq=.16;
+  G.hits++; b.hn=(b.hn||0)+1; if(b.hn>M.best.chain) M.best.chain=b.hn; if(b.hn>=50) grantMyth('echo'); hcTick(b); chainTick(b); p.sq=.16;
   G.combo=G.time-G.comboT<.8?G.combo+1:1; G.comboT=G.time; if(G.combo>M.best.combo) M.best.combo=G.combo;
   if(p.boss&&p.shield>0){ p.shield--; p.hit=.08; G.fx.push({x:p.x,y:p.y-p.hh-14,t:p.shield?`🛡 ${p.shield}`:'🛡 破盾！',c:'#ffcc55',life:.6}); burst(b.x,b.y,'#ffcc55',8); SFX.play('shield'); return; }
   SFX.play('hit',G.combo);
@@ -1024,6 +1027,7 @@ function openPack(p){
   if(p.acid>0) coins*=1+Math.min(.6,.02*p.acid);
   if(G.R.acidCoin) coins*=1+p.acid*G.R.acidCoin;
   if(G.R.eight&&Math.random()<.08){ coins*=8; G.fx.push({x:p.x,y:p.y-60,t:'🏮 ×8',c:'#ff6b5b',life:1}); }
+  coins*=packFatigue(G.opened); if(G.opened===PACK_SOFT+1) G.fx.push({x:W/2,y:H/2+70,t:'开包太多：之后每包金币递减',c:'#c9b48a',life:2});
   const pm=p.mx||1; coins*=pm*MX.coin; if(pm>=1.5) G.fx.push({x:p.x,y:p.y-p.hh-26,t:'×'+pm.toFixed(1),c:mxCol(pm),life:.9,sz:12+Math.round(pm*3)});
   earn(coins,p.x,p.y); SFX.play('open',p.t); if(p.t>=2) buzz(18); hitStop(p.t>=2?.07:.035);
   if(G.R.invest) G.investN=Math.min(2,G.investN+G.R.invest);
@@ -1033,7 +1037,7 @@ function openPack(p){
   for(let k=0;k<n;k++) giveCard(p,k);
   equipped().forEach((id,idx)=>{ const c=byId[id]; if(c.open){ const [lv,pw]=cardP(id); if(c.open(G,lv,pw,p)) flashSlot(idx); } });
   if(upLv('cleave')){ let n=null,bd=1e9; G.packs.forEach(o=>{ const d=Math.hypot(o.x-p.x,o.y-p.y); if(d<bd){bd=d;n=o;} }); if(n){ zap(p,n,'#ffcc55'); dmgPack(n,.5*upLv('cleave')*D(),true); } }
-  G.refill.push({slot:p.slot,t:1.1*Math.pow(.7,TS.refill)*G.bo.refill}); // 补货节点：每级 -30%
+  G.refill.push({slot:p.slot,t:Math.max(REFILL_MIN,1.1*Math.pow(.7,TS.refill)*G.bo.refill)}); // 补货节点：每级 -30%，但最快 0.45 秒
 }
 function giveCard(p,k){
   const odds=PT[p.t].odds; let r=Math.random()*100,rar='N';
@@ -1120,7 +1124,7 @@ function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true;
 function settleRoute(){ if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok;
   if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
-    M.goal+=Math.max(G.route==='elite'?2:1,Math.min(GOAL_STEP,Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
+    M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*.5)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
   else { G.lostStreak=M.streak; M.streak=0; M.goal=Math.max(GOAL_MIN,M.goal-2); } }
 // ---- 卡牌三选一（精英奖励 / 黑市定向 / 奇遇）----
 const BAN_MAX=6;
@@ -1254,7 +1258,7 @@ function update(dt){
     const t=randPack(); if(t){ G.aim.x=t.x+rnd(-20,20); G.aim.y=t.y; } fire(true); G.cool=Math.max(G.cool,(TS.autoFree?.45:.9)*(1-.15*upLv('rapid'))); }
   // 金篮
   const bk=G.basket,bw=basketW(upLv('basket'))+G.bo.basketW; [G.basket,G.basket2].forEach(k=>{ if(!k) return; k.x+=k.dir*150*dt; if(k.x>W-bw/2-10)k.dir=-1; if(k.x<bw/2+10)k.dir=1; });
-  if(G.balls.length>=15) grantMyth('sing');
+  if(G.balls.length>=20) grantMyth('sing');
   // 宝珠（分步）
   const sub=4;
   for(const b of G.balls.slice()){
@@ -1609,8 +1613,10 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-04.2';
-function statSend(){ if(M.stats===false||!M.pid||!G||!G.packs) return;
+const GAME_V='2026-11-05.1';
+// 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
+try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
+function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
   const kind=G.chal?'chal':G.isBoss?'boss':G.route==='elite'?'elite':'normal', win=G.chal?G.chalWin:G.isBoss?G.bossWin:G.goalOk;
   const body={pid:M.pid,kind,ch:G.ch0||M.ch,maxCh:M.maxCh,round:M.round,win:!!win,opened:G.opened,coins:G.earned,dur:Math.round(G.time*10)/10,cards:G.eq||[],chal:G.chal||null,mobile:MOBILE.matches,v:GAME_V};
   try{ fetch(LB_URL+'/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true}).catch(()=>{}); }catch(e){} }
@@ -1627,7 +1633,7 @@ const cleanLbName=v=>Array.from(String(v||'').replace(/[\u0000-\u001f<>&"'`\\]/g
 const escH=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function lbFetch(path,opt){ const ac=new AbortController(), t=setTimeout(()=>ac.abort(),7000); try{ const r=await fetch(LB_URL+path,{...opt,signal:ac.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); } finally{ clearTimeout(t); } }
 // 只上传比上次传过的更好的成绩；改了昵称就全部重传
-async function lbSubmit(force){ if(!M.lbName||!M.pid) return false; const scores={}, name=M.lbName, pid=M.pid, rename=M.lbSentName!==M.lbName;
+async function lbSubmit(force){ if(!M.lbName||!M.pid||M.dev) return false; const scores={}, name=M.lbName, pid=M.pid, rename=M.lbSentName!==M.lbName;
   for(const k in LB){ const m=LB[k].mine(); if(!m) continue; const s=(M.lbSent||{})[k]; if(force||rename||!s||m.value>s.value||(m.value===s.value&&(m.tb||0)<(s.tb||0))) scores[k]=m; }
   if(!Object.keys(scores).length&&!rename) return true;
   try{ const data=await lbFetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pid,name,scores})});
@@ -2119,6 +2125,7 @@ function showBetween(){
     body.innerHTML=`${PLAY_HELP}<div class="chap">🔊 音效 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}>开启</label> <span class="sub">（快捷键 M）</span></div>
       <div class="chap">📳 震动 ${navigator.vibrate?`<label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sVibe" ${M.vibe===false?'':'checked'}>开启</label> <span class="sub">（开出稀有包、×5 大奖、狂热、首领时轻震）</span>`:'<span class="sub">这台设备的浏览器不支持震动</span>'}</div>
       <div class="chap">📊 匿名统计 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sStats" ${M.stats===false?'':'checked'}>开启</label> <span class="sub">每轮结算时匿名上传用的流派和卡、章节、这一轮的成绩，帮作者调平衡。只带一个随机 id，不带昵称和其他个人信息。</span></div>
+      <div class="chap">🛠 开发者模式 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sDev" ${M.dev?'checked':''}>开启</label> <span class="sub">作者自己测试时打开：这台设备的成绩不上传统计、不上排行榜。</span></div>
       <div class="chap"><b>📤 导出存档</b><div class="sub" style="margin:4px 0 6px">复制这段存档码，换设备或清缓存后可以用它恢复进度。</div>
         <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy">复制</button></div></div>
       <div class="chap"><b>📥 导入存档</b><div class="sub" style="margin:4px 0 6px">粘贴存档码。会覆盖当前进度。</div>
@@ -2126,6 +2133,7 @@ function showBetween(){
       <div class="chap"><b>恢复上一份有效备份</b><div class="sub">自动保留上一次有效保存。恢复会替换当前进度。</div><button class="ghost" id="sRestore" ${backupSave()?'':'disabled'}>恢复备份</button></div>
        <div class="chap"><b>⚠️ 完全重置</b><div class="sub" style="margin:4px 0 6px">清空所有进度，包括卡牌、秘卡和成就。</div><button class="ghost" id="reset">完全重置</button></div>`;
     $('sMute').onchange=e=>{ M.mute=!e.target.checked; save(); syncMute(); };
+    $('sDev').onchange=e=>{ M.dev=e.target.checked; save(); toast(M.dev?'开发者模式已开：不上传统计和排行榜':'开发者模式已关'); };
     $('sStats').onchange=e=>{ M.stats=e.target.checked; save(); toast(M.stats?'已开启匿名统计':'已关闭匿名统计'); };
     if($('sVibe')) $('sVibe').onchange=e=>{ M.vibe=e.target.checked; save(); if(M.vibe) buzz(30); };
     $('sCopy').onclick=()=>{ const t=$('sCode'); t.select(); try{ navigator.clipboard.writeText(t.value).then(()=>toast('已复制存档码'),()=>{ document.execCommand('copy'); toast('已复制存档码'); }); }catch(e){ document.execCommand('copy'); toast('已复制存档码'); } };

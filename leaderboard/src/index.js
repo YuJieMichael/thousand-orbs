@@ -129,23 +129,25 @@ async function stats(req, env, url) {
   if (!authed(req, env)) return json(req, { error: 'unauthorized' }, 401);
   const days = Math.max(1, Math.min(3650, parseInt(url.searchParams.get('days') || '30', 10) || 30));
   const since = Date.now() - days * 864e5, sinceDay = new Date(since).toISOString().slice(0, 10);
+  // ?v=2026-11-05.1：只统计这个版本及以后（版本号是日期格式，按字符串比较）
+  const vmin = (url.searchParams.get('v') || '').slice(0, 16) || null;
   const q = (sql, ...a) => env.DB.prepare(sql).bind(...a).all().then((r) => r.results);
   const [tot, perDay, newPer, sch, prog, boss, goal, chal, mob, lb, cardRows] = await Promise.all([
-    q('SELECT COUNT(*) AS rounds, COUNT(DISTINCT pid) AS players, AVG(dur) AS dur FROM rounds WHERE ts >= ?', since),
-    q('SELECT day, COUNT(*) AS rounds, COUNT(DISTINCT pid) AS players FROM rounds WHERE ts >= ? GROUP BY day ORDER BY day', since),
-    q('SELECT d AS day, COUNT(*) AS n FROM (SELECT pid, MIN(day) AS d FROM rounds GROUP BY pid) WHERE d >= ? GROUP BY d ORDER BY d', sinceDay),
-    q('SELECT main_sch AS sch, COUNT(*) AS rounds, COUNT(DISTINCT pid) AS players FROM rounds WHERE ts >= ? GROUP BY main_sch ORDER BY rounds DESC', since),
-    q('SELECT mc AS ch, COUNT(*) AS players FROM (SELECT pid, MAX(max_ch) AS mc FROM rounds WHERE ts >= ? GROUP BY pid) GROUP BY mc ORDER BY mc', since),
-    q("SELECT ch, COUNT(*) AS n, SUM(win) AS w FROM rounds WHERE kind = 'boss' AND ts >= ? GROUP BY ch ORDER BY ch", since),
-    q("SELECT ch, kind, COUNT(*) AS n, SUM(win) AS w, AVG(opened) AS opened FROM rounds WHERE kind IN ('normal','elite') AND ts >= ? GROUP BY ch, kind ORDER BY ch, kind", since),
-    q("SELECT chal, COUNT(*) AS n, SUM(win) AS w, COUNT(DISTINCT pid) AS players FROM rounds WHERE kind = 'chal' AND ts >= ? GROUP BY chal ORDER BY n DESC", since),
-    q('SELECT mobile, COUNT(DISTINCT pid) AS players FROM rounds WHERE ts >= ? GROUP BY mobile', since),
+    q('SELECT COUNT(*) AS rounds, COUNT(DISTINCT pid) AS players, AVG(dur) AS dur FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?)', since, vmin, vmin),
+    q('SELECT day, COUNT(*) AS rounds, COUNT(DISTINCT pid) AS players FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?) GROUP BY day ORDER BY day', since, vmin, vmin),
+    q('SELECT d AS day, COUNT(*) AS n FROM (SELECT pid, MIN(day) AS d FROM rounds WHERE (? IS NULL OR v >= ?) GROUP BY pid) WHERE d >= ? GROUP BY d ORDER BY d', vmin, vmin, sinceDay),
+    q('SELECT main_sch AS sch, COUNT(*) AS rounds, COUNT(DISTINCT pid) AS players FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?) GROUP BY main_sch ORDER BY rounds DESC', since, vmin, vmin),
+    q('SELECT mc AS ch, COUNT(*) AS players FROM (SELECT pid, MAX(max_ch) AS mc FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?) GROUP BY pid) GROUP BY mc ORDER BY mc', since, vmin, vmin),
+    q("SELECT ch, COUNT(*) AS n, SUM(win) AS w FROM rounds WHERE kind = 'boss' AND ts >= ? AND (? IS NULL OR v >= ?) GROUP BY ch ORDER BY ch", since, vmin, vmin),
+    q("SELECT ch, kind, COUNT(*) AS n, SUM(win) AS w, AVG(opened) AS opened FROM rounds WHERE kind IN ('normal','elite') AND ts >= ? AND (? IS NULL OR v >= ?) GROUP BY ch, kind ORDER BY ch, kind", since, vmin, vmin),
+    q("SELECT chal, COUNT(*) AS n, SUM(win) AS w, COUNT(DISTINCT pid) AS players FROM rounds WHERE kind = 'chal' AND ts >= ? AND (? IS NULL OR v >= ?) GROUP BY chal ORDER BY n DESC", since, vmin, vmin),
+    q('SELECT mobile, COUNT(DISTINCT pid) AS players FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?) GROUP BY mobile', since, vmin, vmin),
     q('SELECT COUNT(DISTINCT pid) AS n FROM scores'),
-    q('SELECT cards FROM rounds WHERE ts >= ? AND cards <> \'\' ORDER BY id DESC LIMIT 20000', since),
+    q('SELECT cards FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?) AND cards <> \'\' ORDER BY id DESC LIMIT 20000', since, vmin, vmin),
   ]);
   const cc = {}; cardRows.forEach((r) => r.cards.split(',').forEach((id) => { cc[id] = (cc[id] || 0) + 1; }));
   const cards = Object.entries(cc).sort((a, z) => z[1] - a[1]).map(([id, n]) => ({ id, name: (CARD_NAMES[id] || [id])[0], sch: (CARD_NAMES[id] || [])[1], rar: (CARD_NAMES[id] || [])[2], rounds: n }));
-  return json(req, { days, total: tot[0], perDay, newPerDay: newPer, schools: sch.map((x) => ({ ...x, name: SCHOOL_NAMES[x.sch] || x.sch })), progress: prog, boss, goal, chal, mobile: mob, leaderboardPlayers: lb[0].n, cards, cardRoundsSampled: cardRows.length }, 200, { 'Cache-Control': 'no-store' });
+  return json(req, { days, vmin, total: tot[0], perDay, newPerDay: newPer, schools: sch.map((x) => ({ ...x, name: SCHOOL_NAMES[x.sch] || x.sch })), progress: prog, boss, goal, chal, mobile: mob, leaderboardPlayers: lb[0].n, cards, cardRoundsSampled: cardRows.length }, 200, { 'Cache-Control': 'no-store' });
 }
 
 export default {
