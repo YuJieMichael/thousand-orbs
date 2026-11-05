@@ -21,7 +21,7 @@ function spansOf(html) {
     const ast = acorn.parse(code, { ecmaVersion: 'latest' }), cand = [];
     walk.full(ast, n => { if ((n.type === 'Literal' && typeof n.value === 'string') || n.type === 'TemplateLiteral') { if (CJK.test(code.slice(n.start, n.end))) cand.push([n.start, n.end]); } });
     cand.sort((a, b) => a[0] - b[0] || b[1] - a[1]); let last = -1;
-    for (const [a, b] of cand) if (a >= last) { out.push({ s: off + a, e: off + b, kind: 'js' }); last = b; }
+    for (const [a, b] of cand) if (a >= last) { last = b; if (code.slice(Math.max(0, a - 14), a).includes('/*i18n-keep*/')) continue; out.push({ s: off + a, e: off + b, kind: 'js' }); } // /*i18n-keep*/ 标记的字面量原样保留（双语界面）
   }
   let pos = 0; for (const [a, b] of scr) { out.push({ s: pos, e: a, kind: 'html' }); pos = b; } out.push({ s: pos, e: html.length, kind: 'html' });
   return out.sort((a, b) => a.s - b.s);
