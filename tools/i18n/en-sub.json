@@ -9,7 +9,7 @@
  "每轮额外 +${l} 颗宝珠": "+${l} orbs every round",
  "，卡包里出现了<b>新卡</b>。": ", and <b>new cards</b> appear in packs.",
  "👑 <b>首领被击败！</b>第 ${M.ch} 章": "👑 <b>Boss defeated!</b> Chapter ${M.ch}",
- "包 · SR+ 三选一 · 宝珠`": "packs · SR+ pick · bonus orb`",
+ "包 · SR+ 三选一 · 宝珠`": "packs · SR+ & orb`",
  "更多技能槽……": "更多技能槽…",
  "闪电跳向 3 个卡包（各 ${pct(.5*p)} 伤害）": "lightning jumps to 3 packs for ${pct(.5*p)} damage each",
  "雷击全场所有卡包（各 ${pct(p)} 伤害）": "lightning strikes every pack on the board for ${pct(p)} damage",
@@ -31,5 +31,6 @@
  "`宝珠落底后从顶部重新落下（每颗 ${lv>=5?2:1} 次），重生的宝珠伤害 ×${(1.5+.1*(lv-1)).toFixed(1)}`": "`Orbs that reach the bottom drop in again from the top (${lv>=5?'twice':'once'} each); reborn orbs deal ×${(1.5+.1*(lv-1)).toFixed(1)} damage`",
  "`已装备的每个流派，共鸣都按多 ${lv>=6?2:1} 张计算`": "`Each equipped school counts as ${lv>=6?'2 extra cards':'1 extra card'} for resonance`",
  "'本轮每个卡包多算 15%'": "'Each pack counts 15% more this round'",
- "'命中附加腐蚀，每层受伤 +20%'": "'Hits add Corrode; each stack adds +20% damage taken'"
+ "'命中附加腐蚀，每层受伤 +20%'": "'Hits add Corrode; each stack adds +20% damage taken'",
+ "boss:{ico:'👑',name:'打 Boss',when:'首领战'}": "boss:{ico:'👑',name:'Boss',when:'boss rounds'}"
 }
