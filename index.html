@@ -870,7 +870,7 @@ const PW=26,PH=36; // 卡包半宽/半高
 let G=null,running=false;
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const f=n=>fmt(n);
-function D(){ return orbDmg(M.up.dmg)*G.R.dmg*(1+.3*M.legacy.pow)*(G.R.allSet?1.5:1)*(1+TS.dmg)*(TS.ks.allin?3:1)*(TS.ks.rain?.6:1)*G.bo.dmg*(G.fever>0?2:1); }
+function D(){ return (G.ovX||1)*orbDmg(M.up.dmg)*G.R.dmg*(1+.3*M.legacy.pow)*(G.R.allSet?1.5:1)*(1+TS.dmg)*(TS.ks.allin?3:1)*(TS.ks.rain?.6:1)*G.bo.dmg*(G.fever>0?2:1); }
 let ROUND_EQ=null; // 挑战关卡会临时改变生效的卡
 function equipped(){ if(ROUND_EQ) return ROUND_EQ; return M.deck.filter(id=>M.owned[id]).slice(0,maxSlots()); }
 // ---- 提前配装：三套技能卡 + 基石开关，开打前按关卡自动换上 ----
@@ -993,10 +993,16 @@ function addPack(instant,slot){
 }
 function randPack(){ return G.packs.length?G.packs[Math.floor(Math.random()*G.packs.length)]:null; }
 let ballId=0;
+// 台面最多 40 颗宝珠（连发 / 倾泻的主宝珠排队等到少于 60 颗再射），多出来的每颗 +0.8% 伤害（小宝珠 +0.4%），本轮最多 ×3；飘字最多 40 条，粒子最多 400 个
+const BALL_MAX=40, BALL_HARD=60, OV_FULL=.008, OV_MINI=.004, OV_MAX=3, FX_MAX=40, PARTS_MAX=400;
 // 宝珠体积上限：最窄的金袋 52、铆钉间隔约 80，宝珠直径不能超过 44（小宝珠 30）
 const BALL_RMAX=22, MINI_RMAX=15, capR=(b,r)=>Math.min(b.mini?MINI_RMAX:BALL_RMAX,r);
 function spawnBall(x,y,vx,vy,o={}){
   const b={id:++ballId,x,y,vx,vy,sp:Math.hypot(vx,vy),r:Math.min(o.mini?MINI_RMAX:BALL_RMAX,(o.mini?6:9)*G.R.size),dmgX:o.mini?.5:1,mini:!!o.mini,pierce:false,walls:0,trail:[],life:0,still:0,mx:o.mx||1,ch:0,pot:0};
+  if(!o.main&&G.balls.length>=BALL_MAX){ // 台面宝珠太多：不再生成，折算成本轮伤害加成
+    G.ovX=Math.min(OV_MAX,(G.ovX||1)+(o.mini?OV_MINI:OV_FULL));
+    if(!G.ovTip){ G.ovTip=1; G.fx.push({x:W/2,y:H*.42,t:`宝珠满 ${BALL_MAX} 颗：多出来的转成伤害`,c:'#ffd76a',life:1.8,slow:1}); }
+    return b; }
   G.balls.push(b); return b;
 }
 function fire(auto){
@@ -1010,7 +1016,7 @@ function shoot(){ // 真正射出一颗（连射/倾泻会排队调用）
   if(G.ammo<=0){ G.queue=0; return; }
   const a=aimAngle()+(G.queue>1?rnd(-.05,.05):0); const sp=760;
   G.ammo--; G.shots++; G.queue--;
-  const b=spawnBall(LAUNCH.x,LAUNCH.y,Math.cos(a)*sp,Math.sin(a)*sp); if(G.qDel) b.dmgX*=1.3;
+  const b=spawnBall(LAUNCH.x,LAUNCH.y,Math.cos(a)*sp,Math.sin(a)*sp,{main:true}); if(G.qDel) b.dmgX*=1.3;
   b.manual=!!G.qManual; b.type=nextOrb(true); applyOrbType(b);
   for(let i=0;i<G.bo.split;i++){ const a2=a+(i%2?-1:1)*.22*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a2)*sp,Math.sin(a2)*sp,{mini:true}); }
   equipped().forEach((id,i)=>{ const c=byId[id]; if(c.launch){ const [lv,p]=cardP(id); if(c.launch(G,lv,p,b)) flashSlot(i); } });
@@ -1288,7 +1294,7 @@ function update(dt){
   G.time=(G.time||0)+dt;
   if(G.chal) chalTick(dt); G.cool=Math.max(0,G.cool-dt);
   // 连射 / 倾泻队列
-  if(G.queue>0){ G.qT+=dt; const gap=G.qDel?G.qGap:.09; while(G.queue>0&&G.qT>=gap){ G.qT-=gap; shoot(); } }
+  if(G.queue>0){ G.qT+=dt; const gap=G.qDel?G.qGap:.09; while(G.queue>0&&G.qT>=gap&&G.balls.length<BALL_HARD){ G.qT-=gap; shoot(); } if(G.balls.length>=BALL_HARD) G.qT=Math.min(G.qT,gap); }
   // 按住连射
   if(holding&&TS.hold&&G.cool<=0&&G.queue<=0&&G.ammo>0) fire();
   // 自动发射
@@ -1333,6 +1339,8 @@ function update(dt){
   // 特效
   G.fx.forEach(o=>{ if(o.L===undefined) o.L=o.life; o.life-=dt; o.y-=(o.slow?14:o.sz>=30?8:40)*dt;
     if(o.count&&(o.L-o.life)<o.dur){ o.tk=(o.tk||0)+dt; if(o.tk>=.05){ o.tk=0; o.n=(o.n||0)+1; SFX.play('tick',o.n); } } }); G.fx=G.fx.filter(o=>o.life>0);
+  if(G.fx.length>FX_MAX){ let drop=G.fx.length-FX_MAX; G.fx=G.fx.filter(o=>!(drop>0&&!(o.sz>=30)&&!o.count&&drop--)); } // 先丢最早的小飘字，大奖和计数保留
+  if(G.parts.length>PARTS_MAX) G.parts.splice(0,G.parts.length-PARTS_MAX);
   G.parts.forEach(o=>{o.life-=dt; if(o.ring) o.r+=((o.max-(o.r0||0))/(o.dur||.35))*dt; else if(o.coin){ o.x+=o.vx*dt; o.y+=o.vy*dt; o.vy+=900*dt; } else if(o.shard){ o.x+=o.vx*dt; o.y+=o.vy*dt; o.vy+=600*dt; o.rot+=o.vr*dt; } else if(o.ember){ o.x+=o.vx*dt; o.y+=o.vy*dt; } else {o.x+=o.vx*dt;o.y+=o.vy*dt;o.vx*=.92;o.vy*=.92;}}); G.parts=G.parts.filter(o=>o.life>0);
   (G.tears||[]).forEach(o=>{ o.life-=dt; o.oy+=o.vy*dt; o.vy+=420*dt; o.rot+=o.vr*dt; }); G.tears=(G.tears||[]).filter(o=>o.life>0);
   (G.reveals||[]).forEach(o=>o.life-=dt); G.reveals=(G.reveals||[]).filter(o=>o.life>0);
@@ -1652,7 +1660,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.5';
+const GAME_V='2026-11-05.6';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;

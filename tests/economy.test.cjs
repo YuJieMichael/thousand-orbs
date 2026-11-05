@@ -101,3 +101,16 @@ test('宝珠再大也塞得进最窄的金袋：直径上限 44，巨珠到顶�
   assert.equal((html.match(/b\.r\*=/g) || []).length, 0);           // 所有放大都走 capR
   assert.match(html, /b\.id==='big'&&9\*G\.R\.size\*1\.35>BALL_RMAX/);
 });
+
+test('台面宝珠上限：复制 / 分裂最多 40 颗，多出来的折算成伤害；连发排队到少于 60 颗；飘字和粒子有上限', () => {
+  assert.match(html, /const BALL_MAX=40, BALL_HARD=60, OV_FULL=\.008, OV_MINI=\.004, OV_MAX=3, FX_MAX=40, PARTS_MAX=400;/);
+  const ctx = vm.createContext({G: {balls: [], fx: [], R: {size: 1}}, W: 540, H: 800, Math});
+  vm.runInContext('let ballId=0;' + between('const BALL_MAX=', 'function fire(') + ';this.sp=spawnBall;', ctx);
+  for (let i = 0; i < 50; i++) ctx.sp(0, 0, 0, 0, {mini: i % 2 === 1});
+  assert.equal(ctx.G.balls.length, 40);
+  assert.ok(Math.abs(ctx.G.ovX - (1 + 5 * .008 + 5 * .004)) < 1e-9);
+  ctx.sp(0, 0, 0, 0, {main: true}); assert.equal(ctx.G.balls.length, 41);       // 玩家自己射的不会被吞
+  for (let i = 0; i < 1000; i++) ctx.sp(0, 0, 0, 0); assert.equal(ctx.G.ovX, 3);
+  assert.match(html, /function D\(\)\{ return \(G\.ovX\|\|1\)\*/);
+  assert.match(html, /G\.balls\.length<BALL_HARD\)\{ G\.qT-=gap; shoot\(\); \}/);
+});
