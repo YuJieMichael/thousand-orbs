@@ -317,7 +317,7 @@
       <div class="kv">
         <div><small>本轮</small><b id="round">1</b></div>
         <div><small>本轮收入</small><b id="earned" style="color:var(--gold2)">0</b></div>
-        <div><small>保底</small><b id="pity">0/40</b></div>
+        <div><small>保底</small><b id="pity">0/100</b></div>
       </div>
       <div class="ammo" id="ammo"></div>
       <div class="chap" id="chap"></div>
@@ -458,7 +458,7 @@ const powerOf=lv=>Math.pow(1.45,lv-1);
 
 // ================= 卡包 =================
 const PT=[
-  {name:'青铜包',a:'#a8774c',b:'#5e3f27',hp:1,val:1,odds:[72,23,4.5,.5]},
+  {name:'青铜包',a:'#a8774c',b:'#5e3f27',hp:1,val:1,odds:[72.3,23,4.5,.2]},
   {name:'白银包',a:'#b9c0cb',b:'#59616e',hp:3,val:4,odds:[0,65,30,5]},
   {name:'黄金包',a:'#d8b36a',b:'#7d5e2a',hp:8,val:15,odds:[0,0,75,25]},
   {name:'黑金秘藏',a:'#2a2118',b:'#d9b45a',hp:20,val:60,odds:[0,0,0,100]},
@@ -622,7 +622,7 @@ function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFas
     if(e.up) for(const k in e.up) s.up[k]=(s.up[k]||0)+e.up[k];
     ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks&&!(M.ksOff||{})[e.ks]) s.ks[e.ks]=true; });
   TS=s; }
-function effText(e){ const o=[]; const UPN={crit:'会心 +8%',critx:'会心伤害 +0.5',breaker:'破封：首击倍率 +1',cleave:'碎裂：开包溅射 +50%',ammo:'每轮宝珠 +1',basket:'金篮宽度 +14',basket2:'第二只反向金篮',volley:'开局齐射 +2 颗小宝珠',packs:'台面卡包 +1',luck:'稀有卡包出现率 +30%',pityup:'黑金保底 -4 包',slot:'技能槽 +1',reson:'共鸣倍率 +0.1',auto:'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:'发射间隔 -15%'};
+function effText(e){ const o=[]; const UPN={crit:'会心 +8%',critx:'会心伤害 +0.5',breaker:'破封：首击倍率 +1',cleave:'碎裂：开包溅射 +50%',ammo:'每轮宝珠 +1',basket:'金篮宽度 +14',basket2:'第二只反向金篮',volley:'开局齐射 +2 颗小宝珠',packs:'台面卡包 +1',luck:'稀有卡包出现率 +30%',pityup:'黑金保底 -10 张',slot:'技能槽 +1',reson:'共鸣倍率 +0.1',auto:'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:'发射间隔 -15%'};
   if(e.up) for(const k in e.up) o.push(e.up[k]>1?`${UPN[k]} ×${e.up[k]}`:UPN[k]);
   if(e.dmg) o.push(`伤害 +${pct(e.dmg)}`); if(e.coin) o.push(`金币 +${pct(e.coin)}`); if(e.card) o.push(`卡牌效果 +${pct(e.card)}`);
   if(e.burst) o.push('每次发射多连射 1 颗宝珠'); if(e.hold) o.push('按住鼠标 / 空格持续发射'); if(e.autoFast) o.push('自动发射等待 -0.6 秒'); if(e.autoFree) o.push('自动发射不再等场上宝珠落下，并且更快'); if(e.refill) o.push(`卡包打开后补充得更快（补充时间 -${Math.round((1-Math.pow(.7,e.refill))*100)}%）`);
@@ -633,7 +633,8 @@ function migrateTree(){ if(M.treeV===2) return 0; let refund=0;
   for(const k in UPS_OLD_COST){ const l=M.up[k]||0; for(let i=0;i<l;i++) refund+=UPS_OLD_COST[k](i); M.up[k]=0; }
   M.tree={}; M.treeSpent=0; M.keep={}; M.treeV=2; M.money+=refund; return refund; }
 const upLv=id=>(id==='dmg'||id==='stage')?(M.up[id]||0):Math.min(UPMAX[id]||99,(TS.up[id]||0)+((M.keep||{})[id]||0));
-const pityN=l=>40-4*(l===undefined?upLv('pityup'):l);
+const PITY_BASE=100, PITY_STEP=10; // 开出 100 张卡还没出 SSR 就送一个黑金秘藏；黑金之约每级 -10
+const pityN=l=>PITY_BASE-PITY_STEP*(l===undefined?upLv('pityup'):l);
 
 const LEGACY=[
   {id:'pow',ico:'⚔️',name:'金魂之力',desc:l=>`全部伤害 +${l*30}%`,cost:l=>Math.ceil(2*Math.pow(1.6,l))},
@@ -951,7 +952,7 @@ function addPack(instant,slot){
   const free=freeSlots(); if(!free.length) return;
   slot=slot||free[Math.floor(Math.random()*free.length)];
   const s=M.up.stage; let t=0; const r=Math.random();
-  const lk=(1+.3*upLv('luck'))*G.bo.luck; if(r<(.004+.004*s)*lk) t=3; else if(r<(.03+.015*s)*lk) t=2; else if(r<(.12+.03*s)*lk) t=1;
+  const lk=(1+.3*upLv('luck'))*G.bo.luck; if(r<(.002+.002*s)*lk) t=3; else if(r<(.03+.015*s)*lk) t=2; else if(r<(.12+.03*s)*lk) t=1;
   if(G.mut.minTier) t=Math.max(t,G.mut.minTier);
   if(M.pity>=pityN()){ t=3; M.pity=0; toast('✦ 保底：黑金秘藏现身！'); }
   const hp=packHp(t)*(G.mut.hpX||1);
@@ -1616,7 +1617,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.2';
+const GAME_V='2026-11-05.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
