@@ -160,7 +160,19 @@ test('秘藏等级：血量 ×1.6^等级，一个卡包也算 round(1.6^等级) 
   vm.runInContext(between('const packWorth=', '\n') + ';this.w=packWorth;', ctx);
   assert.deepEqual([0, 1, 2, 3, 4, 5].map(l => ctx.w(l)), [1, 2, 3, 4, 7, 10]);
   ctx.DAILY = {}; assert.equal(ctx.w(5), 1);                                    // 每日挑战不吃养成
-  assert.match(html, /G\.opened\+=packWorth\(\); G\.realOpened=/);
+  assert.match(html, /G\.opened\+=packCount\(\); G\.realOpened=/);
   assert.match(html, /coins\*=packFatigue\(G\.realOpened\)/);
   assert.match(html, /G\.realOpened>=G\.boonNext/);
+});
+
+test('开包计数倍率：清点术每级 +4%、清点祝福 +15%，小数按概率；每日挑战固定 1', () => {
+  const ctx = vm.createContext({M: {up: {stage: 0, cnt: 5}}, G: {bo: {cnt: .15}}, DAILY: null, Math});
+  vm.runInContext(between('const packWorth=', 'const packValue=') + ';this.m=cntMult;this.c=packCount;', ctx);
+  assert.ok(Math.abs(ctx.m() - 1.35) < 1e-9);
+  let n = 0; for (let i = 0; i < 20000; i++) n += ctx.c();
+  assert.ok(n / 20000 > 1.32 && n / 20000 < 1.38);
+  ctx.M.up.stage = 3; let k = 0; for (let i = 0; i < 2000; i++) k += ctx.c(); assert.ok(k / 2000 > 5.2 && k / 2000 < 5.6);   // 4 × 1.35
+  ctx.DAILY = {}; assert.equal(ctx.m(), 1); assert.equal(ctx.c(), 1);
+  assert.match(html, /\{id:'cnt',ico:'🧾',name:'清点术'/);
+  assert.match(html, /\{id:'tally',ico:'🧾',name:'清点',w:3/);
 });

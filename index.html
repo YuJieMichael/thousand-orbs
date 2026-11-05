@@ -481,7 +481,7 @@ const CARD_COIN_CAP=6;
 
 // ================= 存档 =================
 const KEY='gold-orb-v2';
-const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
+const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,cnt:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
   mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0,hc:0,roundCoins:0,chRound:0},tree:{},treeSpent:0,keep:{},treeV:2,
   goal:10,streak:0,bestStreak:0,orbs:{fire:1,heavy:1},routes:null,banned:{},pickRolls:0,unl:{},
   pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{}});
@@ -586,6 +586,7 @@ const REP=[
   {id:'dmg',ico:'💎',name:'宝珠打磨',desc:l=>`宝珠基础伤害 ${f(orbDmg(l))}`,cost:l=>12*Math.pow(1.5,l)},
   {id:'stage',ico:'🏛️',name:'秘藏等级',desc:l=>`卡包血量 ×${f(Math.pow(1.6,l))}，金币 ×${f(Math.pow(VAL_G,l))}，每个卡包算 ${packWorth(l)} 包`,cost:l=>250*Math.pow(STAGE_G,l),
     need:()=>M.up.dmg>=3&&M.up.stage<stageCap(),needTxt:()=>M.up.dmg<3?'宝珠打磨 Lv3 后开放':`上限 Lv${stageCap()}：击败第 ${M.maxCh} 章首领解锁`},
+  {id:'cnt',ico:'🧾',name:'清点术',desc:l=>`开包计数 ×${(1+CNT_STEP*l).toFixed(2)}`,cost:l=>150*Math.pow(1.75,l),need:()=>M.up.dmg>=3,needTxt:'宝珠打磨 Lv3 后开放'},
 ];
 // ---- 星盘（像 POE 的天赋树）：从中心出发，只能点亮与已点亮节点相连的节点 ----
 // [id, 类型 s/n/k(小/核心/基石), 角度, 半径, 名字, 效果, 图标]
@@ -653,7 +654,7 @@ function migrateTree(){ if(M.treeV===2) return 0; let refund=0;
   if(M.treeV===1){ refund=M.treeSpent||0; M.tree={}; M.treeSpent=0; M.treeV=2; M.money+=refund; return refund; }
   for(const k in UPS_OLD_COST){ const l=M.up[k]||0; for(let i=0;i<l;i++) refund+=UPS_OLD_COST[k](i); M.up[k]=0; }
   M.tree={}; M.treeSpent=0; M.keep={}; M.treeV=2; M.money+=refund; return refund; }
-const upLv=id=>DAILY?0:((id==='dmg'||id==='stage')?(M.up[id]||0):Math.min(UPMAX[id]||99,(TS.up[id]||0)+((M.keep||{})[id]||0)));
+const upLv=id=>DAILY?0:((id==='dmg'||id==='stage'||id==='cnt')?(M.up[id]||0):Math.min(UPMAX[id]||99,(TS.up[id]||0)+((M.keep||{})[id]||0)));
 const PITY_BASE=100, PITY_STEP=10; // 开出 100 张卡还没出 SSR 就送一个黑金秘藏；黑金之约每级 -10
 const pityN=l=>PITY_BASE-PITY_STEP*(l===undefined?upLv('pityup'):l);
 
@@ -805,6 +806,10 @@ const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1);
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
 // 秘藏等级：卡包血量 ×1.6^等级，所以开一个卡包也算 round(1.6^等级) 包（血量换数量，目标不会因为升了等级反而完不成）
 const packWorth=(l=M.up.stage)=>DAILY?1:Math.max(1,Math.round(Math.pow(1.6,l)));
+// 开包计数倍率：清点术每级 +4%（金币升级，无上限）+ 本轮「清点」祝福每次 +15%；小数部分按概率多算 1 包
+const CNT_STEP=.04;
+const cntMult=()=>DAILY?1:1+CNT_STEP*(M.up.cnt||0)+((G&&G.bo&&G.bo.cnt)||0);
+function packCount(){ const v=packWorth()*cntMult(), n=Math.floor(v); return n+(Math.random()<v-n?1:0); }
 const packValue=t=>PT[t].val*3*Math.pow(VAL_G,DAILY?0:M.up.stage)*Math.pow(CH_VAL,(DAILY?1:M.ch)-1);
 const stageCap=()=>3*M.maxCh; // 秘藏等级上限：最远章节 ×3
 
@@ -1146,7 +1151,7 @@ function hitPack(b,p){
 function openPack(p){
   const i=G.packs.indexOf(p); if(i<0) return; G.packs.splice(i,1);
   if(p.boss) return bossDown(p);
-  G.opened+=packWorth(); G.realOpened=(G.realOpened||0)+1; M.opened++; if(p.t===3) G.black++; goalCheck(); // 秘藏等级越高，一个卡包算越多包
+  G.opened+=packCount(); G.realOpened=(G.realOpened||0)+1; M.opened++; if(p.t===3) G.black++; goalCheck(); // 秘藏等级越高，一个卡包算越多包
   if(G.boonNext&&G.realOpened>=G.boonNext&&G.boons.length<5){ G.boonNext=G.realOpened+8+6*(G.boons.length+1); setTimeout(()=>{ if(G&&!G.ended&&!G.paused) offerBoon(); },250); }
   // 财富卡（聚宝盆、复利、贵宾卡）带来的金币倍率合起来最多 ×6，免得一个流派的收入甩开别人几百倍
   let coins=packValue(p.t)*Math.min(CARD_COIN_CAP,G.R.coin*(1+G.investN)*(p.t>=1?G.R.vip:1));
@@ -1551,7 +1556,7 @@ function draw(){
   if(MOBILE.matches){ drawHud(); drawSkillStrip(); }
   drawBanner();
   if(G.mh&&G.mhT>0) drawMythHint();
-  if(G.route){ ctx.save(); ctx.font=`bold ${Math.round(13*UIK)}px sans-serif`; ctx.textAlign='left'; const t=`${G.route==='elite'?'精英 · ':''}目标 ${Math.min(G.opened,G.goal)}/${G.goal} 包${packWorth()>1?`（每个算 ${packWorth()} 包）`:''}${M.streak?` · 连胜 ${M.streak}`:''}`;
+  if(G.route){ ctx.save(); ctx.font=`bold ${Math.round(13*UIK)}px sans-serif`; ctx.textAlign='left'; const t=`${G.route==='elite'?'精英 · ':''}目标 ${Math.min(G.opened,G.goal)}/${G.goal} 包${packWorth()*cntMult()>1.001?`（每个算 ×${f(Math.round(packWorth()*cntMult()*100)/100)}）`:''}${M.streak?` · 连胜 ${M.streak}`:''}`;
     ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=G.goalHit?'#7fe0a0':G.route==='elite'?'#e8a090':'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
   if(G.mut.id||G.chal){ ctx.save(); ctx.font='bold 13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic'; const c=G.chal?CHAL.find(x=>x.id===G.chal):null;
     const t=c?`${c.ico} ${c.name} · ${c.prog(G)}`:`${G.mut.ico} ${G.mut.name} · 金币 ×${G.mut.coinX}`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=c?(G.chalWin?'#7fe0a0':'#9de7ff'):'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
@@ -1755,7 +1760,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.10';
+const GAME_V='2026-11-05.11';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -1832,6 +1837,7 @@ const BOONS=[
   {id:'gold',ico:'💰',name:'点金',w:6,desc:'本轮金币 ×1.5',go:G=>{G.bo.coin*=1.5;}},
   {id:'ammo',ico:'🔮',name:'补给',w:6,desc:'立刻 +3 颗宝珠',noAmmo:1,go:G=>{G.ammo+=3; G.maxAmmo+=3;}},
   {id:'split',ico:'✳️',name:'分身',w:4,desc:'之后每次发射多 1 颗小宝珠',go:G=>{G.bo.split++;}},
+  {id:'tally',ico:'🧾',name:'清点',w:3,desc:'本轮每个卡包多算 15%',go:G=>{G.bo.cnt=(G.bo.cnt||0)+.15;}},
   {id:'fire',ico:'🔥',name:'引燃',w:5,desc:'命中会让卡包燃烧（每秒 40% 伤害）',go:G=>{G.R.burn+=.4;}},
   {id:'acid',ico:'🧪',name:'蚀刻',w:5,desc:'命中附加腐蚀，每层受伤 +20%',go:G=>{G.R.acid=Math.max(G.R.acid,.2);}},
   {id:'mag',ico:'🧲',name:'磁暴',w:4,desc:'宝珠会被附近的卡包吸过去',go:G=>{G.R.magnet=Math.max(G.R.magnet,1.6);}},
