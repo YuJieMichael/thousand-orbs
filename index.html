@@ -180,9 +180,10 @@
   @media (max-width:600px){
     .wrap{padding:6px 8px 16px;gap:8px}
     .side{display:contents}
-    .pMoney{order:1;padding:8px 10px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+    .pMoney{order:1;padding:8px 10px;display:grid;grid-template-columns:1fr auto auto;gap:4px 8px;align-items:center}
     .pMoney .title,.pMoney .tagline,.pMoney .money,.pMoney .kv{display:none}
-    .pMoney #muteB{position:static!important;grid-column:2;grid-row:1;padding:2px 8px!important;font-size:14px!important}
+    .pMoney #muteB{position:static!important;grid-column:3;grid-row:1;padding:2px 8px!important;font-size:14px!important}
+    .pMoney #endB{position:static!important;grid-column:2;grid-row:1;padding:3px 8px!important;font-size:12px!important}
     .pMoney .ammo{grid-column:1;grid-row:1;margin:0;gap:3px;min-height:10px} .pMoney .ammo i{width:11px;height:11px}
     .pMoney .chap{grid-column:1/-1;margin:2px 0 0;padding:6px 8px;font-size:12px}
     .frame{order:0;padding:5px;border-radius:14px;width:100%;max-width:calc((100svh - 24px) * 540 / 800);margin:0 auto}
@@ -320,6 +321,7 @@
   <div class="side">
     <div class="plate pMoney">
       <button class="ghost" id="muteB" title="音效（M）" style="position:absolute;top:12px;right:12px;font-size:16px;padding:4px 10px">🔊</button>
+      <button class="ghost" id="endB" title="提前结束这一轮（点两次）" style="position:absolute;top:12px;right:62px;font-size:13px;padding:5px 10px;visibility:hidden">⏹ 结束</button>
       <div class="title serif goldtxt ttlrow" id="ttl" style="user-select:none"><img id="emb" alt="" style="width:34px;height:34px;border-radius:6px">千珠落尽</div>
       <div class="tagline">以珠破封 · 收藏万卡</div>
       <div class="money serif goldtxt" style="margin-top:10px">✦ <span id="money">0</span></div>
@@ -1657,6 +1659,10 @@ function tapMoney(){ const d=f(M.money).replace(/[^0-9]/g,''); if(d.startsWith('
 $('money').parentElement.addEventListener('click',tapMoney); $('wallet').addEventListener('click',tapMoney);
 function syncMute(){ $('muteB').textContent=M.mute?'🔇':'🔊'; }
 $('muteB').onclick=()=>{ M.mute=!M.mute; save(); syncMute(); SFX.init(); };
+// 提前结束：点一次变成「确认结束？」，3 秒内再点才结束；台面上还在飞的宝珠不再结算
+function endEarly(){ if(!G||!G.packs||G.ended||!running) return; G.early=true; G.queue=0; G.ammo=0; G.balls=[]; G.paused=false; endRound(); toast('已提前结束这一轮'); }
+$('endB').onclick=()=>{ const b=$('endB'); if(b.dataset.c){ clearTimeout(endEarly.t); delete b.dataset.c; b.textContent='⏹ 结束'; endEarly(); return; }
+  b.dataset.c=1; b.textContent='确认结束？'; b.style.color='#e8a090'; clearTimeout(endEarly.t); endEarly.t=setTimeout(()=>{ delete b.dataset.c; b.textContent='⏹ 结束'; b.style.color=''; },3000); };
 $('mythPop').onclick=()=>$('mythPop').classList.remove('show');
 addEventListener('resize',()=>{ if($('sky')) drawSky(); });
 
@@ -1678,6 +1684,7 @@ let lastChap='';
 function hud(){
   const ch=chapHTML(); if(ch!==lastChap){ lastChap=ch; $('chap').innerHTML=ch; }
   $('money').textContent=f(M.money); const wn=$('walletN'); if(wn){ wn.textContent=f(M.money); $('walletS').textContent=M.soul; $('walletS').parentElement.style.display=M.soul||M.prestiges?'':'none'; $('wallet').classList.toggle('show',$('ov').classList.contains('show')); } $('round').textContent=Math.max(1,M.round); $('pity').textContent=`${M.pity}/${pityN()}`;
+  { const eb=$('endB'), on=!!(G&&G.packs&&!G.ended&&running); if(eb.style.visibility!==(on?'visible':'hidden')){ eb.style.visibility=on?'visible':'hidden'; if(!on){ delete eb.dataset.c; eb.textContent='⏹ 结束'; eb.style.color=''; } } }
   if(G&&G.packs){ $('earned').textContent='+'+f(G.earned);
     const key=G.ammo+'/'+G.maxAmmo; if(key!==lastAmmo){ lastAmmo=key; const tot=Math.max(G.maxAmmo,G.ammo); let h=''; for(let i=0;i<tot;i++) h+=`<i class="${i<G.ammo?'':'used'}"></i>`; $('ammo').innerHTML=h; } }
 }
@@ -1739,7 +1746,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.7';
+const GAME_V='2026-11-05.8';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2170,8 +2177,9 @@ function showBetween(){
   const RSUB={normal:`开 ${M.goal} 包`,elite:`开 ${Math.ceil(M.goal*1.25)} 包 · SR+ 三选一 · 宝珠`,shop:'卡包 · 选卡 · 封印',event:'随机事件'};
   const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
+  const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ 这一轮提前结束了，台面上还在飞的宝珠没有结算。</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?dailyMsg+chalMsg+bossMsg+goalMsg+roundMsg+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
