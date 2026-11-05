@@ -176,3 +176,13 @@ test('开包计数倍率：清点术每级 +4%、清点祝福 +15%，小数按�
   assert.match(html, /\{id:'cnt',ico:'🧾',name:'清点术'/);
   assert.match(html, /\{id:'tally',ico:'🧾',name:'清点',w:3/);
 });
+
+test('星盘节点价格：30 × 1.5^已点数 × 1.6^(最高章-1) × 类型倍率；黑金之约写清楚是减多少张', () => {
+  const ctx = vm.createContext({M: {maxCh: 1}, CH_VAL: 1.6, Math, tCount: () => 0});
+  vm.runInContext(between('const TREE_BASE=', 'function effText(') .split('\n').slice(0, 2).join('\n') + ';this.c=tCost;', ctx);
+  assert.equal(ctx.c({t: 's'}), 30);
+  ctx.tCount = () => 10; vm.runInContext('tCount=()=>10', ctx);
+  assert.equal(ctx.c({t: 's'}), Math.ceil(30 * 1.5 ** 10));
+  ctx.M.maxCh = 4; assert.equal(ctx.c({t: 'k'}), Math.ceil(30 * 1.5 ** 10 * 1.6 ** 3 * 3));
+  assert.match(html, /黑金保底 -\$\{10\*e\.up\[k\]\} 张/);
+});

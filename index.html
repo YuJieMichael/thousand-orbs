@@ -637,7 +637,9 @@ const TADJ={}; TE.forEach(([a,b])=>{ (TADJ[a]=TADJ[a]||[]).push(b); (TADJ[b]=TAD
 const tOwned=id=>id==='core'||!!(M.tree&&M.tree[id]);
 const tOpen=id=>!tOwned(id)&&(TADJ[id]||[]).some(tOwned);
 const tCount=()=>Object.keys(M.tree||{}).length;
-const tCost=n=>Math.ceil(25*Math.pow(1.3,tCount())*(n.t==='k'?3:n.t==='n'?1.8:1));
+// 星盘节点价格：每点一个 ×1.5（原 ×1.3），并跟着最高章节的金币倍率走（每章 ×1.6），后期金币不再随手点满
+const TREE_BASE=30, TREE_G=1.5;
+const tCost=n=>Math.ceil(TREE_BASE*Math.pow(TREE_G,tCount())*Math.pow(CH_VAL,Math.max(0,(M.maxCh||1)-1))*(n.t==='k'?3:n.t==='n'?1.8:1));
 let TS={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFast:0,autoFree:0,refill:0,ks:{}};
 function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFast:0,autoFree:0,refill:0,ks:{}};
   Object.keys(M.tree||{}).forEach(id=>{ const n=TNB[id]; if(!n) return; const e=n.e;
@@ -645,7 +647,7 @@ function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFas
     ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks&&!(M.ksOff||{})[e.ks]) s.ks[e.ks]=true; });
   TS=s; }
 function effText(e){ const o=[]; const UPN={crit:'会心 +8%',critx:'会心伤害 +0.5',breaker:'破封：首击倍率 +1',cleave:'碎裂：开包溅射 +50%',ammo:'每轮宝珠 +1',basket:'金篮宽度 +14',basket2:'第二只反向金篮',volley:'开局齐射 +2 颗小宝珠',packs:'台面卡包 +1',luck:'稀有卡包出现率 +30%',pityup:'黑金保底 -10 张',slot:'技能槽 +1',reson:'共鸣倍率 +0.1',auto:'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:'发射间隔 -15%'};
-  if(e.up) for(const k in e.up) o.push(e.up[k]>1?`${UPN[k]} ×${e.up[k]}`:UPN[k]);
+  if(e.up) for(const k in e.up) o.push(k==='pityup'?`黑金保底 -${10*e.up[k]} 张（每开 ${PITY_BASE-10*e.up[k]} 张卡还没出 SSR，就送一个黑金秘藏）`:e.up[k]>1?`${UPN[k]} ×${e.up[k]}`:UPN[k]);
   if(e.dmg) o.push(`伤害 +${pct(e.dmg)}`); if(e.coin) o.push(`金币 +${pct(e.coin)}`); if(e.card) o.push(`卡牌效果 +${pct(e.card)}`);
   if(e.burst) o.push('每次发射多连射 1 颗宝珠'); if(e.hold) o.push('按住鼠标 / 空格持续发射'); if(e.autoFast) o.push('自动发射等待 -0.6 秒'); if(e.autoFree) o.push('自动发射不再等场上宝珠落下，并且更快'); if(e.refill) o.push(`卡包打开后补充得更快（补充时间 -${Math.round((1-Math.pow(.7,e.refill))*100)}%）`);
   if(e.ks) o.push(`<b style="color:#ff9a8a">基石</b>：${KS[e.ks].desc}`); return o.join('<br>'); }
@@ -1760,7 +1762,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.11';
+const GAME_V='2026-11-05.12';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
