@@ -207,6 +207,8 @@
   .eqbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#0c0907}
   .eqbar .ghost{padding:4px 10px;font-size:12px}
   .loads{display:grid;gap:6px;margin-top:8px}
+  .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:10px}
+  .dcard{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#0c0907;font-size:13px;line-height:1.5}
   .lrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#0c0907}
   .lrow.on{border-color:var(--gold);background:#d9b45a10}
   .lrow .lnm{min-width:150px;font-size:13px}
@@ -518,6 +520,8 @@ function normalizeSave(data){
   if(next.dealtAvg!==undefined&&(typeof next.dealtAvg!=='number'||!Number.isFinite(next.dealtAvg)||next.dealtAvg<0)) bad();
   if(next.lastBossHp!==undefined&&(typeof next.lastBossHp!=='number'||!Number.isFinite(next.lastBossHp)||next.lastBossHp<0)) bad();
   if(next.loadAuto!==undefined&&typeof next.loadAuto!=='boolean') bad();
+  if(next.daily!==undefined&&next.daily!==null){ const d=next.daily; if(!saveRecord(d)||typeof d.day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d.day)||typeof d.paid!=='boolean'||!['best','tries','streak'].every(k=>Number.isSafeInteger(d[k])&&d[k]>=0)) bad(); }
+  if(next.dailySent!==undefined){ if(!saveRecord(next.dailySent)) bad(); for(const v of Object.values(next.dailySent)) if(typeof v!=='number'||!Number.isFinite(v)||v<0) bad(); }
   if(next.loads!==undefined){ if(!saveRecord(next.loads)) bad();
     for(const [k,l] of Object.entries(next.loads)){ if(!['boss','special','farm'].includes(k)||!saveRecord(l)||!Array.isArray(l.deck)||!l.deck.every(id=>typeof id==='string')) bad();
       if(l.ks!==undefined&&(!saveRecord(l.ks)||!Object.values(l.ks).every(v=>[0,1,false,true].includes(v)))) bad();
@@ -644,7 +648,7 @@ function migrateTree(){ if(M.treeV===2) return 0; let refund=0;
   if(M.treeV===1){ refund=M.treeSpent||0; M.tree={}; M.treeSpent=0; M.treeV=2; M.money+=refund; return refund; }
   for(const k in UPS_OLD_COST){ const l=M.up[k]||0; for(let i=0;i<l;i++) refund+=UPS_OLD_COST[k](i); M.up[k]=0; }
   M.tree={}; M.treeSpent=0; M.keep={}; M.treeV=2; M.money+=refund; return refund; }
-const upLv=id=>(id==='dmg'||id==='stage')?(M.up[id]||0):Math.min(UPMAX[id]||99,(TS.up[id]||0)+((M.keep||{})[id]||0));
+const upLv=id=>DAILY?0:((id==='dmg'||id==='stage')?(M.up[id]||0):Math.min(UPMAX[id]||99,(TS.up[id]||0)+((M.keep||{})[id]||0)));
 const PITY_BASE=100, PITY_STEP=10; // 开出 100 张卡还没出 SSR 就送一个黑金秘藏；黑金之约每级 -10
 const pityN=l=>PITY_BASE-PITY_STEP*(l===undefined?upLv('pityup'):l);
 
@@ -693,16 +697,36 @@ function checkAch(){ const got=ACH.filter(a=>!M.ach[a.id]&&a.ok()); if(!got.leng
   SFX.play('ach'); toast(`🏆 ${got.map(a=>a.name).join(' · ')}　🔥 金魂 +${s}`); lastChap=''; }
 
 // ================= 彩蛋 → 秘卡 =================
+// 秘卡快达成时，台面上方出现提示（进度过半才出现，解锁后不再提示）
+function mythHintTick(dt){ let best=null; const add=(id,v,n,t)=>{ if(M.owned[id]||v<n*.5) return; const k=v/n; if(!best||k>best.k) best={id,v:Math.min(v,n),n,t,k}; };
+  let hn=0; for(const b of G.balls) if((b.hn||0)>hn) hn=b.hn; add('echo',hn,50,'一颗宝珠连续命中');
+  add('sing',G.balls.length,20,'台面上同时飞舞的宝珠');
+  let ac=0; for(const p of G.packs) if((p.acid||0)>ac) ac=p.acid; add('one',ac,35,'一只卡包的腐蚀');
+  add('sun',G.burnN||0,9,'同时燃烧的卡包');
+  if(!M.owned.eight&&f(M.money).replace(/[^0-9]/g,'').startsWith('888')) best={id:'eight',k:2};
+  if(best){ G.mh=best; G.mhT=1.2; } else if(G.mhT>0) G.mhT-=dt; }
+function drawMythHint(){ const m=G.mh, pu=.6+.4*Math.sin(performance.now()/160), y=140;
+  const t=m.id==='eight'?'✦ 秘藏在颤动 · 金币以 888 开头了，点一下金币':`✦ 秘藏在颤动 · ${m.t} ${m.v}/${m.n}`;
+  ctx.save(); ctx.globalAlpha=Math.min(1,G.mhT*2); ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font=`bold ${Math.round(12*UIK)}px sans-serif`; const w=Math.min(W-24,ctx.measureText(t).width+26), h=Math.round(22*UIK);
+  ctx.fillStyle='#140a16dd'; rr(W/2-w/2,y-h/2,w,h,h/2); ctx.fill(); ctx.strokeStyle=`rgba(224,140,192,${.45+.45*pu})`; ctx.lineWidth=1.5; ctx.stroke();
+  if(m.n){ ctx.fillStyle='#e08cc0aa'; rr(W/2-w/2+h/2,y+h/2-4,(w-h)*Math.min(1,m.v/m.n),2,1); ctx.fill(); }
+  ctx.fillStyle='#ffc2e8'; ctx.fillText(t,W/2,y); ctx.restore(); }
+const MYTH_COINS=100, MYTH_SOUL=3; // 解锁秘卡的奖励：金币 = max(黑金秘藏价值 ×100, 本轮已赚)；金魂 +3
 function grantMyth(id){
   if(M.owned[id]) return; // 彩蛋只负责解锁一次；解锁之后靠黑金秘藏和首领掉落
   M.eggR[id]=M.round;
   const c=byId[id], isNew=!M.owned[id]; M.owned[id]=(M.owned[id]||0)+1;
   if(isNew&&equipped().length<maxSlots()) M.deck.push(id);
+  const live=G&&G.parts&&!G.ended, gold=Math.max(packValue(3)*MYTH_COINS,live?G.earned:0);
+  M.money+=gold; M.life+=gold; if(live) G.earned+=gold; M.soul+=MYTH_SOUL;
+  if(live){ for(let i=0;i<160;i++){ const a=rnd(0,Math.PI*2), sp=rnd(200,950); G.parts.push({coin:true,x:W/2+rnd(-20,20),y:H*.42,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-350,c:i%4?'#ffd76a':'#ff9be6',life:rnd(1.2,2.2)}); }
+    G.shake=Math.max(G.shake||0,14); G.mhT=0; }
   if(G&&G.loot){ G.loot[id]=(G.loot[id]||0)+1; if(isNew&&G.newIds) G.newIds[id]=1; if(G.R&&c.mods){ const [lv,p]=cardP(id); c.mods(G.R,lv,p); } }
   save(); renderSide(); SFX.play('myth');
   const fl=$('flash'); fl.style.transition='none'; fl.style.opacity=.85; requestAnimationFrame(()=>{ fl.style.transition='opacity .9s'; fl.style.opacity=0; });
-  const pop=$('mythPop'); pop.innerHTML=`<div class="mt serif goldtxt">✦ 秘 藏 现 世 ✦</div><div class="mc" style="position:relative"><img src="${ART.secret}" alt="" class="mrv">${cardHTML(id,{pop:1,isNew})}</div><div class="sub" style="text-align:center">${isNew?'秘卡已解锁！之后黑金秘藏和首领也有机会掉落它。':'秘卡 +1，它变得更强了。'}<br><span style="font-size:11px">点击任意处继续</span></div>`;
-  pop.classList.add('show'); clearTimeout(grantMyth.t); grantMyth.t=setTimeout(()=>pop.classList.remove('show'),3800);
+  const pop=$('mythPop'); pop.innerHTML=`<div class="mt serif goldtxt">✦ 秘 藏 现 世 ✦</div><div class="mc" style="position:relative"><img src="${ART.secret}" alt="" class="mrv">${cardHTML(id,{pop:1,isNew})}</div><div class="sub" style="text-align:center">${isNew?`秘卡已解锁！之后黑金秘藏和首领也有机会掉落它。<br><b style="color:var(--gold2)">奖励：✦ ${f(gold)} 金币 · 🔥 ${MYTH_SOUL} 金魂</b>`:'秘卡 +1，它变得更强了。'}<br><span style="font-size:11px">点击任意处继续</span></div>`;
+  pop.classList.add('show'); clearTimeout(grantMyth.t); grantMyth.t=setTimeout(()=>pop.classList.remove('show'),5000);
   checkAch();
 }
 
@@ -770,11 +794,11 @@ const maxSlots=()=>Math.max(1,3+upLv('slot')-(TS.ks.focus?2:0));
 const CH_HP=1.6, CH_VAL=1.6; // 每往后一章，卡包血量 / 金币的倍率（金币跟血量同步：每份伤害换到的金币每章一样）
 // 每往后一章，普通卡包更容易开出好卡（第 5 章封顶，深渊沿用第 5 章）。每章把概率从低稀有度挪到高稀有度：
 const ODDS_STEP=[[-7,4,2.2,.8],[0,-5,3.5,1.5],[0,0,-3,3],[0,0,0,0]];
-const packOdds=t=>{ const k=Math.min(4,Math.max(0,(M.ch||1)-1)); return PT[t].odds.map((o,i)=>Math.round((o+ODDS_STEP[t][i]*k)*10)/10); };
-const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,M.up.stage);
-const packHp=t=>packHpBase(t)*Math.pow(CH_HP,M.ch-1);
+const packOdds=t=>{ const k=DAILY?0:Math.min(4,Math.max(0,(M.ch||1)-1)); return PT[t].odds.map((o,i)=>Math.round((o+ODDS_STEP[t][i]*k)*10)/10); };
+const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
+const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1);
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
-const packValue=t=>PT[t].val*3*Math.pow(VAL_G,M.up.stage)*Math.pow(CH_VAL,M.ch-1);
+const packValue=t=>PT[t].val*3*Math.pow(VAL_G,DAILY?0:M.up.stage)*Math.pow(CH_VAL,(DAILY?1:M.ch)-1);
 const stageCap=()=>3*M.maxCh; // 秘藏等级上限：最远章节 ×3
 
 // ================= 连锁倍率 · 特殊铆钉 · 底部口袋 · 狂热 =================
@@ -870,8 +894,55 @@ const PW=26,PH=36; // 卡包半宽/半高
 let G=null,running=false;
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const f=n=>fmt(n);
-function D(){ return (G.ovX||1)*orbDmg(M.up.dmg)*G.R.dmg*(1+.3*M.legacy.pow)*(G.R.allSet?1.5:1)*(1+TS.dmg)*(TS.ks.allin?3:1)*(TS.ks.rain?.6:1)*G.bo.dmg*(G.fever>0?2:1); }
+function D(){ return (G.ovX||1)*orbDmg(DAILY?0:M.up.dmg)*G.R.dmg*(DAILY?1:1+.3*M.legacy.pow)*(G.R.allSet?1.5:1)*(1+TS.dmg)*(TS.ks.allin?3:1)*(TS.ks.rain?.6:1)*G.bo.dmg*(G.fever>0?2:1); }
 let ROUND_EQ=null; // 挑战关卡会临时改变生效的卡
+// ================= 📅 每日挑战：同一天所有人同一套卡组 + 规则 + 布局，不算个人养成，比开包数 =================
+let DAILY=null; // 每日挑战进行中时是当天的配置
+const DAILY_LV=6, DAILY_AMMO=30, DAILY_SOUL=2, DAILY_MIN_ROUND=5;
+const DAILY_RULES=[
+  {id:'std',ico:'⚖️',name:'标准',desc:'没有额外规则'},
+  {id:'big',ico:'🟡',name:'巨珠日',desc:'宝珠体积 ×1.6',go:G=>{G.R.size*=1.6;}},
+  {id:'nob',ico:'🚫',name:'无篮',desc:'没有金篮，但多 6 颗宝珠',ammo:6,go:G=>{G.basket=null; G.basket2=null;}},
+  {id:'rich',ico:'🔍',name:'寻宝',desc:'稀有卡包出现率 ×3（更硬，金币更多）',go:G=>{G.bo.luck*=3;}},
+  {id:'twin',ico:'✳️',name:'分身',desc:'每次发射多 1 颗小宝珠',go:G=>{G.bo.split++;}},
+  {id:'fire',ico:'🔥',name:'燎原',desc:'命中会让卡包燃烧（每秒 40% 伤害）',go:G=>{G.R.burn+=.4;}},
+  {id:'fast',ico:'📦',name:'速补',desc:'卡包补充速度 ×2',go:G=>{G.bo.refill*=.5;}},
+];
+const dayKey=(t=Date.now())=>new Date(t).toISOString().slice(0,10); // UTC 日期：北京时间 8:00 / 多伦多 19:00 换日
+const hashStr=str=>{ let h=2166136261; for(const ch of str){ h^=ch.codePointAt(0); h=Math.imul(h,16777619); } return h>>>0; };
+const mulberry=a=>()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+const dailyBoard=day=>'d'+day.replace(/-/g,'');
+function dailyOf(day){ const r=mulberry(hashStr('千珠落尽·'+day)), pick=a=>a[Math.floor(r()*a.length)];
+  const pool=CARDS.filter(c=>c.rar!=='UR'&&!c.comps&&c.sch!=='myth'), main=pick([...new Set(pool.map(c=>c.sch))]), deck=[];
+  const take=(list,n)=>{ const l=list.filter(c=>!deck.includes(c.id)); for(let i=0;i<n&&l.length;i++) deck.push(l.splice(Math.floor(r()*l.length),1)[0].id); };
+  take(pool.filter(c=>c.sch===main||c.sch2===main),3); take(pool,3);
+  return {day,deck,rule:pick(DAILY_RULES).id,ch:1+Math.floor(r()*5),main}; }
+const blankTS=()=>({up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFast:0,autoFree:0,refill:0,ks:{}});
+function dailyEnd(){ DAILY=null; recalcTree(); const d=G.daily, n=G.opened;
+  let s=saveRecord(M.daily)?M.daily:null;
+  if(!s||s.day!==d.day){ const y=dayKey(Date.parse(d.day+'T00:00:00Z')-864e5); s={day:d.day,best:0,tries:0,paid:false,streak:s&&s.day===y?(s.streak||0)+1:1}; }
+  s.tries++; G.dailyPB=n>s.best; s.best=Math.max(s.best,n); G.dailyFirst=!s.paid; if(!s.paid){ s.paid=true; M.soul+=DAILY_SOUL; }
+  M.daily=s; dailySubmit(); }
+function dailySubmit(){ const s=M.daily; if(!s||!M.lbName||!M.pid||M.dev) return; const b=dailyBoard(s.day);
+  if((M.dailySent||{})[b]>=s.best) return;
+  lbFetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pid:M.pid,name:M.lbName,scores:{[b]:{value:s.best}}})})
+    .then(r=>{ if(r&&r.ok&&Array.isArray(r.saved)&&r.saved.includes(b)){ M.dailySent={[b]:s.best}; save(); } }).catch(()=>{}); }
+function renderDaily(body){ const d=dailyOf(dayKey()), ru=DAILY_RULES.find(x=>x.id===d.rule), s=M.daily&&M.daily.day===d.day?M.daily:null;
+  const streak=s?s.streak:(M.daily&&M.daily.day===dayKey(Date.now()-864e5)?M.daily.streak:0);
+  const cards=d.deck.map(id=>{ const c=byId[id]; return `<div class="dcard"><div><span class="tag" style="color:${RCOL[c.rar]}">${RNAME[c.rar]}</span> ${c.ico} <b>${c.name}</b> <span class="sub" style="color:${SCH[c.sch].color}">${SCH[c.sch].name}</span></div><div class="sub" style="margin-top:3px">${c.desc(DAILY_LV,powerOf(DAILY_LV))}</div></div>`; }).join('');
+  body.innerHTML=`<div class="chap" style="margin-top:0;border-color:var(--gold3)">📅 <b style="color:var(--gold2)">每日挑战 · ${d.day}</b> <span class="sub">每天北京时间 8:00 刷新</span>
+      <div class="sub" style="line-height:1.7;margin-top:4px">今天所有人用同一套卡组和规则：卡牌一律 Lv${DAILY_LV}，不算你的升级、星盘、传承和珠袋。${DAILY_AMMO+(ru.ammo||0)} 颗宝珠，<b>比谁开的卡包多</b>。可以无限次重来，只记最好成绩。</div>
+      <div style="margin-top:8px">今日规则：${ru.ico} <b>${ru.name}</b> · ${ru.desc}<br>台面：第 ${d.ch} 章「${chInfo(d.ch).name}」的布局</div></div>
+    <div class="dgrid">${cards}</div>
+    <div class="chap">你今天：${s?`最好 <b style="color:var(--gold2)">${s.best}</b> 包 · 挑战 ${s.tries} 次`:'还没挑战'}${streak?` · 连续 ${streak} 天`:''}${s&&s.paid?'':` · <span style="color:var(--gold2)">今天第一次完成 +${DAILY_SOUL} 金魂</span>`}
+      ${M.lbName?'':'<div class="sub" style="margin-top:4px">在「排行榜」起个昵称，成绩就会上今日榜。</div>'}
+      <div style="margin-top:10px"><button class="btn" id="dailyGo">📅 开始每日挑战</button></div></div>
+    <div class="h3" style="margin-top:14px"><span>🏆 今日榜</span></div><div id="dailyTop" class="sub">加载中……</div>`;
+  $('dailyGo').onclick=()=>startRound(false,{daily:1});
+  lbFetch(`/top?board=${dailyBoard(d.day)}&limit=10${M.pid?'&pid='+M.pid:''}`).then(r=>{ const el=$('dailyTop'); if(!el) return;
+    if(!r||!Array.isArray(r.top)) throw 0;
+    el.innerHTML=r.top.length?`<div style="display:grid;gap:6px">${r.top.map((x,i)=>`<div class="tli" style="${x.pid===M.pid?'border-color:var(--gold)':''}"><span>${i<3?['🥇','🥈','🥉'][i]:'#'+(i+1)} ${escH(x.name)}</span><b>${x.value} 包</b></div>`).join('')}</div>${r.me&&r.me.rank>10?`<div class="sub" style="margin-top:6px">你排第 ${r.me.rank} / ${r.total}</div>`:''}`:'今天还没人上榜，第一名等你。';
+  }).catch(()=>{ const el=$('dailyTop'); if(el) el.textContent='今日榜暂时连不上。'; }); }
 function equipped(){ if(ROUND_EQ) return ROUND_EQ; return M.deck.filter(id=>M.owned[id]).slice(0,maxSlots()); }
 // ---- 提前配装：三套技能卡 + 基石开关，开打前按关卡自动换上 ----
 const LOADS={boss:{ico:'👑',name:'打 Boss',when:'首领战'},special:{ico:'⚔️',name:'特殊关',when:'精英轮 · 挑战关'},farm:{ico:'🪙',name:'打钱',when:'普通轮'}};
@@ -896,22 +967,26 @@ function schoolCount(){ const eq=equipped(),n={}; eq.forEach(id=>{ const c=byId[
   if(eq.includes('lord')){ const k=levelOf(M.owned.lord)>=6?2:1; Object.keys(n).forEach(s=>{ if(s!=='myth') n[s]+=k; }); } return n; }
 const cardLv=id=>{ const c=byId[id]; return c.comps?Math.min(...c.comps.map(x=>levelOf(M.owned[x]||0))):levelOf(M.owned[id]||0); };
 const starOf=id=>(M.asc&&M.asc[id])||0;
-function cardP(id){ const lv=cardLv(id),c=byId[id],sc=schoolCount(); return [lv,powerOf(lv)*(1+.4*starOf(id))*resMult(Math.max(sc[c.sch]||0,c.sch2?sc[c.sch2]||0:0))*(M.foil[id]?1.25:1)*(setDone(c.sch)?1.3:1)*(1+TS.card)*(TS.ks.focus?1.6:1)]; }
+function cardP(id){ if(DAILY){ const c=byId[id],sc=schoolCount(); return [DAILY_LV,powerOf(DAILY_LV)*resMult(Math.max(sc[c.sch]||0,c.sch2?sc[c.sch2]||0:0))]; }
+  const lv=cardLv(id),c=byId[id],sc=schoolCount(); return [lv,powerOf(lv)*(1+.4*starOf(id))*resMult(Math.max(sc[c.sch]||0,c.sch2?sc[c.sch2]||0:0))*(M.foil[id]?1.25:1)*(setDone(c.sch)?1.3:1)*(1+TS.card)*(TS.ks.focus?1.6:1)]; }
 
 function startRound(boss,opt={}){
   $('boonPop').classList.remove('show');
-  boss=!!boss; buildLayout(M.ch,boss); buildPockets(); rollSpecials();
+  const daily=opt.daily?dailyOf(dayKey()):null; DAILY=null; if(daily){ recalcTree(); DAILY=daily; TS=blankTS(); }
+  boss=!!boss; buildLayout(daily?daily.ch:M.ch,boss); buildPockets(); rollSpecials();
   const chal=opt.chal?CHAL.find(c=>c.id===opt.chal):null; ROUND_EQ=null;
-  if(M.loadAuto) applyLoad(loadKind(boss,opt)); // 提前配装：先换装，挑战关的固定卡组再在这之上生效
+  if(M.loadAuto&&!daily) applyLoad(loadKind(boss,opt)); // 提前配装：先换装，挑战关的固定卡组再在这之上生效；每日挑战用当天的卡组
+  if(daily) ROUND_EQ=daily.deck.slice();
   if(chal&&chal.eq) ROUND_EQ=chal.eq();
   const mut=null;
   const R={burnT:4,burnX:1,bone:false,vip:1,titan:0,lava:0,plague:0,dmg:1,coin:1,burn:0,wild:false,phoenix:0,acid:0,dissolve:0,spread:false,voidAt:0,invest:0,twin:0,size:1,bounce:.72,magnet:0,recycle:0,wallBonus:0,
-    sun:false,acidX:1,acidCoin:0,eight:0,reborn:0,rebornX:1,allSet:allSets()};
+    sun:false,acidX:1,acidCoin:0,eight:0,reborn:0,rebornX:1,allSet:DAILY?false:allSets()};
   equipped().forEach(id=>{ const c=byId[id],[lv,p]=cardP(id); if(c.mods) c.mods(R,lv,p); });
   R.burn*=R.burnX;
   let am=ammoN(upLv('ammo'))+(boss?4:0);
   if(TS.ks.allin) am=Math.ceil(am/2); if(TS.ks.rain) am*=2;
   if(mut&&mut.ammoD) am=Math.max(3,am+mut.ammoD); if(chal&&chal.ammo) am=chal.ammo;
+  const dRule=daily?DAILY_RULES.find(x=>x.id===daily.rule):null; if(daily) am=DAILY_AMMO+(dRule.ammo||0);
   G={R,packs:[],balls:[],fx:[],parts:[],zaps:[],pops:[],ammo:am,maxAmmo:am,refunds:0,pegHits:0,plagueT:0,isBoss:boss,bossWin:false,foilIds:{},
      aim:{x:W/2,y:H/2,t:performance.now()},cool:0,earned:0,hits:0,shots:0,opened:0,loot:{},newIds:{},upIds:{},
      investN:0,shake:0,basket:{x:W/2,dir:1},basket2:upLv('basket2')?{x:W/4,dir:-1}:null,refill:[],ended:false,
@@ -920,13 +995,14 @@ function startRound(boss,opt={}){
      bo:{dmg:1,coin:1,split:0,crit:0,basketW:0,luck:1,refill:1,echo:0,chain:0}};
   // 珠袋：特殊宝珠 + 普通宝珠，洗乱；本轮目标（只有普通 / 精英轮有）
   G.eq=equipped().slice(); G.ch0=M.ch; // 统计用：这一轮开局时的装备和章节
-  G.bag=[]; G.bagOn=unl('routes'); if(G.bagOn) ORB_SPECIAL.forEach(k=>{ for(let i=0;i<((M.orbs||{})[k]||0);i++) G.bag.push(k); }); G.bag=G.bag.slice(0,am); while(G.bag.length<am) G.bag.push('normal');
+  G.daily=daily; G.bag=[]; G.bagOn=unl('routes')&&!daily; if(G.bagOn) ORB_SPECIAL.forEach(k=>{ for(let i=0;i<((M.orbs||{})[k]||0);i++) G.bag.push(k); }); G.bag=G.bag.slice(0,am); while(G.bag.length<am) G.bag.push('normal');
   for(let i=G.bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [G.bag[i],G.bag[j]]=[G.bag[j],G.bag[i]]; }
-  G.route=boss||chal?null:(opt.route||'normal');
+  G.route=boss||chal||daily?null:(opt.route||'normal');
   if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*1.25):M.goal; if(G.route==='elite'){ G.mut={hpX:1.6}; G.bo.coin*=1.5; } }
-  if(M.nextBoon&&!chal){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} 奇遇祝福：${nb.name}`),400); } }
+  if(M.nextBoon&&!chal&&!daily){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} 奇遇祝福：${nb.name}`),400); } }
   const noB=TS.ks.greed||(mut&&mut.noBasket)||(chal&&chal.noBasket); if(noB){ G.basket=null; G.basket2=null; }
   if(chal&&chal.luck) G.bo.luck=chal.luck; if(mut&&mut.luck) G.bo.luck*=mut.luck;
+  if(dRule){ if(dRule.go) dRule.go(G); setTimeout(()=>toast(`📅 每日挑战 · ${dRule.ico} ${dRule.name}`),300); }
   if(boss){ const hp=bossHp(); G.boss={boss:true,x:W/2,y:335,hw:58,hh:76,t:3,hp,max:hp,hit:0,burn:0,acid:0,grow:1,seed:.37,ballHit:{},slot:null,summon:0,
       mech:bossMechs(M.ch),shield:0,sT:5,mT:0,immune:false,vT:0,pT:0,p2:false,p2T:0,ph:0};
     G.packs.push(G.boss); M.bossTries++; }
@@ -984,7 +1060,7 @@ function drawCine(){ const c=G&&G.cine; if(!c) return; const k=cineK(c), bar=78*
 function addPack(instant,slot){
   const free=freeSlots(); if(!free.length) return;
   slot=slot||free[Math.floor(Math.random()*free.length)];
-  const s=M.up.stage; let t=0; const r=Math.random();
+  const s=DAILY?0:M.up.stage; let t=0; const r=Math.random();
   const lk=(1+.3*upLv('luck'))*G.bo.luck; if(r<(.002+.002*s)*lk) t=3; else if(r<(.03+.015*s)*lk) t=2; else if(r<(.12+.03*s)*lk) t=1;
   if(G.mut.minTier) t=Math.max(t,G.mut.minTier);
   if(M.pity>=pityN()){ t=3; M.pity=0; toast('✦ 保底：黑金秘藏现身！'); }
@@ -1334,6 +1410,7 @@ function update(dt){
   PEGS.forEach(g=>{ if(g.amp) g.x=g.ox+Math.sin(G.time*g.sp)*g.amp; });
   BUMPERS.forEach(g=>g.flash=Math.max(0,g.flash-dt));
   if(burning>=9) grantMyth('sun');
+  G.burnN=burning; mythHintTick(dt);
   if(G.boss){ G.boss.ph+=dt*.55*(G.boss.p2?1.7:1); G.boss.x=W/2+Math.sin(G.boss.ph)*150; bossTick(G.boss,dt); }
   G.refill.forEach(r=>r.t-=dt); G.refill.filter(r=>r.t<=0).forEach(r=>{ G.refill.splice(G.refill.indexOf(r),1); if(r.slot) addPack(false,r.slot); });
   // 特效
@@ -1462,6 +1539,7 @@ function draw(){
   if(G.queue>0&&G.qDel){ ctx.fillStyle='#9de7ff'; ctx.font='bold 14px sans-serif'; ctx.fillText('🌊 倾泻！',LAUNCH.x,LAUNCH.y+48); }
   if(MOBILE.matches){ drawHud(); drawSkillStrip(); }
   drawBanner();
+  if(G.mh&&G.mhT>0) drawMythHint();
   if(G.route){ ctx.save(); ctx.font=`bold ${Math.round(13*UIK)}px sans-serif`; ctx.textAlign='left'; const t=`${G.route==='elite'?'精英 · ':''}目标 ${Math.min(G.opened,G.goal)}/${G.goal} 包${M.streak?` · 连胜 ${M.streak}`:''}`;
     ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=G.goalHit?'#7fe0a0':G.route==='elite'?'#e8a090':'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
   if(G.mut.id||G.chal){ ctx.save(); ctx.font='bold 13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic'; const c=G.chal?CHAL.find(x=>x.id===G.chal):null;
@@ -1559,7 +1637,7 @@ let holding=false;
 cv.addEventListener('mousedown',e=>{ pointer(e);holding=true;fire();});
 addEventListener('mouseup',()=>holding=false);
 cv.addEventListener('touchmove',e=>{ pointer(e);e.preventDefault();},{passive:false});
-cv.addEventListener('touchstart',e=>{ pointer(e);holding=TS.hold?true:false;e.preventDefault();},{passive:false});
+cv.addEventListener('touchstart',e=>{ pointer(e); if(MOBILE.matches&&G&&G.aim&&G.aim.y<80&&G.aim.x<W*.45) tapMoney();holding=TS.hold?true:false;e.preventDefault();},{passive:false});
 cv.addEventListener('touchend',e=>{ if(!TS.hold) fire(); holding=false; e.preventDefault(); },{passive:false});
 const KONAMI=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA']; let kIdx=0;
 addEventListener('keydown',e=>{
@@ -1644,28 +1722,28 @@ const deckF={sch:'all',sort:'rar'};
 const TRIG={launch:'发射时',hit:'命中时',open:'开包时',wall:'撞墙时',peg:'撞铆钉时',passive:'常驻'};
 const trigOf=c=>c.launch?'launch':c.hit?'hit':c.open?'open':c.wall?'wall':c.peg?'peg':'passive';
 // 页签分组：5 个大类，大类下面再分小页
-const TGROUPS=[{id:'loot',name:'结算',subs:['loot']},{id:'build',name:'构筑',subs:['up','deck','book','bag']},{id:'goal',name:'目标',subs:['goals','rank']},{id:'more',name:'更多',subs:['legacy','sys','fb']}];
+const TGROUPS=[{id:'loot',name:'结算',subs:['loot']},{id:'build',name:'构筑',subs:['up','deck','book','bag']},{id:'goal',name:'目标',subs:['daily','goals','rank']},{id:'more',name:'更多',subs:['legacy','sys','fb']}];
 const TLAST={};
 const tGroupOf=t=>(TGROUPS.find(g=>g.subs.includes(t))||TGROUPS[0]).id;
-const tSubs=(g,canP)=>g.subs.filter(k=>(k!=='legacy'||canP||M.prestiges||M.soul)&&(k!=='bag'||unl('routes')));
+const tSubs=(g,canP)=>g.subs.filter(k=>(k!=='legacy'||canP||M.prestiges||M.soul)&&(k!=='bag'||unl('routes'))&&(k!=='daily'||M.round>=DAILY_MIN_ROUND));
 function tName(k,total){ return {loot:`战利品 ${total}`,deck:`技能槽 ${equipped().length}/${maxSlots()}`,book:`图鉴 ${Object.keys(M.owned).length}/${CARDS.length}`,up:unl('tree')?'升级 · 星盘':'升级',goals:unl('chal')?'挑战 · 成就':'成就',rank:'排行榜',bag:`珠袋 ${orbCount()}`,
-  chal:`挑战 ${badgeN()}/${CHAL.length}`,ach:`成就 ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'传承',sys:'设置',fb:'反馈'}[k]; }
+  chal:`挑战 ${badgeN()}/${CHAL.length}`,ach:`成就 ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'传承',sys:'设置',fb:'反馈',daily:'📅 每日'}[k]; }
 function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.ended=true; running=false; $('boonPop').classList.remove('show');
-  ROUND_EQ=null; if(G.chal) chalEnd();
+  ROUND_EQ=null; if(G.chal) chalEnd(); if(G.daily) dailyEnd();
   M.best.opened=Math.max(M.best.opened,G.opened); if(G.opened>=30&&!G.basketIn) M.best.nobask=true;
-  if(!G.isBoss&&!G.chal&&G.dealt>0) M.dealtAvg=M.dealtAvg?M.dealtAvg*.5+G.dealt*.5:G.dealt; // 最近几轮普通轮的输出
-  settleRoute(); if(!G.chal) M.best.roundCoins=Math.max(M.best.roundCoins||0,G.earned);
+  if(!G.isBoss&&!G.chal&&!G.daily&&G.dealt>0) M.dealtAvg=M.dealtAvg?M.dealtAvg*.5+G.dealt*.5:G.dealt; // 最近几轮普通轮的输出
+  settleRoute(); if(!G.chal&&!G.daily) M.best.roundCoins=Math.max(M.best.roundCoins||0,G.earned);
   SFX.play('end'); checkAch(); save(); tab='loot'; showBetween(); lbSubmit(); statSend(); }
 
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.6';
+const GAME_V='2026-11-05.7';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
-  const kind=G.chal?'chal':G.isBoss?'boss':G.route==='elite'?'elite':'normal', win=G.chal?G.chalWin:G.isBoss?G.bossWin:G.goalOk;
-  const body={pid:M.pid,kind,ch:G.ch0||M.ch,maxCh:M.maxCh,round:M.round,win:!!win,opened:G.opened,coins:G.earned,dur:Math.round(G.time*10)/10,cards:G.eq||[],chal:G.chal||null,mobile:MOBILE.matches,v:GAME_V};
+  const kind=G.chal||G.daily?'chal':G.isBoss?'boss':G.route==='elite'?'elite':'normal', win=G.daily?true:G.chal?G.chalWin:G.isBoss?G.bossWin:G.goalOk;
+  const body={pid:M.pid,kind,ch:G.ch0||M.ch,maxCh:M.maxCh,round:M.round,win:!!win,opened:G.opened,coins:G.earned,dur:Math.round(G.time*10)/10,cards:G.eq||[],chal:G.chal||(G.daily?'daily':null),mobile:MOBILE.matches,v:GAME_V};
   try{ fetch(LB_URL+'/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true}).catch(()=>{}); }catch(e){} }
 function newPid(){ const a=new Uint8Array(12); crypto.getRandomValues(a); return [...a].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function hcTick(b){ b.hc=(b.hc||0)+1; if(b.hc>(M.best.hc||0)) M.best.hc=b.hc; }
@@ -2071,6 +2149,8 @@ function showBetween(){
   const bossMsg=G.packs&&G.isBoss?(G.bossWin?`<div class="chap" style="border-color:#ffcc55;margin-top:12px">👑 <b>首领被击败！</b>第 ${M.ch} 章「${chInfo(M.ch).name}」开启：${M.ch<=5?['','','台面出现了<b>弹射器</b>','<b>铆钉开始移动</b>','出现了<b>传送门</b>和<b>双倍金币区</b>','所有机关全部登场'][M.ch]||'':'深渊更深了'}，卡包里出现了<b>新卡</b>。${M.ch===4?'<br>🔥 <b>熔金转生</b>已解锁，去「传承」页看看。':''}</div>`
       :`<div class="chap" style="margin-top:12px">首领还剩 <b>${pct(Math.max(0,G.lastBossHp||0))}</b> 血量。升级宝珠、调整技能后再来挑战吧（挑战失败没有惩罚）。</div>`):'';
   const chalC=G.packs&&G.chal?CHAL.find(c=>c.id===G.chal):null;
+  const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b>每日挑战</b>：开了 <b style="color:var(--gold2)">${G.opened}</b> 包${G.dailyPB?' <b style="color:var(--green)">今天新纪录！</b>':''} · 今天最好 ${M.daily.best} 包 · 第 ${M.daily.tries} 次${G.dailyFirst?` · 今天第一次完成，<b style="color:var(--gold2)">金魂 +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · 连续 ${M.daily.streak} 天`:''}
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 再来一次</button><button class="ghost" id="dailyRank">看今日榜</button><span class="sub">${M.lbName?'':'起个昵称就能上今日榜'}</span></div></div>`:'';
   const chalMsg=chalC?`<div class="chap" style="margin-top:12px;border-color:${G.chalWin?'var(--green)':'var(--line)'}">${chalC.ico} 挑战「<b>${chalC.name}</b>」${G.chalWin?`<b style="color:var(--green)">成功！</b>${G.chalFirst?` 第一次通关，金魂 +${chalC.soul}`:''}`:`未完成（${chalC.prog(G)}）。换个搭配再试试。`}</div>`:'';
   const goalMsg=G.packs&&G.route?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)">目标达成</b> ${G.opened}/${G.goal} 包 · 连胜 <b>${M.streak}</b> · 奖励 <b style="color:var(--gold2)">+${f(G.goalBonus)}</b>（本轮金币的 ${pct(G.goalK)}，连胜越长越多）${G.route==='elite'?`<br>⚔️ 精英奖励：SR 以上卡牌三选一，珠袋里多了一颗<b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub">首领进度 +1 · 下一轮目标 ${M.goal} 包</span></div>`
       :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090">目标没达成</b> ${G.opened}/${G.goal} 包${G.lostStreak?` · ${G.lostStreak} 连胜中断`:''}<br><span class="sub">这一轮不算首领进度。下一轮目标降到 ${M.goal} 包。</span></div>`):'';
@@ -2090,7 +2170,7 @@ function showBetween(){
   const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?chalMsg+bossMsg+goalMsg+roundMsg+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):'欢迎回来'}</h2>${unlHTML}${migHTML}${tab==='loot'?dailyMsg+chalMsg+bossMsg+goalMsg+roundMsg+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2100,6 +2180,8 @@ function showBetween(){
 `;
   document.querySelectorAll('#box .tab').forEach(b=>b.onclick=()=>{ const g=TGROUPS.find(x=>x.id===b.dataset.g),subs=tSubs(g,canP); tab=subs.includes(TLAST[g.id])?TLAST[g.id]:subs[0]; showBetween(); });
   document.querySelectorAll('#box .subtabs button').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; TLAST[tGroupOf(tab)]=tab; showBetween(); });
+  if($('dailyAgain')) $('dailyAgain').onclick=()=>startRound(false,{daily:1});
+  if($('dailyRank')) $('dailyRank').onclick=()=>{ tab='daily'; TLAST.goal='daily'; showBetween(); };
   if($('lbAskNo')) $('lbAskNo').onclick=()=>{ M.lbAskOff=1; save(); $('lbAsk').remove(); };
   if($('learnUpgrade')) $('learnUpgrade').onclick=()=>{ tab='up'; showBetween(); $('ov').scrollTop=0; };
   if($('lbAskGo')){
@@ -2162,6 +2244,8 @@ function showBetween(){
       if(u.max&&l>=u.max) return; const c=u.cost(l); if(!spend(c,el,true)) return;
       M.legacy[u.id]++; save(); showBetween(); toast(`${u.name} 提升了！`); });
     const mb=$('melt'); if(mb) mb.onclick=()=>{ if(!(canP&&gain>0)) return; if(!mb.dataset.c){ mb.dataset.c=1; mb.textContent='再点一次确认熔金'; return; } prestige(); };
+  } else if(tab==='daily'){
+    renderDaily(body);
   } else if(tab==='rank'){
     renderRank(body);
   } else if(tab==='ach'||tab==='goals'){

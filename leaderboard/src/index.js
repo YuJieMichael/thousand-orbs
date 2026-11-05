@@ -2,7 +2,7 @@ import { CARD_NAMES, SCHOOL_NAMES } from './cards.js';
 import ADMIN_HTML from './admin.html';
 // 千珠落尽排行榜 Worker
 // GET  /top?board=progress&limit=50&pid=xxx  → 前 N 名 + 自己的名次
-// POST /submit {pid, name, scores:{progress:{value,tb}, coins:{value}, streak:{value}, chain:{value}}}
+// POST /submit {pid, name, scores:{progress:{value,tb}, coins:{value}, streak:{value}, chain:{value}, d20261105:{value}}}
 //
 // 游戏完全跑在浏览器里，成绩没法真正防作弊；这里只做基本的格式、范围检查和限流。
 
@@ -11,6 +11,16 @@ const BOARDS = {
   coins:    { max: 1e300 },    // 单轮最高金币
   streak:   { max: 100000 },   // 最长连续达成目标
   chain:    { max: 100000 },   // 一颗宝珠落底前的最多命中
+};
+// 每日挑战榜：d + UTC 日期（d20261105），值是开包数；只收前后两天以内的成绩
+const DAY_MS = 864e5;
+const boardCfg = (b, forSubmit) => {
+  if (BOARDS[b]) return BOARDS[b];
+  const m = /^d(\d{4})(\d{2})(\d{2})$/.exec(String(b || ''));
+  if (!m) return null;
+  const t = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  if (!Number.isFinite(t) || (forSubmit && Math.abs(t - Date.now()) > 2 * DAY_MS)) return null;
+  return { max: 100000, int: true };
 };
 const ORIGINS = ['https://yujiemichael.github.io', 'http://localhost:5180'];
 const RATE = { win: 60_000, n: 60 }; // 每个 IP 每分钟最多 60 次（排行榜上传 + 每轮统计）
@@ -50,7 +60,7 @@ async function limited(env, ip) {
 
 async function top(req, env, url) {
   const board = url.searchParams.get('board');
-  if (!BOARDS[board]) return json(req, { error: 'unknown board' }, 400);
+  if (!boardCfg(board)) return json(req, { error: 'unknown board' }, 400);
   const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get('limit') || '50', 10) || 50));
   const { results } = await env.DB.prepare(
     'SELECT pid, name, value, tb, ts FROM scores WHERE board = ? ORDER BY value DESC, tb ASC, ts ASC LIMIT ?'
@@ -81,12 +91,14 @@ async function submit(req, env) {
   const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
   if (await limited(env, ip)) return json(req, { error: 'slow down' }, 429);
 
-  const now = Date.now(), stmts = [];
-  for (const [board, s] of Object.entries(body.scores)) {
-    const cfg = BOARDS[board];
+  const now = Date.now(), stmts = [], saved = [];
+  for (const [board, s] of Object.entries(body.scores).slice(0, 8)) {
+    const cfg = boardCfg(board, true);
     if (!cfg || !s || !okNum(s.value, cfg.max)) continue;
+    if (cfg.int && !Number.isInteger(s.value)) continue;
     const tb = okNum(s.tb, 1e9) ? s.tb : 0;
     if (board === 'progress' && !Number.isInteger(s.value)) continue;
+    saved.push(board);
     stmts.push(env.DB.prepare(
       `INSERT INTO scores (board, pid, name, value, tb, ts) VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(board, pid) DO UPDATE SET value = excluded.value, tb = excluded.tb, ts = excluded.ts, name = excluded.name
@@ -96,7 +108,7 @@ async function submit(req, env) {
   // 改了昵称：所有榜上的名字一起改
   stmts.push(env.DB.prepare('UPDATE scores SET name = ? WHERE pid = ? AND name <> ?').bind(name, pid, name));
   await env.DB.batch(stmts);
-  return json(req, { ok: true });
+  return json(req, { ok: true, saved });
 }
 
 // ================= 匿名统计 =================

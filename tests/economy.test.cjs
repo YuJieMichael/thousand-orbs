@@ -59,7 +59,7 @@ test('普通卡包：金币和血量同步成长，开出好卡的概率随章�
   assert.match(html, /const CH_HP=1\.6, CH_VAL=1\.6;/);
   const PT = [{odds: [72.3, 23, 4.5, .2]}, {odds: [0, 65, 30, 5]}, {odds: [0, 0, 75, 25]}, {odds: [0, 0, 0, 100]}];
   const odds = ch => {
-    const ctx = vm.createContext({PT, M: {ch}});
+    const ctx = vm.createContext({PT, M: {ch}, DAILY: null});
     vm.runInContext(between('const ODDS_STEP=', 'const packHp') + ';this.o=JSON.stringify([0,1,2,3].map(t=>packOdds(t)));', ctx);
     return JSON.parse(ctx.o);
   };
@@ -90,7 +90,7 @@ test('提前配装：存三套，开打前按关卡自动换上，存档校验',
   assert.equal(api.applyLoad('boss', true), false);                 // 已经是这一套：不重复换
   api.applyLoad('farm', true); assert.equal(api.equipped(), '["c"]'); assert.equal(M.ksOff.greed, 1);
   assert.equal(api.applyLoad('special', true), false);              // 没存的不换
-  assert.match(html, /if\(M\.loadAuto\) applyLoad\(loadKind\(boss,opt\)\);[^\n]*\n  if\(chal&&chal\.eq\) ROUND_EQ=chal\.eq\(\);/);
+  assert.match(html, /if\(M\.loadAuto&&!daily\) applyLoad\(loadKind\(boss,opt\)\);[^\n]*\n  if\(daily\) ROUND_EQ=daily\.deck\.slice\(\);\n  if\(chal&&chal\.eq\) ROUND_EQ=chal\.eq\(\);/);
   assert.match(html, /if\(!\['boss','special','farm'\]\.includes\(k\)/);
 });
 
@@ -113,4 +113,44 @@ test('台面宝珠上限：复制 / 分裂最多 40 颗，多出来的折算成�
   for (let i = 0; i < 1000; i++) ctx.sp(0, 0, 0, 0); assert.equal(ctx.G.ovX, 3);
   assert.match(html, /function D\(\)\{ return \(G\.ovX\|\|1\)\*/);
   assert.match(html, /G\.balls\.length<BALL_HARD\)\{ G\.qT-=gap; shoot\(\); \}/);
+});
+
+function dailyCtx() {
+  const CARDS = [];
+  const m = html.match(/const CARDS=\[[\s\S]*?\n\];/); assert.ok(m, 'CARDS');
+  const ctx = vm.createContext({Math, Date, JSON});
+  vm.runInContext('const pct=x=>x,echoP=x=>x,refund=()=>0,spawnBall=()=>({}),zap=()=>0,dmgPack=()=>0,shake=()=>0,D=()=>1,SFX={play(){}};' + m[0] + ';' + between('const DAILY_LV=', 'const blankTS=') + ';this.api={dailyOf,dayKey,dailyBoard,RULES:DAILY_RULES,CARDS};', ctx);
+  return ctx.api;
+}
+
+test('每日挑战：同一天同一套（6 张、至少 3 张同流派），换一天就变；榜名 d+日期', () => {
+  const api = dailyCtx();
+  const a = api.dailyOf('2026-11-05'), b = api.dailyOf('2026-11-05'), c = api.dailyOf('2026-11-06');
+  assert.equal(JSON.stringify(a), JSON.stringify(b));
+  assert.notEqual(JSON.stringify(a), JSON.stringify(c));
+  for (const day of ['2026-11-05', '2026-11-06', '2026-12-31', '2027-02-14']) {
+    const d = api.dailyOf(day);
+    assert.equal(new Set(d.deck).size, 6);
+    const cards = d.deck.map(id => api.CARDS.find(x => x.id === id));
+    assert.ok(cards.every(x => x && x.rar !== 'UR'));
+    assert.ok(cards.filter(x => x.sch === d.main || x.sch2 === d.main).length >= 3);
+    assert.ok(d.ch >= 1 && d.ch <= 5 && api.RULES.some(r => r.id === d.rule));
+  }
+  assert.equal(api.dailyBoard('2026-11-05'), 'd20261105');
+  assert.equal(api.dayKey(Date.UTC(2026, 10, 5, 23, 59)), '2026-11-05');
+});
+
+test('每日挑战不吃个人养成：升级、星盘、传承、秘藏等级、章节全部归零', () => {
+  assert.match(html, /const upLv=id=>DAILY\?0:/);
+  assert.match(html, /orbDmg\(DAILY\?0:M\.up\.dmg\)\*G\.R\.dmg\*\(DAILY\?1:1\+\.3\*M\.legacy\.pow\)/);
+  assert.match(html, /function cardP\(id\)\{ if\(DAILY\)\{/);
+  assert.match(html, /Math\.pow\(1\.6,DAILY\?0:M\.up\.stage\)/);
+  assert.match(html, /if\(daily\)\{ recalcTree\(\); DAILY=daily; TS=blankTS\(\); \}/);
+  assert.match(html, /function dailyEnd\(\)\{ DAILY=null; recalcTree\(\);/);
+});
+
+test('秘卡：过半提示，解锁给金币和金魂', () => {
+  assert.match(html, /const MYTH_COINS=100, MYTH_SOUL=3;/);
+  assert.match(html, /if\(M\.owned\[id\]\|\|v<n\*\.5\) return;/);
+  assert.match(html, /M\.money\+=gold; M\.life\+=gold; if\(live\) G\.earned\+=gold; M\.soul\+=MYTH_SOUL;/);
 });
