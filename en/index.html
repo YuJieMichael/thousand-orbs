@@ -329,7 +329,7 @@
       <div class="money serif goldtxt" style="margin-top:10px">✦ <span id="money">0</span></div>
       <div class="kv">
         <div><small> Round</small><b id="round">1</b></div>
-        <div><small> Round earnings</small><b id="earned" style="color:var(--gold2)">0</b></div>
+        <div><small> This round</small><b id="earned" style="color:var(--gold2)">0</b></div>
         <div><small> Pity</small><b id="pity">0/100</b></div>
       </div>
       <div class="ammo" id="ammo"></div>
@@ -404,7 +404,7 @@ const SCH={
   acid:{name:'Corrode',ico:'🧪',color:'#8fe36a'},
   gold:{name:'Fortune',ico:'💰',color:'#ffcc55'},
   grav:{name:'Gravity',ico:'🌀',color:'#8fb8ff'},
-  myth:{name:'Arcana',ico:'✦',color:'#ff7ad9'},
+  myth:{name:'Myth',ico:'✦',color:'#ff7ad9'},
 };
 const SCH5=['combo','fire','acid','gold','grav'];
 const RES=[[2,1.3],[3,1.6],[4,2],[5,2.6]];
@@ -414,22 +414,22 @@ const pct=x=>Math.round(x*100)+'%';
 const CARDS=[
   // ⚡ 连击
   {id:'heavy',sch:'combo',rar:'N',ico:'🔨',name:'Heavy Gold Orb',desc:(lv,p)=>`Orb damage +${pct(.3*p)}`,mods:(R,lv,p)=>{R.dmg*=1+.3*p;}},
-  {id:'rico',sch:'combo',rar:'N',ico:'↩️',name:'Ricochet',desc:(lv,p)=>`Each wall bounce raises this orb’s damage +${pct(.15*p)}`,mods:(R,lv,p)=>{R.wallBonus+=.15*p;}},
-  {id:'chain',sch:'combo',rar:'R',ico:'⚡',name:'Chain Lightning',desc:(lv,p)=>`Every 4th hit, lightning jumps to 3 packs (${pct(.5*p)}  damage each)`,hit:(G,lv,p,b)=>{ if(G.hits%4===0){ let from=b; for(let i=0;i<3;i++){ const t=randPack(); if(!t) break; zap(from,t,'#fff3a0'); dmgPack(t,.5*p*D()); from=t; } return true; } }},
-  {id:'split',sch:'combo',rar:'SR',ico:'✳️',name:'Split',desc:lv=>`Each shot splits off ${lv>=4?2:1} mini orbs (40% damage)`,launch:(G,lv,p,b)=>{ const n=lv>=4?2:1; for(let i=0;i<n;i++){ const a=Math.atan2(b.vy,b.vx)+(i%2?-1:1)*.25*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a)*b.sp,Math.sin(a)*b.sp,{mini:true}); } return true; }},
-  {id:'thor',sch:'combo',rar:'SSR',ico:'🌩️',name:'Thunder Judgment',desc:(lv,p)=>`Every 15 hits, lightning strikes every pack on the board (${pct(p)}  damage each)`,hit:(G,lv,p)=>{ if(G.hits%15===0){ G.packs.slice().forEach(t=>{ zap({x:t.x,y:0},t,'#fff'); dmgPack(t,p*D()); }); shake(8); return true; } }},
+  {id:'rico',sch:'combo',rar:'N',ico:'↩️',name:'Ricochet',desc:(lv,p)=>`Each wall bounce gives this orb +${pct(.15*p)} damage`,mods:(R,lv,p)=>{R.wallBonus+=.15*p;}},
+  {id:'chain',sch:'combo',rar:'R',ico:'⚡',name:'Chain Lightning',desc:(lv,p)=>`Every 4th hit, lightning jumps to 3 packs for ${pct(.5*p)} damage each`,hit:(G,lv,p,b)=>{ if(G.hits%4===0){ let from=b; for(let i=0;i<3;i++){ const t=randPack(); if(!t) break; zap(from,t,'#fff3a0'); dmgPack(t,.5*p*D()); from=t; } return true; } }},
+  {id:'split',sch:'combo',rar:'SR',ico:'✳️',name:'Split',desc:lv=>`Each shot also fires ${lv>=4?'2 mini orbs':'1 mini orb'} (40% damage)`,launch:(G,lv,p,b)=>{ const n=lv>=4?2:1; for(let i=0;i<n;i++){ const a=Math.atan2(b.vy,b.vx)+(i%2?-1:1)*.25*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a)*b.sp,Math.sin(a)*b.sp,{mini:true}); } return true; }},
+  {id:'thor',sch:'combo',rar:'SSR',ico:'🌩️',name:'Thunder Judgment',desc:(lv,p)=>`Every 15 hits, lightning strikes every pack on the board for ${pct(p)} damage`,hit:(G,lv,p)=>{ if(G.hits%15===0){ G.packs.slice().forEach(t=>{ zap({x:t.x,y:0},t,'#fff'); dmgPack(t,p*D()); }); shake(8); return true; } }},
   // 🔥 灼烧
-  {id:'match',sch:'fire',rar:'N',ico:'🔥',name:'Wax Seal',desc:(lv,p)=>`Hit packs burn for 4s (${pct(.45*p)}  damage each)`,mods:(R,lv,p)=>{R.burn+=.45*p;}},
-  {id:'boom',sch:'fire',rar:'R',ico:'💥',name:'Burst',desc:(lv,p)=>`Opened packs explode and hit nearby packs (${pct(.95*p)}  damage each)`,open:(G,lv,p,pk)=>{ boom(pk.x,pk.y,130,.95*p*D()); return true; }},
+  {id:'match',sch:'fire',rar:'N',ico:'🔥',name:'Wax Seal',desc:(lv,p)=>`Hit packs burn for 4s, taking ${pct(.45*p)} damage per second`,mods:(R,lv,p)=>{R.burn+=.45*p;}},
+  {id:'boom',sch:'fire',rar:'R',ico:'💥',name:'Burst',desc:(lv,p)=>`Opened packs explode, dealing ${pct(.95*p)} damage to nearby packs`,open:(G,lv,p,pk)=>{ boom(pk.x,pk.y,130,.95*p*D()); return true; }},
   {id:'wild',sch:'fire',rar:'SR',ico:'🌋',name:'Wildfire',desc:()=>`Burning packs ignite their neighbors`,mods:R=>{R.wild=true;}},
-  {id:'phoenix',sch:'fire',rar:'SSR',ico:'🐦‍🔥',name:'Phoenix',desc:lv=>`Packs opened while burning give coins ×${(2+.5*(lv-1)).toFixed(1)}`,mods:(R,lv)=>{R.phoenix=2+.5*(lv-1);}},
+  {id:'phoenix',sch:'fire',rar:'SSR',ico:'🐦‍🔥',name:'Phoenix',desc:lv=>`Packs opened while burning give ×${(2+.5*(lv-1)).toFixed(1)} coins`,mods:(R,lv)=>{R.phoenix=2+.5*(lv-1);}},
   // 🧪 腐蚀
-  {id:'acid',sch:'acid',rar:'N',ico:'🧪',name:'Gold-Eating Acid',desc:(lv,p)=>`Hits add 1 Corrode stack; each stack makes the pack take damage +${pct(.15*p)}`,mods:(R,lv,p)=>{R.acid=Math.max(R.acid,.15*p);}},
-  {id:'melt',sch:'acid',rar:'R',ico:'🫠',name:'Dissolve',desc:(lv,p)=>`Corroded packs take ${pct(.08*p)}×stacks as damage per second`,mods:(R,lv,p)=>{R.dissolve+=.08*p;}},
+  {id:'acid',sch:'acid',rar:'N',ico:'🧪',name:'Gold-Eating Acid',desc:(lv,p)=>`Hits add 1 Corrode stack; each stack makes the pack take +${pct(.15*p)} damage`,mods:(R,lv,p)=>{R.acid=Math.max(R.acid,.15*p);}},
+  {id:'melt',sch:'acid',rar:'R',ico:'🫠',name:'Dissolve',desc:(lv,p)=>`Corroded packs take ${pct(.08*p)} damage per stack each second`,mods:(R,lv,p)=>{R.dissolve+=.08*p;}},
   {id:'spread',sch:'acid',rar:'SR',ico:'🦠',name:'Contagion',desc:()=>`When a corroded pack opens, half its stacks spread to nearby packs`,mods:R=>{R.spread=true;}},
-  {id:'void',sch:'acid',rar:'SSR',ico:'🕳️',name:'Into Nothing',desc:lv=>`Packs at ${Math.max(3,7-Math.floor(lv/2))} Corrode stacks open instantly`,mods:(R,lv)=>{R.voidAt=Math.max(3,7-Math.floor(lv/2));}},
+  {id:'void',sch:'acid',rar:'SSR',ico:'🕳️',name:'Annihilation',desc:lv=>`Packs at ${Math.max(3,7-Math.floor(lv/2))} Corrode stacks open instantly`,mods:(R,lv)=>{R.voidAt=Math.max(3,7-Math.floor(lv/2));}},
   // 💰 财富
-  {id:'coin',sch:'gold',rar:'N',ico:'🪙',name:'Gold Shards',desc:(lv,p)=>`Each hit earns a few coins (${pct(.08*p)})`,hit:(G,lv,p,b)=>{ earn(.08*p*packValue(0),b.x,b.y-14,true); }},
+  {id:'coin',sch:'gold',rar:'N',ico:'🪙',name:'Gold Shards',desc:(lv,p)=>`Each hit earns coins worth ${pct(.08*p)} of a Bronze Pack`,hit:(G,lv,p,b)=>{ earn(.08*p*packValue(0),b.x,b.y-14,true); }},
   {id:'piggy',sch:'gold',rar:'R',ico:'🏺',name:'Treasure Bowl',desc:(lv,p)=>`Coins from opened packs +${pct(.3*Math.sqrt(p))}`,mods:(R,lv,p)=>{R.coin*=1+.3*Math.sqrt(p);}},
   {id:'invest',sch:'gold',rar:'SR',ico:'📈',name:'Compound Interest',desc:(lv,p)=>`Each pack opened this round raises all later coins by +${pct(.03*Math.sqrt(p))} (max +200% per round)`,mods:(R,lv,p)=>{R.invest=.03*Math.sqrt(p);}},
   {id:'midas',sch:'gold',rar:'SSR',ico:'👑',name:'Midas Touch',desc:lv=>`${pct(Math.min(.5,.12+.03*(lv-1)))} chance for a pack to give 2 cards`,mods:(R,lv)=>{R.twin=Math.min(.5,.12+.03*(lv-1));}},
@@ -437,34 +437,34 @@ const CARDS=[
   {id:'bouncy',sch:'grav',rar:'N',ico:'🟡',name:'Bouncy Gold Orb',desc:(lv,p)=>`Bigger, bouncier orbs (size +${pct(Math.min(.8,.15*p))})`,mods:(R,lv,p)=>{R.size*=1+Math.min(.8,.15*p); R.bounce=Math.min(.95,R.bounce+.05);}},
   {id:'magnet',sch:'grav',rar:'R',ico:'🧲',name:'Lodestone',desc:(lv,p)=>`Orbs are pulled toward nearby packs (strength ${pct(Math.min(3,p))})`,mods:(R,lv,p)=>{R.magnet=Math.max(R.magnet,Math.min(3,p));}},
   {id:'recycle',sch:'grav',rar:'SR',ico:'♻️',name:'Recycle',desc:lv=>`When an orb hits the bottom, ${pct(Math.min(.5,.2+.04*(lv-1)))} chance to get it back`,mods:(R,lv)=>{R.recycle=Math.min(.5,.2+.04*(lv-1));}},
-  {id:'hole',sch:'grav',rar:'SSR',ico:'🌑',name:'Black Hole Orb',desc:(lv,p)=>`Every 3rd shot becomes a black hole orb: pierces all packs, damage ×${(2+.3*(lv-1)).toFixed(1)}`,launch:(G,lv,p,b)=>{ if(G.shots%3===0){ b.pierce=true; b.dmgX*=2+.3*(lv-1); b.r=capR(b,b.r*1.3); return true; } }},
+  {id:'hole',sch:'grav',rar:'SSR',ico:'🌑',name:'Black Hole Orb',desc:(lv,p)=>`Every 3rd shot becomes a black hole orb that pierces every pack and deals ×${(2+.3*(lv-1)).toFixed(1)} damage`,launch:(G,lv,p,b)=>{ if(G.shots%3===0){ b.pierce=true; b.dmgX*=2+.3*(lv-1); b.r=capR(b,b.r*1.3); return true; } }},
   // ===== 第 2 章解锁 =====
   {id:'mirror',sch:'combo',rar:'SR',ch:2,ico:'🪞',name:'Mirror',desc:lv=>`When an orb hits a wall, ${pct(Math.min(.5,.2+.04*(lv-1)))} chance to split off a mini orb`,wall:(G,lv,p,b)=>{ if(!b.mini&&Math.random()<Math.min(.5,.2+.04*(lv-1))){ spawnBall(b.x,b.y,-b.vx*.9,b.vy,{mini:true}); return true; } }},
   {id:'tinder',sch:'fire',rar:'R',ch:2,ico:'🕯️',name:'Tinder',desc:(lv,p)=>`Burns last +3s, burn damage +${pct(.25*p)}`,mods:(R,lv,p)=>{R.burnT+=3; R.burnX*=1+.25*p;}},
-  {id:'bone',sch:'acid',rar:'R',ch:2,ico:'🦴',name:'Bone Rot',desc:()=>`Corrode ≥3 Packs with 3+ stacks gain +1 extra stack when hit`,mods:R=>{R.bone=true;}},
-  {id:'vip',sch:'gold',rar:'SR',ch:2,ico:'💳',name:'VIP Card',desc:lv=>`Coins from Silver packs and better ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)}`,mods:(R,lv)=>{R.vip=Math.min(2,1.5+.05*(lv-1));}},
-  {id:'reson',sch:'grav',rar:'R',ch:2,ico:'🔔',name:'Rivet Resonance',desc:(lv,p)=>`Every 8 rivet hits, an orb shocks a random pack (${pct(.6*p)}  damage each)`,peg:(G,lv,p,b)=>{ if(G.pegHits%8===0){ const t=randPack(); if(t){ zap(b,t,'#8fb8ff'); dmgPack(t,.6*p*D()); } return true; } }},
+  {id:'bone',sch:'acid',rar:'R',ch:2,ico:'🦴',name:'Bone Rot',desc:()=>`Packs with 3+ Corrode stacks gain 1 extra stack when hit`,mods:R=>{R.bone=true;}},
+  {id:'vip',sch:'gold',rar:'SR',ch:2,ico:'💳',name:'VIP Card',desc:lv=>`Silver packs and better give ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)} coins`,mods:(R,lv)=>{R.vip=Math.min(2,1.5+.05*(lv-1));}},
+  {id:'reson',sch:'grav',rar:'R',ch:2,ico:'🔔',name:'Rivet Resonance',desc:(lv,p)=>`Every 8 rivet hits, the orb shocks a random pack for ${pct(.6*p)} damage`,peg:(G,lv,p,b)=>{ if(G.pegHits%8===0){ const t=randPack(); if(t){ zap(b,t,'#8fb8ff'); dmgPack(t,.6*p*D()); } return true; } }},
   // ===== 第 3 章解锁 =====
   {id:'titan',sch:'combo',rar:'SSR',ch:3,ico:'🗿',name:'Juggernaut',desc:lv=>`Faster orbs hit harder (up to ×${(2+.2*(lv-1)).toFixed(1)})`,mods:(R,lv)=>{R.titan=2+.2*(lv-1);}},
-  {id:'lava',sch:'fire',rar:'SSR',ch:3,ico:'☄️',name:'Lava Core',desc:(lv,p)=>`Packs explode when their burn ends, hitting nearby packs (${pct(.9*p)}  damage each)`,mods:(R,lv,p)=>{R.lava=.9*p;}},
+  {id:'lava',sch:'fire',rar:'SSR',ch:3,ico:'☄️',name:'Lava Core',desc:(lv,p)=>`When a burn ends, the pack explodes for ${pct(.9*p)} damage to nearby packs`,mods:(R,lv,p)=>{R.lava=.9*p;}},
   {id:'plague',sch:'acid',rar:'SSR',ch:3,ico:'☠️',name:'Plague King',desc:lv=>`Corroded packs gain +1 stack every ${Math.max(.6,2-.15*(lv-1)).toFixed(1)} s`,mods:(R,lv)=>{R.plague=Math.max(.6,2-.15*(lv-1));}},
   {id:'rain',sch:'gold',rar:'SSR',ch:3,ico:'🌧️',name:'Golden Rain',desc:lv=>`On pack open, ${pct(Math.min(.25,.08+.02*(lv-1)))} chance to refund 1 orb`,open:(G,lv,p,pk)=>{ if(Math.random()<Math.min(.25,.08+.02*(lv-1))) return refund(pk.x,pk.y,'🌧️ +1 Orbs','#ffcc55'); }},
   {id:'orbit',sch:'grav',rar:'SSR',ch:3,ico:'💫',name:'Star Orbit',desc:()=>`The first time each orb hits a wall, it copies itself into a full orb`,wall:(G,lv,p,b)=>{ if(!b.mini&&!b.copied&&b.walls===1){ b.copied=true; const c=spawnBall(b.x,b.y,-b.vx,b.vy*.8); c.copied=true; c.dmgX=b.dmgX; return true; } }},
   // ===== ✦ 秘 · UR：卡包里永远开不出，只能靠彩蛋 =====
-  {id:'echo',sch:'combo',rar:'UR',ico:'🔁',name:'Endless Echo',hint:'One orb, before it falls, <br> lands fifty hits.',
+  {id:'echo',sch:'combo',rar:'UR',ico:'🔁',name:'Endless Echo',hint:'A single orb, before it falls, <br> strikes fifty times.',
     desc:lv=>`Each hit has a ${pct(echoP(lv))} chance to echo and hit again; echoes can echo too`,
     hit:(G,lv,p,b,pk)=>{ let n=0; while(n<12&&Math.random()<echoP(lv)) n++; if(!n) return; for(let i=0;i<n;i++) dmgPack(pk,D()*b.dmgX,true);
       G.fx.push({x:pk.x,y:pk.y-pk.hh-30,t:`Echo ×${n}`,c:'#ff9be6',life:.6}); SFX.play('echo',n); return true; }},
-  {id:'sun',sch:'fire',rar:'UR',ico:'☀️',name:'Skyfire',hint:'Light nine fires <br> on the board at once.',
+  {id:'sun',sch:'fire',rar:'UR',ico:'☀️',name:'Skyfire',hint:'Upon the board, <br> let nine fires burn as one.',
     desc:lv=>`Every pack burns forever from the moment it appears, burn damage ×${(3+.5*(lv-1)).toFixed(1)}`,mods:(R,lv)=>{R.sun=true; R.burn=Math.max(R.burn,.35); R.burnX*=3+.5*(lv-1);}},
-  {id:'one',sch:'acid',rar:'UR',ico:'🧬',name:'All Corrosion Is One',hint:'Let a single pack <br> bear thirty-five Corrode stacks.',
+  {id:'one',sch:'acid',rar:'UR',ico:'🧬',name:'Unified Decay',hint:'Let a single pack <br> bear thirty-five layers of rot.',
     desc:lv=>`Corrode’s damage bonus ×2; when a pack opens, each stack raises coins by +${pct(.04+.005*(lv-1))}`,mods:(R,lv)=>{R.acid=Math.max(R.acid,.1); R.acidX=2; R.acidCoin=.04+.005*(lv-1);}},
-  {id:'eight',sch:'gold',rar:'UR',ico:'🏮',name:'Fortune from All Eight Sides',hint:'When your coins begin with 888, <br> give them a gentle tap.',
+  {id:'eight',sch:'gold',rar:'UR',ico:'🏮',name:'Eightfold Fortune',hint:'When your coins begin with 888, <br> give them a gentle tap.',
     desc:lv=>`All coins ×${(2+.25*(lv-1)).toFixed(2)}; 8% chance on pack open for coins to multiply again by ×8`,mods:(R,lv)=>{R.eight=2+.25*(lv-1);}},
-  {id:'sing',sch:'grav',rar:'UR',ico:'🪐',name:'Singularity',hint:'Let twenty orbs <br> fly across the board at once.',
-    desc:lv=>`After hitting the bottom, orbs drop again from the top (${lv>=5?2:1} time(s) each); reborn orbs deal damage ×${(1.5+.1*(lv-1)).toFixed(1)}`,mods:(R,lv)=>{R.reborn=lv>=5?2:1; R.rebornX=1.5+.1*(lv-1);}},
-  {id:'lord',sch:'myth',rar:'UR',ico:'🗝️',name:'Key to the Vault',hint:'↑↑↓↓←→←→BA<br> Or knock on the door seven times.',
-    desc:lv=>`Each equipped school counts ${lv>=6?2:1} extra card(s) for resonance`},
+  {id:'sing',sch:'grav',rar:'UR',ico:'🪐',name:'Singularity',hint:'Let twenty orbs <br> dance on the board at once.',
+    desc:lv=>`Orbs that reach the bottom drop in again from the top (${lv>=5?'twice':'once'} each); reborn orbs deal ×${(1.5+.1*(lv-1)).toFixed(1)} damage`,mods:(R,lv)=>{R.reborn=lv>=5?2:1; R.rebornX=1.5+.1*(lv-1);}},
+  {id:'lord',sch:'myth',rar:'UR',ico:'🗝️',name:'Key to the Vault',hint:'↑↑↓↓←→←→BA<br> Or knock seven times upon the door.',
+    desc:lv=>`Each equipped school counts as ${lv>=6?'2 extra cards':'1 extra card'} for resonance`},
 ];
 const echoP=lv=>Math.min(.45,.25+.02*(lv-1));
 const byId=Object.fromEntries(CARDS.map(c=>[c.id,c]));
@@ -629,7 +629,7 @@ tn('s1','s','skill',0,110,'Inspiration',{card:.08},'✦'); tn('s2','n','skill',0
 tn('s4','n','skill',0,410,'Double Slot',{up:{slot:2}},'🎴'); tn('ks','k','skill',0,520,'Single-Minded',{ks:'focus'},'🧘');
 tn('s5','s','skill',-20,330,'Resonance',{up:{reson:3}},'🔗'); tn('s6','n','skill',-25,440,'Double Slot',{up:{slot:2}},'🎴'); tn('s7','s','skill',20,330,'Inspiration',{card:.1},'✦');
 // ⚡ 速射
-tn('f1','s','rapid',0,110,'Rapid Fire',{up:{rapid:2}},'⚡'); tn('f2','n','rapid',0,210,'Orb String',{burst:1},'🔫'); tn('f3','s','rapid',0,310,'Rapid Fire',{up:{rapid:2}},'⚡');
+tn('f1','s','rapid',0,110,'Rapid Fire',{up:{rapid:2}},'⚡'); tn('f2','n','rapid',0,210,'Chain Shot',{burst:1},'🔫'); tn('f3','s','rapid',0,310,'Rapid Fire',{up:{rapid:2}},'⚡');
 tn('f4','n','rapid',0,410,'Hold to Fire',{hold:1,burst:1},'✊'); tn('kf','k','rapid',0,520,'Deluge',{ks:'deluge'},'🌊');
 tn('f5','n','rapid',-20,300,'Auto Fire',{up:{auto:1},autoFast:1},'🤖'); tn('f6','n','rapid',-25,410,'Full Firepower',{autoFree:1,autoFast:1},'🔥');
 tn('f7','s','rapid',20,330,'Restock',{refill:2},'📦'); tn('f8','n','rapid',25,440,'Endless Supply',{refill:2,up:{packs:1}},'♾️');
@@ -656,8 +656,8 @@ function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFas
     if(e.up) for(const k in e.up) s.up[k]=(s.up[k]||0)+e.up[k];
     ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks&&!(M.ksOff||{})[e.ks]) s.ks[e.ks]=true; });
   TS=s; }
-function effText(e){ const o=[]; const UPN={crit:'Crit +8%',critx:'Crit damage +0.5',breaker:'Seal Break: first-hit multiplier +1',cleave:'Shatter: pack-open splash +50%',ammo:'Orbs per round +1',basket:'Basket width +14',basket2:'A second basket moving the other way',volley:'+2 mini orbs in the opening volley',packs:'Packs on board +1',luck:'Rare pack rate +30%',pityup:'Black-gold pity -10 cards',slot:'Skill slots +1',reson:'Resonance multiplier +0.1',auto:'Unlocks auto fire (aims for you when idle; only in chapters you have cleared)',rapid:'Fire interval -15%'};
-  if(e.up) for(const k in e.up) o.push(k==='pityup'?`Black-gold pity -${10*e.up[k]} cards (if ${PITY_BASE-10*e.up[k]} cards in a row give no SSR, you get a Black-Gold Vault)`:e.up[k]>1?`${UPN[k]} ×${e.up[k]}`:UPN[k]);
+function effText(e){ const o=[]; const UPN={crit:'Crit +8%',critx:'Crit damage +0.5',breaker:'Seal Break: first-hit multiplier +1',cleave:'Shatter: pack-open splash +50%',ammo:'Orbs per round +1',basket:'Basket width +14',basket2:'A second basket moving the other way',volley:'+2 mini orbs in the opening volley',packs:'Packs on board +1',luck:'Rare pack rate +30%',pityup:'Black-Gold pity -10 cards',slot:'Skill slots +1',reson:'Resonance multiplier +0.1',auto:'Unlocks auto fire (aims for you when idle; only in chapters you have cleared)',rapid:'Fire interval -15%'};
+  if(e.up) for(const k in e.up) o.push(k==='pityup'?`Black-Gold pity -${10*e.up[k]} cards (if ${PITY_BASE-10*e.up[k]} cards in a row give no SSR, you get a Black-Gold Vault)`:e.up[k]>1?`${UPN[k]} ×${e.up[k]}`:UPN[k]);
   if(e.dmg) o.push(`Damage +${pct(e.dmg)}`); if(e.coin) o.push(`Coins +${pct(e.coin)}`); if(e.card) o.push(`Card effects +${pct(e.card)}`);
   if(e.burst) o.push('Each shot fires 1 extra orb'); if(e.hold) o.push('Hold mouse / Space to keep firing'); if(e.autoFast) o.push('Auto fire wait -0.6s'); if(e.autoFree) o.push('Auto fire no longer waits for orbs to land, and is faster'); if(e.refill) o.push(`Packs restock faster after opening (restock time -${Math.round((1-Math.pow(.7,e.refill))*100)}%)`);
   if(e.ks) o.push(`<b style="color:#ff9a8a"> Keystone</b>: ${KS[e.ks].desc}`); return o.join('<br>'); }
@@ -673,7 +673,7 @@ const pityN=l=>PITY_BASE-PITY_STEP*(l===undefined?upLv('pityup'):l);
 const LEGACY=[
   {id:'pow',ico:'⚔️',name:'Soul Power',desc:l=>`All damage +${l*30}%`,cost:l=>Math.ceil(2*Math.pow(1.6,l))},
   {id:'rich',ico:'💰',name:'Soul Wealth',desc:l=>`All coins +${l*40}%`,cost:l=>Math.ceil(2*Math.pow(1.6,l))},
-  {id:'orb',ico:'🔮',name:'Orb Hoard',desc:l=>`Extra orbs per round +${l} orbs`,cost:l=>2+2*l,max:5},
+  {id:'orb',ico:'🔮',name:'Orb Hoard',desc:l=>`+${l} orbs every round`,cost:l=>2+2*l,max:5},
   {id:'shine',ico:'✨',name:'Shine',desc:l=>`Foil chance ${(.5+.25*l).toFixed(2)}%`,cost:l=>2+l,max:7},
   {id:'start',ico:'🏁',name:'Pioneer',desc:l=>`Starting coins after Smelting ${l?f(200*Math.pow(6,l-1)):0}`,cost:l=>1+l,max:6},
 ];
@@ -849,7 +849,7 @@ const FEVER={chain:20,dur:4,slow:.6,cd:6}; // cd：狂热结束后多少秒内�
 // ================= 珠袋：每颗宝珠有类型，能看到接下来的三颗 =================
 const ORBS={
   normal:{name:'Gold Orb',c:'#e6cf9c',ico:'🟡',desc:'A regular orb'},
-  fire:{name:'Fire Orb',c:'#ff8a4c',ico:'🔥',desc:'Hit packs burn for 4s (50% damage per second)',price:6},
+  fire:{name:'Fire Orb',c:'#ff8a4c',ico:'🔥',desc:'Hit packs burn for 4s, taking 50% damage per second',price:6},
   heavy:{name:'Heavy Orb',c:'#b9a27a',ico:'🔨',desc:'Bigger and heavier, damage ×2',price:6},
   split:{name:'Split Orb',c:'#7fd6ff',ico:'✳️',desc:'Splits into 2 mini orbs on its first pack hit',price:8},
   lucky:{name:'Lucky Orb',c:'#ffd76a',ico:'🪙',desc:'Multiplier starts at ×2',price:9},
@@ -860,7 +860,7 @@ const ORB_SPECIAL=Object.keys(ORBS).filter(k=>k!=='normal');
 const orbCount=()=>Object.values(M.orbs||{}).reduce((a,b)=>a+b,0);
 // ================= 逐步解锁：新玩家一开始只有弹珠和每轮目标 =================
 const UNL=[
-  {id:'tree',name:'Star Chart',txt:'“Build → Upgrades · Star Chart” is open: more orbs, more packs, more skill slots……',ok:()=>M.round>=3||M.maxCh>=2},
+  {id:'tree',name:'Star Chart',txt:'“Build → Upgrades · Star Chart” is open: more orbs, more packs, more skill slots…',ok:()=>M.round>=3||M.maxCh>=2},
   {id:'routes',name:'Routes · Orb Bag',txt:'After each round you pick the next one: Normal, Elite or Encounter. Orbs now come in types — the next three are shown beside the launcher.',ok:()=>M.maxCh>=2},
   {id:'market',name:'Black Market',txt:'The Black Market appears in routes: buy packs, pick cards by school, seal cards.',ok:()=>M.maxCh>=3},
   {id:'chal',name:'Challenges',txt:'Challenges are open on the “Goals” page — first clears reward Gold Souls.',ok:()=>M.maxCh>=3},
@@ -901,7 +901,7 @@ const MECH={
 };
 const MORD=['shield','mirror','forge','star','void'];
 const bossMechs=ch=>ch<=5?[CHAPTERS[ch-1].mech]:[MORD[(ch-6)%5],MORD[(ch-4)%5]];
-const chInfo=ch=>ch<=5?CHAPTERS[ch-1]:{name:`Endless Abyss ${ch-5} depth`,boss:`Lord of the Abyss ${ch-5}`,ico:'🌀'};
+const chInfo=ch=>ch<=5?CHAPTERS[ch-1]:{name:`Endless Abyss · Depth ${ch-5}`,boss:`Lord of the Abyss ${ch-5}`,ico:'🌀'};
 let PEGS=[],BUMPERS=[],PORTALS=[],ZONES=[];
 function buildLayout(ch,boss){
   PEGS=[];BUMPERS=[];PORTALS=[];ZONES=[];
@@ -975,7 +975,7 @@ function renderDaily(body){ const d=dailyOf(dayKey()), ru=DAILY_RULES.find(x=>x.
   }).catch(()=>{ const el=$('dailyTop'); if(el) el.textContent='Can’t reach today’s board right now.'; }); }
 function equipped(){ if(ROUND_EQ) return ROUND_EQ; return M.deck.filter(id=>M.owned[id]).slice(0,maxSlots()); }
 // ---- 提前配装：三套技能卡 + 基石开关，开打前按关卡自动换上 ----
-const LOADS={boss:{ico:'👑',name:'Fight Boss',when:'Boss fights'},special:{ico:'⚔️',name:'Special',when:'Elite · Challenges'},farm:{ico:'🪙',name:'Farming',when:'Normal rounds'}};
+const LOADS={boss:{ico:'👑',name:' Boss',when:'Boss fights'},special:{ico:'⚔️',name:'Special',when:'Elite · Challenges'},farm:{ico:'🪙',name:'Farming',when:'Normal rounds'}};
 const loadKind=(boss,opt={})=>opt.chal?'special':boss?'boss':opt.route==='elite'?'special':'farm';
 const loadDeck=k=>{ const L=(M.loads||{})[k]; return L?L.deck.filter(id=>M.owned[id]).slice(0,maxSlots()):null; };
 const loadOn=k=>{ const d=loadDeck(k), L=(M.loads||{})[k]; return !!d&&JSON.stringify(d)===JSON.stringify(equipped())&&JSON.stringify(L.ks||{})===JSON.stringify(M.ksOff||{}); };
@@ -1289,7 +1289,7 @@ function openPick(o,done){ let ids=rollPick(o); const el=$('boonPop');
     <div class="bcs">${ids.map(id=>`<div class="pk" data-id="${id}" style="width:150px">${cardHTML(id,{isNew:!M.owned[id]})}</div>`).join('')}</div>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn alt" id="pkRe" style="padding:8px 16px;font-size:14px"> Reroll ✦ ${f(rerollCost())}</button><button class="ghost" id="pkSkip"> Skip</button></div>`;
     el.querySelectorAll('.pk').forEach(x=>x.onclick=()=>{ const id=x.dataset.id, isNew=!M.owned[id]; M.owned[id]=(M.owned[id]||0)+(isNew?1:2);
-      if(isNew&&equipped().length<maxSlots()) M.deck.push(id); save(); renderSide(); SFX.play(byId[id].rar==='N'?'R':byId[id].rar); toast(`${isNew?'Got':'Upgraded'}: ${byId[id].name}`); close(); });
+      if(isNew&&equipped().length<maxSlots()) M.deck.push(id); save(); renderSide(); SFX.play(byId[id].rar==='N'?'R':byId[id].rar); toast(`${isNew?'New':'Upgraded'}: ${byId[id].name}`); close(); });
     $('pkRe').onclick=e=>{ if(!spend(rerollCost(),e.target)) return; M.pickRolls=(M.pickRolls||0)+1; ids=rollPick(o); render(); };
     $('pkSkip').onclick=close; };
   render(); el.classList.add('show'); }
@@ -1300,7 +1300,7 @@ function showMarket(){ const box=$('box');
   const banPool=CARDS.filter(c=>c.rar!=='UR'&&(c.ch||1)<=M.maxCh), nb=Object.keys(M.banned).length;
   box.innerHTML=`<h2 class="serif goldtxt">🏮 Black Market</h2><div class="sub" style="margin-top:4px"> Skip a round and browse: buy packs, pick cards by school, seal cards you don’t want.</div>
     <div class="h3" style="margin-top:16px"><span>🎴 Packs</span></div><div id="mkPacks"></div>
-    <div class="h3" style="margin-top:16px"><span>🎴 Targeted pick</span></div><div class="sub"> Pay to pick 1 of 3 from one school — build resonance faster.</div>
+    <div class="h3" style="margin-top:16px"><span>🎴 School pick</span></div><div class="sub"> Pay to pick 1 of 3 from one school — build resonance faster.</div>
     <div class="res" style="margin:8px 0">${SCH5.map(s=>`<button class="ghost" data-sch="${s}" style="color:${SCH[s].color}">${SCH[s].ico} ${SCH[s].name} ✦ ${f(schPickCost())}</button>`).join('')}</div>
     <div class="h3" style="margin-top:16px"><span>🚫 Seal cards (free)</span><span class="sub">${nb}/${BAN_MAX}</span></div><div class="sub"> Sealed cards stop appearing in packs, the shop and picks, so you get your school more often. Tap a card to toggle.</div>
     <div class="grid" style="margin-top:8px">${banPool.map(c=>`<div data-ban="${c.id}" style="position:relative;${M.banned[c.id]?'opacity:.45;filter:grayscale(1)':''}">${cardHTML(c.id,{unknown:!M.owned[c.id]})}${M.banned[c.id]?'<span class="badge" style="top:-6px;left:-4px;right:auto"> Sealed</span>':''}</div>`).join('')}</div>
@@ -1434,7 +1434,7 @@ function update(dt){
     if(p.burn>0){ burning++; if(!R.sun) p.burn-=dt; if(p.burn<=0&&R.lava){ boom(p.x,p.y,120,R.lava*D()); } dmgPack(p,(R.burn+(p.fb||0))*D()*dt,true,'fire'); if(p.burn<=0) p.fb=0; if(Math.random()<dt*12) G.parts.push({ember:true,x:p.x+rnd(-p.hw+4,p.hw-4),y:p.y+rnd(-p.hh*.3,p.hh*.6),vx:rnd(-8,8),vy:rnd(-70,-40),c:'#d48a5c',life:.7});
       if(R.wild&&Math.random()<dt*1.2){ const n=G.packs.find(o=>o!==p&&o.burn<=0&&Math.hypot(o.x-p.x,o.y-p.y)<140); if(n){ n.burn=R.burnT; zap(p,n,'#ff8a4c'); } } }
     if(p.acid>0&&R.dissolve) dmgPack(p,R.dissolve*p.acid*D()*dt,true,'acid');
-    if(R.voidAt&&!p.boss&&p.acid>=R.voidAt&&G.packs.includes(p)){ G.fx.push({x:p.x,y:p.y-50,t:'🕳️ Into Nothing',c:'#8fe36a',life:.9}); openPack(p); }
+    if(R.voidAt&&!p.boss&&p.acid>=R.voidAt&&G.packs.includes(p)){ G.fx.push({x:p.x,y:p.y-50,t:'🕳️ Annihilation',c:'#8fe36a',life:.9}); openPack(p); }
   }
   if(R.plague){ G.plagueT+=dt; if(G.plagueT>=R.plague){ G.plagueT=0; G.packs.forEach(p=>{ if(p.acid>0) p.acid++; }); } }
   PEGS.forEach(g=>{ if(g.amp) g.x=g.ox+Math.sin(G.time*g.sp)*g.amp; });
@@ -1650,7 +1650,7 @@ const MOBILE=matchMedia('(max-width:600px)');
 function hudBox(x,y,w,h,align){ ctx.save(); ctx.globalAlpha=.82; ctx.fillStyle='#0f0d0b'; rr(x,y,w,h,10); ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle='#2e2821'; ctx.lineWidth=1.5; rr(x,y,w,h,10); ctx.stroke(); ctx.restore(); }
 function drawHud(){
   ctx.save(); ctx.textBaseline='alphabetic';
-  const m='✦ '+f(M.money), e='+'+f(G.earned)+' Round';
+  const m='✦ '+f(M.money), e='+'+f(G.earned)+' this round';
   ctx.font='700 25px "Noto Serif SC",serif'; const w1=Math.max(ctx.measureText(m).width,(ctx.font='bold 15px sans-serif',ctx.measureText(e).width))+24;
   hudBox(16,14,w1,62); ctx.textAlign='left';
   ctx.font='700 25px "Noto Serif SC",serif'; ctx.fillStyle='#e6cf9c'; ctx.fillText(m,28,44);
@@ -1789,11 +1789,11 @@ function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
   try{ fetch(LB_URL+'/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true}).catch(()=>{}); }catch(e){} }
 function newPid(){ const a=new Uint8Array(12); crypto.getRandomValues(a); return [...a].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function hcTick(b){ b.hc=(b.hc||0)+1; if(b.hc>(M.best.hc||0)) M.best.hc=b.hc; }
-const chName=v=>v<=5?`Chapter ${v}`:`Abyss ${v-5} depth`;
+const chName=v=>v<=5?`Chapter ${v}`:`Abyss Depth ${v-5}`;
 const LB={
   progress:{name:'Furthest progress',ico:'🏛️',fmt:(v,tb)=>chName(v)+(tb?` · Round ${tb} reached`:''),mine:()=>M.round>=1?{value:M.maxCh,tb:M.maxCh<=1?0:(M.best.chRound||M.round)}:null,how:'Highest chapter / abyss depth; ties go to fewer rounds'},
   coins:{name:'Coins in one round',ico:'💰',fmt:v=>'✦ '+f(v),mine:()=>M.best.roundCoins>0?{value:Math.floor(M.best.roundCoins)}:null,how:'Most coins earned in a single round (challenges excluded)'},
-  streak:{name:'Longest streak',ico:'🔗',fmt:v=>`${v} streak`,mine:()=>M.bestStreak>0?{value:M.bestStreak}:null,how:'Most consecutive rounds hitting the goal'},
+  streak:{name:'Longest streak',ico:'🔗',fmt:v=>`${v}-round streak`,mine:()=>M.bestStreak>0?{value:M.bestStreak}:null,how:'Most consecutive rounds hitting the goal'},
   chain:{name:'Single-orb chain',ico:'⚡',fmt:v=>`${v} hits`,mine:()=>M.best.hc>0?{value:M.best.hc}:null,how:'Most rivet and pack hits by one orb before it falls'},
 };
 const cleanLbName=v=>Array.from(String(v||'').replace(/[\u0000-\u001f<>&"'`\\]/g,'').replace(/\s+/g,' ').trim()).slice(0,12).join('');
@@ -1857,9 +1857,9 @@ const BOONS=[
   {id:'gold',ico:'💰',name:'Gilding',w:6,desc:'Coins this round ×1.5',go:G=>{G.bo.coin*=1.5;}},
   {id:'ammo',ico:'🔮',name:'Supplies',w:6,desc:'+3 orbs right now',noAmmo:1,go:G=>{G.ammo+=3; G.maxAmmo+=3;}},
   {id:'split',ico:'✳️',name:'Twin',w:4,desc:'+1 mini orb per shot from now on',go:G=>{G.bo.split++;}},
-  {id:'tally',ico:'🧾',name:'Tally',w:3,desc:'This round each pack counts extra 15%',go:G=>{G.bo.cnt=(G.bo.cnt||0)+.15;}},
+  {id:'tally',ico:'🧾',name:'Tally',w:3,desc:'Each pack counts 15% more this round',go:G=>{G.bo.cnt=(G.bo.cnt||0)+.15;}},
   {id:'fire',ico:'🔥',name:'Ignite',w:5,desc:'Hits set packs on fire (40% damage per second)',go:G=>{G.R.burn+=.4;}},
-  {id:'acid',ico:'🧪',name:'Etch',w:5,desc:'Hits add Corrode; each stack raises damage taken by +20%',go:G=>{G.R.acid=Math.max(G.R.acid,.2);}},
+  {id:'acid',ico:'🧪',name:'Etch',w:5,desc:'Hits add Corrode; each stack adds +20% damage taken',go:G=>{G.R.acid=Math.max(G.R.acid,.2);}},
   {id:'mag',ico:'🧲',name:'Magnet Storm',w:4,desc:'Orbs are pulled toward nearby packs',go:G=>{G.R.magnet=Math.max(G.R.magnet,1.6);}},
   {id:'big',ico:'🟡',name:'Giant Orb',w:4,desc:'Later orbs +35% size (capped)',go:G=>{G.R.size*=1.35;}},
   {id:'crit',ico:'🎯',name:'Precision',w:5,desc:'Crit chance +20%',go:G=>{G.bo.crit+=.2;}},
@@ -1927,7 +1927,7 @@ function renderShop(body){
       <b style="font-size:15px">${P.name}</b><div class="sub" style="font-size:11px">${od}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
         <button class="btn" data-buy="${t}" data-n="1" style="padding:7px 12px;font-size:13px;letter-spacing:0;${M.money<p1?'opacity:.55;filter:grayscale(.6)':''}">×1 ✦ ${f(p1)}</button>
-        <button class="btn alt" data-buy="${t}" data-n="10" style="padding:7px 12px;font-size:13px;letter-spacing:0">10 pull ✦ ${f(p10)}</button></div>
+        <button class="btn alt" data-buy="${t}" data-n="10" style="padding:7px 12px;font-size:13px;letter-spacing:0">10× ✦ ${f(p10)}</button></div>
       ${M.shopN[t]?`<div class="sub" style="font-size:11px"> Bought ${M.shopN[t]} packs recently, price +${Math.round((Math.pow(1.06,M.shopN[t])-1)*100)}% (drops one step per round played)</div>`:''}</div>`; }).join('');
   const last=shopLast?`<div class="h3" style="margin-top:14px"><span> Just opened · ${shopLast.total} cards</span></div><div class="grid">${Object.keys(shopLast.got).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar)).map((id,i)=>cardHTML(id,{pop:1,delay:i*.05,count:shopLast.got[id],isNew:shopLast.isNew[id],up:shopLast.up[id]})).join('')}</div>`:'';
   body.innerHTML=`<p class="sub"> Buy packs with coins. Duplicates level cards up (2 / 4 / 8 / 16 / 26 / 41… copies per level), so there’s always something to spend on. Prices rise with your Vault Level.</p>
@@ -2265,10 +2265,10 @@ function showBetween(){
   const mechHTML=bossMechs(M.ch).map(k=>`${MECH[k].ico} <b>${MECH[k].name}</b>：${typeof MECH[k].desc==='function'?MECH[k].desc():MECH[k].desc}`).join('<br>');
   const nextBoss=ready&&!(G.packs&&G.isBoss)?`<div class="chap" style="margin-top:12px;border-color:#ff6b5b66;display:flex;gap:12px;align-items:flex-start"><img src="${ART.p1[bossIdx(M.ch)]}" alt="" style="width:56px;height:84px;object-fit:contain;flex:none;background:#0d0b09;border-radius:6px;border:1px solid var(--line)"><div>👑 Boss “<b>${chInfo(M.ch).boss}</b>” has appeared <br><span class="sub" style="line-height:1.7">${mechHTML}${p2Mech(M.ch)?`<br> At half HP it enters <b style="color:#e8a090"> Phase II</b>: adds “${MECH[p2Mech(M.ch)].name}”, moves faster and summons packs`:''}</span></div></div>`:'';
   const migHTML=G.migrated?`<div class="chap" style="margin-top:12px;border-color:var(--green)"> The Star Chart was simplified: all your previous nodes were refunded, totaling <b>${f(G.migrated)}</b> coins — head to the Star Chart and plan a new path.</div>`:'';
-  const bossMsg=G.packs&&G.isBoss?(G.bossWin?`<div class="chap" style="border-color:#ffcc55;margin-top:12px">👑 <b> Boss defeated!</b>Chapter ${M.ch} “${chInfo(M.ch).name}” unlocked: ${M.ch<=5?['','','the board now has <b> bumpers</b>','<b> rivets start moving</b>','the board now has <b> portals</b> and <b> double-coin zones</b>','every mechanism is in play'][M.ch]||'':'the abyss grows deeper'}, and packs now contain <b> New</b>. ${M.ch===4?'<br>🔥 <b> Smelting</b> is unlocked — check the “Legacy” page.':''}</div>`
+  const bossMsg=G.packs&&G.isBoss?(G.bossWin?`<div class="chap" style="border-color:#ffcc55;margin-top:12px">👑 <b>Boss defeated!</b> Chapter ${M.ch} “${chInfo(M.ch).name}” unlocked: ${M.ch<=5?['','','the board now has <b> bumpers</b>','<b> rivets start moving</b>','the board now has <b> portals</b> and <b> double-coin zones</b>','every mechanism is in play'][M.ch]||'':'the abyss grows deeper'}, and <b>new cards</b> appear in packs.${M.ch===4?'<br>🔥 <b> Smelting</b> is unlocked — check the “Legacy” page.':''}</div>`
       :`<div class="chap" style="margin-top:12px"> The boss has <b>${pct(Math.max(0,G.lastBossHp||0))}</b> HP left. Upgrade your orbs, adjust your skills and try again (losing costs nothing).</div>`):'';
   const chalC=G.packs&&G.chal?CHAL.find(c=>c.id===G.chal):null;
-  const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b> Daily Challenge</b>: opened <b style="color:var(--gold2)">${G.opened}</b> packs ${G.dailyPB?' <b style="color:var(--green)"> New best today!</b>':''} · best today ${M.daily.best} packs · #${M.daily.tries}${G.dailyFirst?` · first clear today, <b style="color:var(--gold2)"> Gold Souls +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · streak ${M.daily.streak} days`:''}
+  const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b> Daily Challenge</b>: opened <b style="color:var(--gold2)">${G.opened}</b> packs ${G.dailyPB?' <b style="color:var(--green)"> New best today!</b>':''} · best today ${M.daily.best} packs · try #${M.daily.tries}${G.dailyFirst?` · first clear today, <b style="color:var(--gold2)"> Gold Souls +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · streak ${M.daily.streak} days`:''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 Again</button><button class="ghost" id="dailyRank"> Today’s board</button><span class="sub">${M.lbName?'':'Pick a nickname to join today’s board'}</span></div></div>`:'';
   const chalMsg=chalC?`<div class="chap" style="margin-top:12px;border-color:${G.chalWin?'var(--green)':'var(--line)'}">${chalC.ico} Challenge “<b>${chalC.name}</b>” ${G.chalWin?`<b style="color:var(--green)"> complete!</b>${G.chalFirst?` First clear, Gold Souls +${chalC.soul}`:''}`:`not complete (${chalC.prog(G)}). Try a different build.`}</div>`:'';
   const goalMsg=G.packs&&G.route?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)"> Goal reached</b> ${G.opened}/${G.goal} packs · streak <b>${M.streak}</b> · Reward <b style="color:var(--gold2)">+${f(G.goalBonus)}</b> (${pct(G.goalK)} of this round’s coins — grows with your streak) ${G.route==='elite'?`<br>⚔️ Elite reward: pick 1 of 3 SR+ cards, and your Orb Bag gains a <b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub"> Boss progress +1 · Next goal ${M.goal} packs</span></div>`
@@ -2280,12 +2280,12 @@ function showBetween(){
     <div style="margin-top:6px;display:flex;gap:8px">${instEvt?'<button class="btn" id="a2hsGo" style="padding:6px 14px;font-size:13px;letter-spacing:0"> Install</button>':''}<button class="ghost" id="a2hsNo"> Don’t show again</button></div></div>`:'';
   const lbMine=LB.progress.mine();
   const learnHTML=tab==='loot'&&firstUpgradeReady()?`<div class="learn-step" id="firstUpgradePrompt"><b> Spend coins to make the next round stronger</b><br> You can spend ${f(REP[0].cost(0))} coins to polish your orbs: base damage ${f(orbDmg(0))} → ${f(orbDmg(1))}. <br><button class="btn" id="learnUpgrade"> Upgrade orbs</button></div>`:'';
-  const lbAskHTML=G.packs&&tab==='loot'&&(!M.lbName||M.lbSentName!==M.lbName)&&!M.lbAskOff&&M.round>=2?`<div class="chap" id="lbAsk" style="margin-top:12px;border-color:var(--gold3)">🏆 <b> Join the leaderboard</b> <span class="sub"> Your best: ${lbMine?LB.progress.fmt(lbMine.value,lbMine.tb):''}${M.best.roundCoins>0?' · round ✦'+f(M.best.roundCoins):''}${M.bestStreak?' · '+M.bestStreak+' streak':''}</span>
+  const lbAskHTML=G.packs&&tab==='loot'&&(!M.lbName||M.lbSentName!==M.lbName)&&!M.lbAskOff&&M.round>=2?`<div class="chap" id="lbAsk" style="margin-top:12px;border-color:var(--gold3)">🏆 <b> Join the leaderboard</b> <span class="sub"> Your best: ${lbMine?LB.progress.fmt(lbMine.value,lbMine.tb):''}${M.best.roundCoins>0?' · best round ✦'+f(M.best.roundCoins):''}${M.bestStreak?' · '+M.bestStreak+'-round streak':''}</span>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><input id="lbAskName" maxlength="12" value="${escH(M.lbName||'')}" placeholder="Nickname (up to 12 characters)" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
     <button class="btn" id="lbAskGo" style="padding:7px 16px;font-size:14px;letter-spacing:0"> Join</button><button class="ghost" id="lbAskNo"> Don’t show again</button></div>
     <div class="sub" style="margin-top:4px"> Your nickname is shown publicly under “Goals → Leaderboard”; you can rename it there later.</div><div id="lbAskStatus" class="sub" role="status"></div></div>`:'';
   const unlHTML=newU.map(u=>`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔓 <b style="color:var(--gold2)"> New feature: ${u.name}</b><br><span class="sub">${u.txt}</span></div>`).join('');
-  const RSUB={normal:`Open ${M.goal} packs`,elite:`Open ${Math.ceil(M.goal*1.25)} packs · pick 1 of 3 SR+ · orb`,shop:'Packs · Picks · Seals',event:'Random event'};
+  const RSUB={normal:`Open ${M.goal} packs`,elite:`Open ${Math.ceil(M.goal*1.25)} packs · SR+ pick · bonus orb`,shop:'Packs · Picks · Seals',event:'Random event'};
   const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'; ')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`Round ${M.round+1}`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
   const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 Not sure what something is? <span class="sub"> It’s all in the manual — open it any time, even mid-round (“📖 Manual” at the top right).</span></span><button class="ghost" id="manTipB"> Open manual</button></div>`:'';
@@ -2403,7 +2403,7 @@ function showBetween(){
     body.innerHTML=`<p class="sub">✨ Foils collected ${fc}/${CARDS.length} · Each card has a ${((.005+.0025*M.legacy.shine)*100).toFixed(2)}% chance to be foil; owning a foil gives that card a permanent +25%<br>
       📖 Complete a school: all its cards <b style="color:var(--green)">×1.3</b> · Complete all five schools: orb damage <b style="color:var(--green)">×1.5</b>${allSets()?' ✓':''}</p>`+'<div class="grid">'+SCH5.map(k=>{ const v=SCH[k],cs=CARDS.filter(c=>c.sch===k&&c.rar!=='UR'&&c.rar!=='FX'),done=setDone(k);
       return `<div class="schhead" style="color:${v.color}">${badge(k)||v.ico} ${v.name} · ${cs.filter(c=>M.owned[c.id]).length}/${cs.length}<span class="setbonus ${done?'on':''}">${done?'✓ Complete: effect ×1.3':'Set bonus: effect ×1.3'}</span></div>`+cs.map(c=>cardHTML(c.id,{unknown:!M.owned[c.id]})).join(''); }).join('')
-      +`<div class="schhead" style="color:#ff7ad9;display:flex;align-items:center;gap:8px;flex-wrap:wrap">✦ Arcana · ${ur.filter(c=>M.owned[c.id]).length}/${ur.length}<span class="setbonus"> Unlock by solving the riddle first; then Black-Gold Vaults and bosses can drop it</span>${ur.every(c=>M.owned[c.id])?'':'<button class="ghost" id="eggHelp" style="margin-left:auto;font-size:12px;padding:3px 10px;letter-spacing:0">💡 Stuck? See how to unlock</button>'}</div>`
+      +`<div class="schhead" style="color:#ff7ad9;display:flex;align-items:center;gap:8px;flex-wrap:wrap">✦ Myth · ${ur.filter(c=>M.owned[c.id]).length}/${ur.length}<span class="setbonus"> Unlock by solving the riddle first; then Black-Gold Vaults and bosses can drop it</span>${ur.every(c=>M.owned[c.id])?'':'<button class="ghost" id="eggHelp" style="margin-left:auto;font-size:12px;padding:3px 10px;letter-spacing:0">💡 Stuck? See how to unlock</button>'}</div>`
       +`<div class="chap" id="eggAns" style="grid-column:1/-1;display:none;margin:0;line-height:1.8">${ur.map(c=>`${M.owned[c.id]?'<span style="color:var(--green)">✓</span>':'🔒'} <b style="color:#ff9be6">${c.name}</b>：${EGG_HOW[c.id]||''}`).join('<br>')}</div>`
       +ur.map(c=>`<div data-ur="${c.id}">${cardHTML(c.id,{unknown:!M.owned[c.id]})}</div>`).join('')+'</div>';
     const eh=$('eggHelp'); if(eh) eh.onclick=()=>{ if(!eh.dataset.c){ eh.dataset.c=1; eh.textContent='Tap again for the answer (spoiler)'; return; } $('eggAns').style.display=''; eh.remove(); };

@@ -29,7 +29,7 @@ function spansOf(html) {
 // 翻译后的小清理：括号 / 引号里多出来的空格
 const tidy = t => t.replace(/([(“]) (\$\{|<b)/g, '$1$2').replace(/ ([)”])/g, '$1');
 // 「第 X 章 / 轮 / 次 / 层」这类要调语序：先整体换掉，剩下的再逐段翻译
-const ORD = { '章': 'Chapter ', '轮': 'Round ', '次': '#', '层': 'Depth ', '名': '#', '个': '#', '天': 'Day ', '关': 'Stage ', '发': 'shot #', '颗': 'orb #', '张': 'card #', '阶段': 'Phase ' };
+const ORD = { '章': 'Chapter ', '轮': 'Round ', '次': 'try #', '层': 'Depth ', '名': '#', '个': '#', '天': 'Day ', '关': 'Stage ', '发': 'shot #', '颗': 'orb #', '张': 'card #', '阶段': 'Phase ' };
 function exprAt(t, i) { // 从 i 开始读一个 ${...}（处理嵌套括号 / 模板），返回结束位置
   if (t.startsWith('${', i)) { let d = 0; for (let j = i + 1; j < t.length; j++) { const c = t[j]; if (c === '{') d++; else if (c === '}') { d--; if (d === 0) return j + 1; } else if (c === '`') { j = t.indexOf('`', j + 1); if (j < 0) return -1; } } return -1; }
   const m = /^(<b[^>]*>\$\{[^`]*?\}<\/b>|<b[^>]*>[0-9]+<\/b>|[0-9]+)/.exec(t.slice(i)); return m ? i + m[0].length : -1;
