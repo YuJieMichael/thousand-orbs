@@ -421,7 +421,7 @@ const CARDS=[
   {id:'bouncy',sch:'grav',rar:'N',ico:'🟡',name:'弹力金珠',desc:(lv,p)=>`宝珠更大、弹得更欢（体积 +${pct(Math.min(.8,.15*p))}）`,mods:(R,lv,p)=>{R.size*=1+Math.min(.8,.15*p); R.bounce=Math.min(.95,R.bounce+.05);}},
   {id:'magnet',sch:'grav',rar:'R',ico:'🧲',name:'磁石',desc:(lv,p)=>`宝珠会被附近的卡包吸过去（强度 ${pct(Math.min(3,p))}）`,mods:(R,lv,p)=>{R.magnet=Math.max(R.magnet,Math.min(3,p));}},
   {id:'recycle',sch:'grav',rar:'SR',ico:'♻️',name:'回收',desc:lv=>`宝珠落底时 ${pct(Math.min(.5,.2+.04*(lv-1)))} 概率返还`,mods:(R,lv)=>{R.recycle=Math.min(.5,.2+.04*(lv-1));}},
-  {id:'hole',sch:'grav',rar:'SSR',ico:'🌑',name:'黑洞宝珠',desc:(lv,p)=>`每第 3 发变成黑洞宝珠：穿透一切卡包，伤害 ×${(2+.3*(lv-1)).toFixed(1)}`,launch:(G,lv,p,b)=>{ if(G.shots%3===0){ b.pierce=true; b.dmgX*=2+.3*(lv-1); b.r*=1.3; return true; } }},
+  {id:'hole',sch:'grav',rar:'SSR',ico:'🌑',name:'黑洞宝珠',desc:(lv,p)=>`每第 3 发变成黑洞宝珠：穿透一切卡包，伤害 ×${(2+.3*(lv-1)).toFixed(1)}`,launch:(G,lv,p,b)=>{ if(G.shots%3===0){ b.pierce=true; b.dmgX*=2+.3*(lv-1); b.r=capR(b,b.r*1.3); return true; } }},
   // ===== 第 2 章解锁 =====
   {id:'mirror',sch:'combo',rar:'SR',ch:2,ico:'🪞',name:'镜像',desc:lv=>`宝珠撞墙时 ${pct(Math.min(.5,.2+.04*(lv-1)))} 概率分出一颗小宝珠`,wall:(G,lv,p,b)=>{ if(!b.mini&&Math.random()<Math.min(.5,.2+.04*(lv-1))){ spawnBall(b.x,b.y,-b.vx*.9,b.vy,{mini:true}); return true; } }},
   {id:'tinder',sch:'fire',rar:'R',ch:2,ico:'🕯️',name:'火种',desc:(lv,p)=>`燃烧持续 +3 秒，燃烧伤害 +${pct(.25*p)}`,mods:(R,lv,p)=>{R.burnT+=3; R.burnX*=1+.25*p;}},
@@ -993,8 +993,10 @@ function addPack(instant,slot){
 }
 function randPack(){ return G.packs.length?G.packs[Math.floor(Math.random()*G.packs.length)]:null; }
 let ballId=0;
+// 宝珠体积上限：最窄的金袋 52、铆钉间隔约 80，宝珠直径不能超过 44（小宝珠 30）
+const BALL_RMAX=22, MINI_RMAX=15, capR=(b,r)=>Math.min(b.mini?MINI_RMAX:BALL_RMAX,r);
 function spawnBall(x,y,vx,vy,o={}){
-  const b={id:++ballId,x,y,vx,vy,sp:Math.hypot(vx,vy),r:(o.mini?6:9)*G.R.size,dmgX:o.mini?.5:1,mini:!!o.mini,pierce:false,walls:0,trail:[],life:0,still:0,mx:o.mx||1,ch:0,pot:0};
+  const b={id:++ballId,x,y,vx,vy,sp:Math.hypot(vx,vy),r:Math.min(o.mini?MINI_RMAX:BALL_RMAX,(o.mini?6:9)*G.R.size),dmgX:o.mini?.5:1,mini:!!o.mini,pierce:false,walls:0,trail:[],life:0,still:0,mx:o.mx||1,ch:0,pot:0};
   G.balls.push(b); return b;
 }
 function fire(auto){
@@ -1153,7 +1155,7 @@ function startFever(b){ b.fevered=true; G.fever=FEVER.dur; G.slow=FEVER.slow; G.
 
 // ---- 珠袋：下一颗 ----
 function nextOrb(take){ if(G.bag&&G.bag.length) return take?G.bag.shift():G.bag[0]; return 'normal'; }
-function applyOrbType(b){ const t=b.type; if(t==='heavy'){ b.r*=1.35; b.dmgX*=2; } else if(t==='lucky'){ b.mx=Math.max(b.mx,2); } else if(t==='ghost'){ b.pierce=true; b.dmgX*=1.5; } }
+function applyOrbType(b){ const t=b.type; if(t==='heavy'){ b.r=capR(b,b.r*1.35); b.dmgX*=2; } else if(t==='lucky'){ b.mx=Math.max(b.mx,2); } else if(t==='ghost'){ b.pierce=true; b.dmgX*=1.5; } }
 // 自动发射只在已经通关过的章节生效（熔金转生后回头刷）
 const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 // ---- 每轮目标 ----
@@ -1650,7 +1652,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.4';
+const GAME_V='2026-11-05.5';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -1730,7 +1732,7 @@ const BOONS=[
   {id:'fire',ico:'🔥',name:'引燃',w:5,desc:'命中会让卡包燃烧（每秒 40% 伤害）',go:G=>{G.R.burn+=.4;}},
   {id:'acid',ico:'🧪',name:'蚀刻',w:5,desc:'命中附加腐蚀，每层受伤 +20%',go:G=>{G.R.acid=Math.max(G.R.acid,.2);}},
   {id:'mag',ico:'🧲',name:'磁暴',w:4,desc:'宝珠会被附近的卡包吸过去',go:G=>{G.R.magnet=Math.max(G.R.magnet,1.6);}},
-  {id:'big',ico:'🟡',name:'巨珠',w:4,desc:'之后的宝珠体积 +35%',go:G=>{G.R.size*=1.35;}},
+  {id:'big',ico:'🟡',name:'巨珠',w:4,desc:'之后的宝珠体积 +35%（有上限）',go:G=>{G.R.size*=1.35;}},
   {id:'crit',ico:'🎯',name:'精准',w:5,desc:'会心率 +20%',go:G=>{G.bo.crit+=.2;}},
   {id:'bask',ico:'🧺',name:'宽篮',w:4,desc:'金篮宽度 +50',go:G=>{G.bo.basketW+=50;}},
   {id:'luck',ico:'🔍',name:'寻宝',w:4,desc:'新出现的卡包更容易是稀有包（×2.5）',go:G=>{G.bo.luck*=2.5;}},
@@ -1742,7 +1744,7 @@ const BOONS=[
 ];
 function offerBoon(){
   if(!G||G.ended||G.paused) return;
-  const pool=BOONS.filter(b=>!(b.noAmmo&&(G.chal==='one'||G.chal==='five'))), picks=[];
+  const pool=BOONS.filter(b=>!(b.noAmmo&&(G.chal==='one'||G.chal==='five'))&&!(b.id==='big'&&9*G.R.size*1.35>BALL_RMAX)), picks=[];
   while(picks.length<3&&pool.length){ const tot=pool.reduce((a,b)=>a+b.w,0); let r=Math.random()*tot; const i=pool.findIndex(b=>(r-=b.w)<0); picks.push(pool.splice(i,1)[0]); }
   G.paused=true; holding=false; SFX.play('raise');
   const el=$('boonPop');

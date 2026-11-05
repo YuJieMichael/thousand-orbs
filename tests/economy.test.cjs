@@ -93,3 +93,11 @@ test('提前配装：存三套，开打前按关卡自动换上，存档校验',
   assert.match(html, /if\(M\.loadAuto\) applyLoad\(loadKind\(boss,opt\)\);[^\n]*\n  if\(chal&&chal\.eq\) ROUND_EQ=chal\.eq\(\);/);
   assert.match(html, /if\(!\['boss','special','farm'\]\.includes\(k\)/);
 });
+
+test('宝珠再大也塞得进最窄的金袋：直径上限 44，巨珠到顶后不再出现', () => {
+  assert.match(html, /const BALL_RMAX=22, MINI_RMAX=15/);
+  assert.match(html, /const POCKET_DEF=\[1,2,1,5,1,2,1\], POCKET_W=\{1:80,2:75,5:52\}/);
+  assert.ok(22 * 2 < 52);
+  assert.equal((html.match(/b\.r\*=/g) || []).length, 0);           // 所有放大都走 capR
+  assert.match(html, /b\.id==='big'&&9\*G\.R\.size\*1\.35>BALL_RMAX/);
+});
