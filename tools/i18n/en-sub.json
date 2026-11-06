@@ -1,10 +1,7 @@
 {
  "${on?'开':'关'}": "${on?'ON':'OFF'}",
- "命中的卡包燃烧 4 秒（每秒 ${pct(.45*p)} 伤害）": "Hit packs burn for 4s, taking ${pct(.45*p)} damage per second",
  "命中的卡包燃烧 4 秒（每秒 50% 伤害）": "Hit packs burn for 4s, taking 50% damage per second",
- "卡包被打开时爆炸，波及附近卡包（${pct(.95*p)} 伤害）": "Opened packs explode, dealing ${pct(.95*p)} damage to nearby packs",
  "震击随机卡包（${pct(.6*p)} 伤害）": "shocks a random pack for ${pct(.6*p)} damage",
- "卡包燃烧结束时爆炸，波及附近（${pct(.9*p)} 伤害）": "When a burn ends, the pack explodes for ${pct(.9*p)} damage to nearby packs",
  "腐蚀的卡包每秒受到 ${pct(.08*p)}×层数 的伤害": "Corroded packs take ${pct(.08*p)} damage per stack each second",
  "每轮额外 +${l} 颗宝珠": "+${l} orbs every round",
  "，卡包里出现了<b>新卡</b>。": ", and <b>new cards</b> appear in packs.",
@@ -26,11 +23,14 @@
  "`发射时额外分出 ${lv>=4?2:1} 颗小宝珠（伤害 40%）`": "`Each shot also fires ${lv>=4?'2 mini orbs':'1 mini orb'} (40% damage)`",
  "`燃烧中被打开的卡包，金币 ×${(2+.5*(lv-1)).toFixed(1)}`": "`Packs opened while burning give ×${(2+.5*(lv-1)).toFixed(1)} coins`",
  "`命中附加 1 层腐蚀，每层让卡包受伤 +${pct(.15*p)}`": "`Hits add 1 Corrode stack; each stack makes the pack take +${pct(.15*p)} damage`",
- "`白银及以上卡包的金币 ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)}`": "`Silver packs and better give ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)} coins`",
  "`每第 3 发变成黑洞宝珠：穿透一切卡包，伤害 ×${(2+.3*(lv-1)).toFixed(1)}`": "`Every 3rd shot becomes a black hole orb that pierces every pack and deals ×${(2+.3*(lv-1)).toFixed(1)} damage`",
  "`宝珠落底后从顶部重新落下（每颗 ${lv>=5?2:1} 次），重生的宝珠伤害 ×${(1.5+.1*(lv-1)).toFixed(1)}`": "`Orbs that reach the bottom drop in again from the top (${lv>=5?'twice':'once'} each); reborn orbs deal ×${(1.5+.1*(lv-1)).toFixed(1)} damage`",
  "`已装备的每个流派，共鸣都按多 ${lv>=6?2:1} 张计算`": "`Each equipped school counts as ${lv>=6?'2 extra cards':'1 extra card'} for resonance`",
  "'本轮每个卡包多算 15%'": "'Each pack counts 15% more this round'",
  "'命中附加腐蚀，每层受伤 +20%'": "'Hits add Corrode; each stack adds +20% damage taken'",
- "boss:{ico:'👑',name:'打 Boss',when:'首领战'}": "boss:{ico:'👑',name:'Boss',when:'boss rounds'}"
+ "boss:{ico:'👑',name:'打 Boss',when:'首领战'}": "boss:{ico:'👑',name:'Boss',when:'boss rounds'}",
+ "命中的卡包燃烧 4 秒（每秒 ${pct(.6*p)} 伤害）": "Hit packs burn for 4s, taking ${pct(.6*p)} damage per second",
+ "卡包被打开时爆炸，波及附近卡包（${pct(1.25*p)} 伤害）": "Opened packs explode, dealing ${pct(1.25*p)} damage to nearby packs",
+ "卡包燃烧结束时爆炸，波及附近（${pct(1.2*p)} 伤害）": "When a burn ends, the pack explodes for ${pct(1.2*p)} damage to nearby packs",
+ "`白银及以上卡包的金币 ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)}，而且每个多算 1 包`": "`Silver packs and better give ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)} coins and count as 1 extra pack each`"
 }

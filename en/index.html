@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:2111178f8a7b73adf0649e7ab4af3ff729a8936c -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:4171254622ae96c58528ede3a57d0626bd0bc4df -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -423,8 +423,8 @@ const CARDS=[
   {id:'split',sch:'combo',rar:'SR',ico:'✳️',name:'Split',desc:lv=>`Each shot also fires ${lv>=4?'2 mini orbs':'1 mini orb'} (40% damage)`,launch:(G,lv,p,b)=>{ const n=lv>=4?2:1; for(let i=0;i<n;i++){ const a=Math.atan2(b.vy,b.vx)+(i%2?-1:1)*.25*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a)*b.sp,Math.sin(a)*b.sp,{mini:true}); } return true; }},
   {id:'thor',sch:'combo',rar:'SSR',ico:'🌩️',name:'Thunder Judgment',desc:(lv,p)=>`Every 15 hits, lightning strikes every pack on the board for ${pct(p)} damage`,hit:(G,lv,p)=>{ if(G.hits%15===0){ G.packs.slice().forEach(t=>{ zap({x:t.x,y:0},t,'#fff'); dmgPack(t,p*D()); }); shake(8); return true; } }},
   // 🔥 灼烧
-  {id:'match',sch:'fire',rar:'N',ico:'🔥',name:'Wax Seal',desc:(lv,p)=>`Hit packs burn for 4s, taking ${pct(.45*p)} damage per second`,mods:(R,lv,p)=>{R.burn+=.45*p;}},
-  {id:'boom',sch:'fire',rar:'R',ico:'💥',name:'Burst',desc:(lv,p)=>`Opened packs explode, dealing ${pct(.95*p)} damage to nearby packs`,open:(G,lv,p,pk)=>{ boom(pk.x,pk.y,130,.95*p*D()); return true; }},
+  {id:'match',sch:'fire',rar:'N',ico:'🔥',name:'Wax Seal',desc:(lv,p)=>`Hit packs burn for 4s, taking ${pct(.6*p)} damage per second`,mods:(R,lv,p)=>{R.burn+=.6*p;}},
+  {id:'boom',sch:'fire',rar:'R',ico:'💥',name:'Burst',desc:(lv,p)=>`Opened packs explode, dealing ${pct(1.25*p)} damage to nearby packs`,open:(G,lv,p,pk)=>{ boom(pk.x,pk.y,130,1.25*p*D()); return true; }},
   {id:'wild',sch:'fire',rar:'SR',ico:'🌋',name:'Wildfire',desc:()=>`Burning packs ignite their neighbors`,mods:R=>{R.wild=true;}},
   {id:'phoenix',sch:'fire',rar:'SSR',ico:'🐦‍🔥',name:'Phoenix',desc:lv=>`Packs opened while burning give ×${(2+.5*(lv-1)).toFixed(1)} coins`,mods:(R,lv)=>{R.phoenix=2+.5*(lv-1);}},
   // 🧪 腐蚀
@@ -434,7 +434,7 @@ const CARDS=[
   {id:'void',sch:'acid',rar:'SSR',ico:'🕳️',name:'Annihilation',desc:lv=>`Packs at ${Math.max(3,7-Math.floor(lv/2))} Corrode stacks open instantly`,mods:(R,lv)=>{R.voidAt=Math.max(3,7-Math.floor(lv/2));}},
   // 💰 财富
   {id:'coin',sch:'gold',rar:'N',ico:'🪙',name:'Gold Shards',desc:(lv,p)=>`Each hit earns coins worth ${pct(.08*p)} of a Bronze Pack`,hit:(G,lv,p,b)=>{ earn(.08*p*packValue(0),b.x,b.y-14,true); }},
-  {id:'piggy',sch:'gold',rar:'R',ico:'🏺',name:'Treasure Bowl',desc:(lv,p)=>`Coins from opened packs +${pct(.3*Math.sqrt(p))}`,mods:(R,lv,p)=>{R.coin*=1+.3*Math.sqrt(p);}},
+  {id:'piggy',sch:'gold',rar:'R',ico:'🏺',name:'Treasure Bowl',desc:(lv,p)=>`Coins from opened packs +${pct(.3*Math.sqrt(p))}, and each pack counts ${pct(.1*Math.sqrt(p))}`,mods:(R,lv,p)=>{R.coin*=1+.3*Math.sqrt(p); R.cnt+=.1*Math.sqrt(p);}},
   {id:'invest',sch:'gold',rar:'SR',ico:'📈',name:'Compound Interest',desc:(lv,p)=>`Each pack opened this round raises all later coins by +${pct(.03*Math.sqrt(p))} (max +200% per round)`,mods:(R,lv,p)=>{R.invest=.03*Math.sqrt(p);}},
   {id:'midas',sch:'gold',rar:'SSR',ico:'👑',name:'Midas Touch',desc:lv=>`${pct(Math.min(.5,.12+.03*(lv-1)))} chance for a pack to give 2 cards`,mods:(R,lv)=>{R.twin=Math.min(.5,.12+.03*(lv-1));}},
   // 🌀 引力
@@ -444,13 +444,13 @@ const CARDS=[
   {id:'hole',sch:'grav',rar:'SSR',ico:'🌑',name:'Black Hole Orb',desc:(lv,p)=>`Every 3rd shot becomes a black hole orb that pierces every pack and deals ×${(2+.3*(lv-1)).toFixed(1)} damage`,launch:(G,lv,p,b)=>{ if(G.shots%3===0){ b.pierce=true; b.dmgX*=2+.3*(lv-1); b.r=capR(b,b.r*1.3); return true; } }},
   // ===== 第 2 章解锁 =====
   {id:'mirror',sch:'combo',rar:'SR',ch:2,ico:'🪞',name:'Mirror',desc:lv=>`When an orb hits a wall, ${pct(Math.min(.5,.2+.04*(lv-1)))} chance to split off a mini orb`,wall:(G,lv,p,b)=>{ if(!b.mini&&Math.random()<Math.min(.5,.2+.04*(lv-1))){ spawnBall(b.x,b.y,-b.vx*.9,b.vy,{mini:true}); return true; } }},
-  {id:'tinder',sch:'fire',rar:'R',ch:2,ico:'🕯️',name:'Tinder',desc:(lv,p)=>`Burns last +3s, burn damage +${pct(.25*p)}`,mods:(R,lv,p)=>{R.burnT+=3; R.burnX*=1+.25*p;}},
+  {id:'tinder',sch:'fire',rar:'R',ch:2,ico:'🕯️',name:'Tinder',desc:(lv,p)=>`Burns last +3s, burn damage +${pct(.35*p)}`,mods:(R,lv,p)=>{R.burnT+=3; R.burnX*=1+.35*p;}},
   {id:'bone',sch:'acid',rar:'R',ch:2,ico:'🦴',name:'Bone Rot',desc:()=>`Packs with 3+ Corrode stacks gain 1 extra stack when hit`,mods:R=>{R.bone=true;}},
-  {id:'vip',sch:'gold',rar:'SR',ch:2,ico:'💳',name:'VIP Card',desc:lv=>`Silver packs and better give ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)} coins`,mods:(R,lv)=>{R.vip=Math.min(2,1.5+.05*(lv-1));}},
+  {id:'vip',sch:'gold',rar:'SR',ch:2,ico:'💳',name:'VIP Card',desc:lv=>`Silver packs and better give ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)} coins and count as 1 extra pack each`,mods:(R,lv)=>{R.vip=Math.min(2,1.5+.05*(lv-1));}},
   {id:'reson',sch:'grav',rar:'R',ch:2,ico:'🔔',name:'Rivet Resonance',desc:(lv,p)=>`Every 8 rivet hits, the orb shocks a random pack for ${pct(.6*p)} damage`,peg:(G,lv,p,b)=>{ if(G.pegHits%8===0){ const t=randPack(); if(t){ zap(b,t,'#8fb8ff'); dmgPack(t,.6*p*D()); } return true; } }},
   // ===== 第 3 章解锁 =====
   {id:'titan',sch:'combo',rar:'SSR',ch:3,ico:'🗿',name:'Juggernaut',desc:lv=>`Faster orbs hit harder (up to ×${(2+.2*(lv-1)).toFixed(1)})`,mods:(R,lv)=>{R.titan=2+.2*(lv-1);}},
-  {id:'lava',sch:'fire',rar:'SSR',ch:3,ico:'☄️',name:'Lava Core',desc:(lv,p)=>`When a burn ends, the pack explodes for ${pct(.9*p)} damage to nearby packs`,mods:(R,lv,p)=>{R.lava=.9*p;}},
+  {id:'lava',sch:'fire',rar:'SSR',ch:3,ico:'☄️',name:'Lava Core',desc:(lv,p)=>`When a burn ends, the pack explodes for ${pct(1.2*p)} damage to nearby packs`,mods:(R,lv,p)=>{R.lava=1.2*p;}},
   {id:'plague',sch:'acid',rar:'SSR',ch:3,ico:'☠️',name:'Plague King',desc:lv=>`Corroded packs gain +1 stack every ${Math.max(.6,2-.15*(lv-1)).toFixed(1)} s`,mods:(R,lv)=>{R.plague=Math.max(.6,2-.15*(lv-1));}},
   {id:'rain',sch:'gold',rar:'SSR',ch:3,ico:'🌧️',name:'Golden Rain',desc:lv=>`On pack open, ${pct(Math.min(.25,.08+.02*(lv-1)))} chance to refund 1 orb`,open:(G,lv,p,pk)=>{ if(Math.random()<Math.min(.25,.08+.02*(lv-1))) return refund(pk.x,pk.y,'🌧️ +1 Orbs','#ffcc55'); }},
   {id:'orbit',sch:'grav',rar:'SSR',ch:3,ico:'💫',name:'Star Orbit',desc:()=>`The first time each orb hits a wall, it copies itself into a full orb`,wall:(G,lv,p,b)=>{ if(!b.mini&&!b.copied&&b.walls===1){ b.copied=true; const c=spawnBall(b.x,b.y,-b.vx,b.vy*.8); c.copied=true; c.dmgX=b.dmgX; return true; } }},
@@ -829,7 +829,7 @@ const PACK_WORTH_MAX=10;
 const packWorth=(l=M.up.stage)=>DAILY?1:Math.min(PACK_WORTH_MAX,Math.max(1,Math.round(Math.pow(1.6,l))));
 // 开包计数倍率：清点术每级 +4%（金币升级，无上限）+ 本轮「清点」祝福每次 +15%；小数部分按概率多算 1 包
 const CNT_STEP=.04;
-const cntMult=()=>DAILY?1:1+CNT_STEP*(M.up.cnt||0)+((G&&G.bo&&G.bo.cnt)||0);
+const cntMult=()=>(DAILY?1:1+CNT_STEP*(M.up.cnt||0))+((G&&G.bo&&G.bo.cnt)||0)+((G&&G.R&&G.R.cnt)||0); // 每日挑战不吃清点术，但吃本轮祝福和卡牌
 function packCount(){ const v=packWorth()*cntMult(), n=Math.floor(v); return n+(Math.random()<v-n?1:0); }
 const packValue=t=>PT[t].val*3*Math.pow(VAL_G,DAILY?0:M.up.stage)*Math.pow(CH_VAL,(DAILY?1:M.ch)-1);
 const stageCap=()=>3*M.maxCh; // 秘藏等级上限：最远章节 ×3
@@ -1014,7 +1014,7 @@ function startRound(boss,opt={}){
   if(chal&&chal.eq) ROUND_EQ=chal.eq();
   const mut=null;
   const R={burnT:4,burnX:1,bone:false,vip:1,titan:0,lava:0,plague:0,dmg:1,coin:1,burn:0,wild:false,phoenix:0,acid:0,dissolve:0,spread:false,voidAt:0,invest:0,twin:0,size:1,bounce:.72,magnet:0,recycle:0,wallBonus:0,
-    sun:false,acidX:1,acidCoin:0,eight:0,reborn:0,rebornX:1,allSet:DAILY?false:allSets()};
+    sun:false,acidX:1,acidCoin:0,eight:0,reborn:0,rebornX:1,cnt:0,allSet:DAILY?false:allSets()};
   equipped().forEach(id=>{ const c=byId[id],[lv,p]=cardP(id); if(c.mods) c.mods(R,lv,p); });
   R.burn*=R.burnX;
   let am=ammoN(upLv('ammo'))+(boss?4:0);
@@ -1055,7 +1055,7 @@ const BOSS_EASE=[.35,.5,.7,.85];
 // 前三章参考首次挑战的单发伤害；不参考普通轮群伤或过量伤害。
 const BOSS_HITS=[26,34,42];
 // 整体血量最多为上一章首领的 12 倍；首章 / 缺少旧记录时用章节基础血量封顶。
-const BOSS_STEP=12, BOSS_HP_V=2;
+const BOSS_STEP=12, BOSS_HP_V=2, BOSS_HARD=1.25;
 function bossHp(){
   const old=M.bossD&&M.bossD.ch===M.ch?M.bossD:null;
   if(old&&old.v===BOSS_HP_V&&Number.isFinite(old.hp)&&old.hp>0) return old.hp;
@@ -1064,7 +1064,7 @@ function bossHp(){
   const d=old&&Number.isFinite(old.d)?old.d:D();
   const floor=d*(BOSS_HITS[M.ch-1]||0);
   const previous=M.ch>1&&M.lastBossHp>0?M.lastBossHp:base;
-  const hp=Math.min(Math.max(base,floor),previous*BOSS_STEP);
+  const hp=Math.min(Math.max(base,floor)*(M.ch>=2?BOSS_HARD:1),previous*BOSS_STEP); // 第 2 章起 +25%（统计：第 2 章以后胜率 100%）
   // 整体快照写入原存档；同章重试、刷新、换装或升级都不会重新抬高血量。
   M.bossD={ch:M.ch,d,hp,v:BOSS_HP_V};
   return hp;
@@ -1172,7 +1172,7 @@ function hitPack(b,p){
 function openPack(p){
   const i=G.packs.indexOf(p); if(i<0) return; G.packs.splice(i,1);
   if(p.boss) return bossDown(p);
-  G.opened+=packCount(); G.realOpened=(G.realOpened||0)+1; M.opened++; if(p.t===3) G.black++; goalCheck(); // 秘藏等级越高，一个卡包算越多包
+  G.opened+=packCount()+(G.R.vip&&p.t>=1?1:0); G.realOpened=(G.realOpened||0)+1; M.opened++; if(p.t===3) G.black++; goalCheck(); // 秘藏等级越高，一个卡包算越多包
   if(G.boonNext&&G.realOpened>=G.boonNext&&G.boons.length<5){ G.boonNext=G.realOpened+8+6*(G.boons.length+1); setTimeout(()=>{ if(G&&!G.ended&&!G.paused) offerBoon(); },250); }
   // 财富卡（聚宝盆、复利、贵宾卡）带来的金币倍率合起来最多 ×6，免得一个流派的收入甩开别人几百倍
   let coins=packValue(p.t)*Math.min(CARD_COIN_CAP,G.R.coin*(1+G.investN)*(p.t>=1?G.R.vip:1));
@@ -1276,11 +1276,13 @@ function applyOrbType(b){ const t=b.type; if(t==='heavy'){ b.r=capR(b,b.r*1.35);
 const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 // ---- 每轮目标 ----
 function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true; G.fx.push({x:W/2,y:H/2+40,t:'Round goal reached',c:'#7fe0a0',life:1.6,sz:20}); SFX.play('ach'); } }
+// 没达成：目标降到这轮实际开包数 ×1.15 附近（一次最多减半），旧版本 bug 抬高的目标几轮就能落回来
+const goalAfterMiss=(goal,opened)=>Math.max(GOAL_MIN,Math.min(goal-2,Math.max(Math.ceil(opened*1.15),Math.round(goal*.5))));
 function settleRoute(){ if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok;
   if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
     M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*.5)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
-  else { G.lostStreak=M.streak; M.streak=0; M.goal=Math.max(GOAL_MIN,M.goal-2); } }
+  else { G.lostStreak=M.streak; M.streak=0; M.goal=goalAfterMiss(M.goal,G.opened); } }
 // ---- 卡牌三选一（精英奖励 / 黑市定向 / 奇遇）----
 const BAN_MAX=6;
 const notBanned=pool=>{ const p=pool.filter(c=>!(M.banned||{})[c.id]); return p.length?p:pool; };
@@ -1784,7 +1786,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-05.19';
+const GAME_V='2026-11-06.1';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;

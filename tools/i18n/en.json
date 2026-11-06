@@ -1012,5 +1012,7 @@
 "每命中 15 次，": "Every 15 hits,",
 "宝珠每撞 8 次铆钉，": "Every 8 rivet hits, the orb",
 "次），": "time(s) each);",
-"落到底部时按口袋的": "When it reaches the bottom, the pocket pays it out at"
+"落到底部时按口袋的": "When it reaches the bottom, the pocket pays it out at",
+"，每个卡包多算": ", and each pack counts",
+"，而且每个多算 1 包": ", and each one counts as 1 extra pack"
 }

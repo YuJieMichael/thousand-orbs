@@ -32,7 +32,7 @@ function settle(goal, opened, route = 'normal') {
     G: {route, opened, goal, earned: 0}, M: {goal, streak: 0, bestStreak: 0, chRounds: 0, money: 0, life: 0, orbs: {}},
     ORB_SPECIAL: ['fire'], Math,
   });
-  vm.runInContext(between('const GOAL_MIN=', '\n') + '\n' + between('function settleRoute(', '// ---- 卡牌三选一'), ctx);
+  vm.runInContext(between('const GOAL_MIN=', '\n') + '\n' + between('const goalAfterMiss=', '// ---- 卡牌三选一'), ctx);
   vm.runInContext('settleRoute()', ctx);
   return ctx.M.goal;
 }
@@ -161,7 +161,7 @@ test('秘藏等级：血量 ×1.6^等级，一个卡包也算 round(1.6^等级) 
   assert.deepEqual([0, 1, 2, 3, 4, 5].map(l => ctx.w(l)), [1, 2, 3, 4, 7, 10]);
   assert.equal(ctx.w(30), 10); assert.equal(ctx.w(60), 10);                   // 后期秘藏等级几十级：封顶 10，不会一包算上亿包
   ctx.DAILY = {}; assert.equal(ctx.w(5), 1);                                    // 每日挑战不吃养成
-  assert.match(html, /G\.opened\+=packCount\(\); G\.realOpened=/);
+  assert.match(html, /G\.opened\+=packCount\(\)\+\(G\.R\.vip&&p\.t>=1\?1:0\); G\.realOpened=/);
   assert.match(html, /coins\*=packFatigue\(G\.realOpened\)/);
   assert.match(html, /G\.realOpened>=G\.boonNext/);
 });
@@ -173,7 +173,8 @@ test('开包计数倍率：清点术每级 +4%、清点祝福 +15%，小数按�
   let n = 0; for (let i = 0; i < 20000; i++) n += ctx.c();
   assert.ok(n / 20000 > 1.32 && n / 20000 < 1.38);
   ctx.M.up.stage = 3; let k = 0; for (let i = 0; i < 2000; i++) k += ctx.c(); assert.ok(k / 2000 > 5.2 && k / 2000 < 5.6);   // 4 × 1.35
-  ctx.DAILY = {}; assert.equal(ctx.m(), 1); assert.equal(ctx.c(), 1);
+  ctx.DAILY = {}; assert.ok(Math.abs(ctx.m() - 1.15) < 1e-9);                   // 每日挑战不吃清点术，只吃本轮祝福
+  ctx.G.bo.cnt = 0; assert.equal(ctx.m(), 1); assert.equal(ctx.c(), 1);
   assert.match(html, /\{id:'cnt',ico:'🧾',name:'清点术'/);
   assert.match(html, /\{id:'tally',ico:'🧾',name:'清点',w:3/);
 });
@@ -186,4 +187,21 @@ test('星盘节点价格：30 × 1.5^已点数 × 1.6^(最高章-1) × 类型倍
   assert.equal(ctx.c({t: 's'}), Math.ceil(30 * 1.5 ** 10));
   ctx.M.maxCh = 4; assert.equal(ctx.c({t: 'k'}), Math.ceil(30 * 1.5 ** 10 * 1.6 ** 3 * 3));
   assert.match(html, /黑金保底 -\$\{10\*e\.up\[k\]\} 张/);
+});
+
+test('没达成目标：目标降到实际开包 ×1.15 附近（最多减半），小幅没达成仍然只 -2', () => {
+  const ctx = vm.createContext({GOAL_MIN: 8, Math});
+  vm.runInContext(between('const goalAfterMiss=', '\n') + ';this.g=goalAfterMiss;', ctx);
+  assert.equal(ctx.g(100, 95), 98);
+  assert.equal(ctx.g(5000, 373), 2500);
+  assert.equal(ctx.g(800, 373), 429);
+  assert.equal(ctx.g(10, 0), 8);
+});
+
+test('统计调整：首领第 2 章起 +25%，灼烧加强，财富能加开包数', () => {
+  assert.match(html, /BOSS_HARD=1\.25/);
+  assert.match(html, /\*\(M\.ch>=2\?BOSS_HARD:1\),previous\*BOSS_STEP/);
+  assert.match(html, /R\.burn\+=\.6\*p/);
+  assert.match(html, /R\.cnt\+=\.1\*Math\.sqrt\(p\)/);
+  assert.match(html, /\(G\.R\.vip&&p\.t>=1\?1:0\)/);
 });
