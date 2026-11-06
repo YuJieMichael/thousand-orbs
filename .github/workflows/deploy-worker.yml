@@ -5,10 +5,12 @@
 #   CLOUDFLARE_ACCOUNT_ID  Cloudflare 账号 ID（Workers 页面右侧能看到）
 # 统计密码 STATS_KEY 已经存在 Worker 里，部署不会动它。
 name: 部署统计服务
+# 目前没有设置 Cloudflare 令牌，所以只保留手动触发，免得每次推送都失败、给你发失败邮件。
+# 以后设置好令牌，想恢复自动部署，就把下面的 push 那几行加回来：
+#   push:
+#     branches: [main]
+#     paths: ['leaderboard/**']
 on:
-  push:
-    branches: [main]
-    paths: ['leaderboard/**', '.github/workflows/deploy-worker.yml']
   workflow_dispatch:
 concurrency: deploy-worker
 jobs:
