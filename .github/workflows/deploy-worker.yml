@@ -1,0 +1,32 @@
+# 统计 / 排行榜服务（Cloudflare Worker）自动部署。
+# 推送到 main 且改动了 leaderboard/ 时自动部署，也可以在 GitHub「Actions」页手动点「Run workflow」。
+# 需要先在仓库 Settings → Secrets and variables → Actions 里设置两个机密：
+#   CLOUDFLARE_API_TOKEN   Cloudflare 的 API 令牌（模板「Edit Cloudflare Workers」）
+#   CLOUDFLARE_ACCOUNT_ID  Cloudflare 账号 ID（Workers 页面右侧能看到）
+# 统计密码 STATS_KEY 已经存在 Worker 里，部署不会动它。
+name: 部署统计服务
+on:
+  push:
+    branches: [main]
+    paths: ['leaderboard/**', '.github/workflows/deploy-worker.yml']
+  workflow_dispatch:
+concurrency: deploy-worker
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 检查机密
+        env:
+          T: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          A: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$T" ] || [ -z "$A" ]; then echo "::error::还没有设置 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID，见本文件开头的说明"; exit 1; fi
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: 部署
+        working-directory: leaderboard
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.151.1 deploy
