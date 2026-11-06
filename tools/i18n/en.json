@@ -1014,5 +1014,8 @@
 "次），": "time(s) each);",
 "落到底部时按口袋的": "When it reaches the bottom, the pocket pays it out at",
 "，每个卡包多算": ", and each pack counts",
-"，而且每个多算 1 包": ", and each one counts as 1 extra pack"
+"，而且每个多算 1 包": ", and each one counts as 1 extra pack",
+"卡包强度": "Pack strength",
+"本章越打越硬，金币也更多；打败首领后重置": "packs toughen each round in a chapter, with more coins; resets after the boss",
+"：完成开包目标。同一章打得越久，卡包越硬（每轮 ×1.15），金币也跟着变多；打败首领进下一章后重置。": ": hit the pack goal. The longer you stay in a chapter, the tougher packs get (×1.15 per round) — and the more coins they give. It resets when you beat the boss."
 }

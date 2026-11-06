@@ -205,3 +205,16 @@ test('统计调整：首领第 2 章起 +25%，灼烧加强，财富能加开包
   assert.match(html, /R\.cnt\+=\.1\*Math\.sqrt\(p\)/);
   assert.match(html, /\(G\.R\.vip&&p\.t>=1\?1:0\)/);
 });
+
+test('本章越打越硬：每轮血量和金币 ×1.15，最多 10 轮，进下一章和转生时重置，每日挑战不受影响', () => {
+  const ctx = vm.createContext({M: {chAge: 0}, DAILY: null, Math});
+  vm.runInContext(between('const AGE_G=', 'const packHp=') + ';this.a=ageMult;', ctx);
+  assert.equal(ctx.a(), 1);
+  ctx.M.chAge = 4; assert.ok(Math.abs(ctx.a() - 1.15 ** 4) < 1e-9);
+  ctx.M.chAge = 30; assert.ok(Math.abs(ctx.a() - 1.15 ** 10) < 1e-9);
+  ctx.DAILY = {}; assert.equal(ctx.a(), 1);
+  assert.match(html, /\*Math\.pow\(CH_HP,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
+  assert.match(html, /\*Math\.pow\(CH_VAL,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
+  assert.match(html, /M\.chRounds=0; M\.chAge=0;/);
+  assert.match(html, /G\.goalOk=ok; M\.chAge=\(M\.chAge\|\|0\)\+1;/);
+});

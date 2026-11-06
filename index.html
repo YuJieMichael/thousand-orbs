@@ -528,6 +528,7 @@ function normalizeSave(data){
   for(const k of ['tree','banned','unl','guide']) for(const v of Object.values(next[k])) if(![0,1,false,true].includes(v)) bad();
   for(const k of ['round','pity','opened','ch','chRounds','maxCh','prestiges','bossTries','treeV','goal','streak','bestStreak','pickRolls'])
     if(!Number.isSafeInteger(next[k])||next[k]<0) bad();
+  if(next.chAge!==undefined&&(!Number.isSafeInteger(next.chAge)||next.chAge<0)) bad();
   if(next.ch<1||next.maxCh<1||next.goal<1||!next.deck.every(id=>typeof id==='string')) bad();
   for(const k of ['stats','vibe','dev']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
   if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
@@ -686,7 +687,7 @@ function prestige(){
   M.keep={slot:upLv('slot'),auto:upLv('auto'),reson:upLv('reson')};
   M.up=fresh().up; M.tree={}; M.treeSpent=0; recalcTree(); M.money=M.legacy.start?200*Math.pow(6,M.legacy.start-1):0;
   delete M.bossD; delete M.lastBossHp; delete M.dealtAvg;
-  M.ch=1; M.chRounds=0; M.life=0; M.rate=0; M.goal=GOAL_MIN; M.streak=0; delete M.nextBoon;
+  M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=GOAL_MIN; M.streak=0; delete M.nextBoon;
   // 画面也要跟着回到第 1 章：换掉上一轮的结算数据和台面布局，否则要进一轮游戏才看得出变化
   G={loot:{},reborn:g}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo='';
   save(); renderSide(); hud(); tab='legacy'; SFX.play('melt'); toast(`🔥 熔金完成，获得 ${g} 金魂`); checkAch(); showBetween();
@@ -820,7 +821,10 @@ const CH_HP=1.6, CH_VAL=1.6; // 每往后一章，卡包血量 / 金币的倍率
 const ODDS_STEP=[[-7,4,2.2,.8],[0,-5,3.5,1.5],[0,0,-3,3],[0,0,0,0]];
 const packOdds=t=>{ const k=DAILY?0:Math.min(4,Math.max(0,(M.ch||1)-1)); return PT[t].odds.map((o,i)=>Math.round((o+ODDS_STEP[t][i]*k)*10)/10); };
 const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
-const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1);
+// 本章越打越硬：同一章每打一轮，卡包血量和金币 ×1.15（最多 10 轮，约 ×4），打败首领进下一章后重置。玩家反馈第 5 轮左右就变简单了
+const AGE_G=1.15, AGE_MAX=10;
+const ageMult=()=>DAILY?1:Math.pow(AGE_G,Math.min(AGE_MAX,M.chAge||0));
+const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1)*ageMult();
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
 // 秘藏等级：卡包血量 ×1.6^等级，所以开一个卡包也算 round(1.6^等级) 包（血量换数量，目标不会因为升了等级反而完不成）
 // 上限 10：秘藏等级到后期会到几十级，1.6^等级 会把一包算成上亿包（2026-11-05 玩家截图：一轮 1.97 亿包）
@@ -830,7 +834,7 @@ const packWorth=(l=M.up.stage)=>DAILY?1:Math.min(PACK_WORTH_MAX,Math.max(1,Math.
 const CNT_STEP=.04;
 const cntMult=()=>(DAILY?1:1+CNT_STEP*(M.up.cnt||0))+((G&&G.bo&&G.bo.cnt)||0)+((G&&G.R&&G.R.cnt)||0); // 每日挑战不吃清点术，但吃本轮祝福和卡牌
 function packCount(){ const v=packWorth()*cntMult(), n=Math.floor(v); return n+(Math.random()<v-n?1:0); }
-const packValue=t=>PT[t].val*3*Math.pow(VAL_G,DAILY?0:M.up.stage)*Math.pow(CH_VAL,(DAILY?1:M.ch)-1);
+const packValue=t=>PT[t].val*3*Math.pow(VAL_G,DAILY?0:M.up.stage)*Math.pow(CH_VAL,(DAILY?1:M.ch)-1)*ageMult();
 const stageCap=()=>3*M.maxCh; // 秘藏等级上限：最远章节 ×3
 
 // ================= 连锁倍率 · 特殊铆钉 · 底部口袋 · 狂热 =================
@@ -1234,7 +1238,7 @@ function bossDown(p){
   G.death={x:p.x,y:p.y,h:p.hh*2,t:0,img:'p2_'+bossIdx(M.ch)}; shake(6);
   giveCard(p,'SSR'); giveCard(p,0); giveCard(p,2); if(urUnlocked().length&&Math.random()<UR_BOSS) giveCard(p,'UR');
   M.goal=Math.max(GOAL_MIN,Math.round(M.goal*.75)); // 新的一章卡包更硬，目标先降一点
-  const old=M.ch; M.ch++; if(M.ch>M.maxCh) M.best.chRound=M.round; M.maxCh=Math.max(M.maxCh,M.ch); M.chRounds=0;
+  const old=M.ch; M.ch++; if(M.ch>M.maxCh) M.best.chRound=M.round; M.maxCh=Math.max(M.maxCh,M.ch); M.chRounds=0; M.chAge=0;
   G.fx.push({x:W/2,y:H/2,t:`${chInfo(old).boss} 被击败！`,c:'#ffcc55',life:2.5});
   toast(`👑 击败首领！第 ${M.ch} 章「${chInfo(M.ch).name}」开启`);
   G.boss=null;
@@ -1277,7 +1281,7 @@ const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true; G.fx.push({x:W/2,y:H/2+40,t:'本轮目标达成',c:'#7fe0a0',life:1.6,sz:20}); SFX.play('ach'); } }
 // 没达成：目标降到这轮实际开包数 ×1.15 附近（一次最多减半），旧版本 bug 抬高的目标几轮就能落回来
 const goalAfterMiss=(goal,opened)=>Math.max(GOAL_MIN,Math.min(goal-2,Math.max(Math.ceil(opened*1.15),Math.round(goal*.5))));
-function settleRoute(){ if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok;
+function settleRoute(){ if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok; M.chAge=(M.chAge||0)+1;
   if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
     M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*.5)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
@@ -1718,7 +1722,7 @@ function drawBanner(){ const b=G.banner; if(!b) return; b.life-=1/60; if(b.life<
   const by=G.isBoss?(MOBILE.matches?206:182):(MOBILE.matches?146+(UIK-1)*22:112); ctx.lineWidth=4; ctx.strokeStyle='#000c'; ctx.strokeText(t,W/2,by); ctx.fillStyle='#e6cf9c'; ctx.fillText(t,W/2,by); ctx.restore(); }
 let lastAmmo=-1;
 function chapHTML(){ const ci=chInfo(M.ch), ready=M.chRounds>=3;
-  return `${ci.ico} 第 <b>${M.ch}</b> 章 · <b>${ci.name}</b>${M.soul||M.prestiges?` <span style="float:right;color:var(--dim)">🔥 金魂 ${M.soul}</span>`:''}<div class="sub" style="font-size:11px;margin-top:3px">${ready?`👑 首领「${ci.boss}」已现身，可在结算页挑战`:`再达成 ${3-M.chRounds} 轮目标即可挑战首领 · 目标 ${M.goal} 包${M.streak?` · 连胜 ${M.streak}`:''}`}</div><div class="bar"><i style="width:${Math.min(100,M.chRounds/3*100)}%"></i></div>`; }
+  return `${ci.ico} 第 <b>${M.ch}</b> 章 · <b>${ci.name}</b>${M.soul||M.prestiges?` <span style="float:right;color:var(--dim)">🔥 金魂 ${M.soul}</span>`:''}<div class="sub" style="font-size:11px;margin-top:3px">${ready?`👑 首领「${ci.boss}」已现身，可在结算页挑战`:`再达成 ${3-M.chRounds} 轮目标即可挑战首领 · 目标 ${M.goal} 包${M.streak?` · 连胜 ${M.streak}`:''}`}</div>${ageMult()>1.001?`<div class="sub" style="font-size:11px;margin-top:2px;color:var(--gold3)">🔺 卡包强度 ×${ageMult().toFixed(2)} · 本章越打越硬，金币也更多；打败首领后重置</div>`:''}<div class="bar"><i style="width:${Math.min(100,M.chRounds/3*100)}%"></i></div>`; }
 let lastChap='';
 function hud(){
   const ch=chapHTML(); if(ch!==lastChap){ lastChap=ch; $('chap').innerHTML=ch; }
@@ -1785,7 +1789,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-06.1';
+const GAME_V='2026-11-06.2';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2217,7 +2221,7 @@ function manualHTML(){
     '<b>熔金转生</b>（打败第 4 章首领后开放）：重置进度换<b>金魂</b>，在「传承」里换永久加成。卡牌和图鉴都会保留。',
   ]))}
   ${sec('🗺️','关卡和玩法',li([
-    '<b>普通轮</b>：完成开包目标。',
+    '<b>普通轮</b>：完成开包目标。同一章打得越久，卡包越硬（每轮 ×1.15），金币也跟着变多；打败首领进下一章后重置。',
     '<b>精英轮</b>：目标更高，奖励更好，还会附带一个特殊规则。',
     '<b>奇遇 / 黑市</b>：随机事件，或者花钱买卡包、按流派挑卡、封印不想要的卡。',
     '<b>首领战</b>：每章一个首领，各有机关；打到半血进入<b>第二阶段</b>。打不过没有惩罚，升级之后再来。',
