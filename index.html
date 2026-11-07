@@ -236,6 +236,9 @@
   #boonPop .bt{font-size:24px;letter-spacing:6px;font-weight:900}
   #boonPop .bcs{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:720px}
   #boonPop .bc{width:200px;background:linear-gradient(180deg,#2a2010,#0e0b08);border:2px solid var(--gold3);border-radius:14px;padding:16px 12px;color:var(--ink);font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;transition:.12s}
+  #boonPop .pkrow.lock .pk{pointer-events:none;opacity:.55}
+  @media (max-width:600px){ #boonPop .bcs.pkrow{flex-direction:row!important;flex-wrap:nowrap;align-items:stretch;gap:6px} #boonPop .pkrow .pk{width:calc((100% - 12px)/3)!important;min-width:0} #boonPop .pkrow .pk>*{height:100%} }
+  #boonPop .bc[disabled]{opacity:.4;filter:saturate(.4);cursor:default;transition:opacity .3s}
   #boonPop .bc:hover{border-color:var(--gold2);transform:translateY(-3px);box-shadow:0 0 20px #d9b45a55}
   #boonPop .bc b{font-size:17px;color:var(--gold2)} #boonPop .bi{font-size:36px}
   .stars2{text-align:center;color:var(--gold);font-size:12px;letter-spacing:2px;margin-top:1px} .stars2 span{color:#3a2f20}
@@ -484,9 +487,9 @@ const powerOf=lv=>Math.pow(1.45,lv-1);
 
 // ================= 卡包 =================
 const PT=[
-  {name:'青铜包',a:'#a8774c',b:'#5e3f27',hp:1,val:1,odds:[72.3,23,4.5,.2]},
-  {name:'白银包',a:'#b9c0cb',b:'#59616e',hp:3,val:4,odds:[0,65,30,5]},
-  {name:'黄金包',a:'#d8b36a',b:'#7d5e2a',hp:8,val:15,odds:[0,0,75,25]},
+  {name:'青铜包',a:'#a8774c',b:'#5e3f27',hp:1,val:1,odds:[80,17.5,2.4,.1]},
+  {name:'白银包',a:'#b9c0cb',b:'#59616e',hp:3,val:4,odds:[0,75,22,3]},
+  {name:'黄金包',a:'#d8b36a',b:'#7d5e2a',hp:8,val:15,odds:[0,0,82,18]},
   {name:'黑金秘藏',a:'#2a2118',b:'#d9b45a',hp:20,val:60,odds:[0,0,0,100]},
 ];
 const PITY=40;
@@ -531,6 +534,7 @@ function normalizeSave(data){
   if(next.chAge!==undefined&&(!Number.isSafeInteger(next.chAge)||next.chAge<0)) bad();
   if(next.ch<1||next.maxCh<1||next.goal<1||!next.deck.every(id=>typeof id==='string')) bad();
   for(const k of ['stats','vibe','dev']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
+  if(next.nextCurse!==undefined&&next.nextCurse!==null&&!Object.hasOwn(CURSES,next.nextCurse)) bad();
   if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
   for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
   if(next.routes!==null&&(!Array.isArray(next.routes)||!next.routes.every(r=>['normal','elite','shop','event'].includes(r)))) bad();
@@ -660,8 +664,8 @@ function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFas
     if(e.up) for(const k in e.up) s.up[k]=(s.up[k]||0)+e.up[k];
     ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks&&!(M.ksOff||{})[e.ks]) s.ks[e.ks]=true; });
   TS=s; }
-function effText(e){ const o=[]; const UPN={crit:'会心 +8%',critx:'会心伤害 +0.5',breaker:'破封：首击倍率 +1',cleave:'碎裂：开包溅射 +50%',ammo:'每轮宝珠 +1',basket:'金篮宽度 +14',basket2:'第二只反向金篮',volley:'开局齐射 +2 颗小宝珠',packs:'台面卡包 +1',luck:'稀有卡包出现率 +30%',pityup:'黑金保底 -10 张',slot:'技能槽 +1',reson:'共鸣倍率 +0.1',auto:'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:'发射间隔 -15%'};
-  if(e.up) for(const k in e.up) o.push(k==='pityup'?`黑金保底 -${10*e.up[k]} 张（每开 ${PITY_BASE-10*e.up[k]} 张卡还没出 SSR，就送一个黑金秘藏）`:e.up[k]>1?`${UPN[k]} ×${e.up[k]}`:UPN[k]);
+function effText(e){ const o=[]; const UPN={crit:n=>`会心 +${8*n}%`,critx:n=>`会心伤害 +${f(.5*n)}`,breaker:n=>`破封：首击倍率 +${n}`,cleave:n=>`碎裂：开包溅射 +${50*n}%`,ammo:n=>`每轮宝珠 +${n}`,basket:n=>`金篮宽度 +${14*n}`,basket2:()=>'第二只反向金篮',volley:n=>`开局齐射 +${2*n} 颗小宝珠`,packs:n=>`台面卡包 +${n}`,luck:n=>`稀有卡包出现率 +${30*n}%`,pityup:n=>`黑金保底 -${10*n} 张（每开 ${PITY_BASE-10*n} 张卡还没出 SSR，就送一个黑金秘藏）`,slot:n=>`技能槽 +${n}`,reson:n=>`共鸣倍率 +${f(.1*n)}`,auto:()=>'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:n=>`发射间隔 -${15*n}%`};
+  if(e.up) for(const k in e.up) o.push(UPN[k]?UPN[k](e.up[k]):k); // 直接写合计效果（例如「每轮宝珠 +3」），不再写「+1 ×3」
   if(e.dmg) o.push(`伤害 +${pct(e.dmg)}`); if(e.coin) o.push(`金币 +${pct(e.coin)}`); if(e.card) o.push(`卡牌效果 +${pct(e.card)}`);
   if(e.burst) o.push('每次发射多连射 1 颗宝珠'); if(e.hold) o.push('按住鼠标 / 空格持续发射'); if(e.autoFast) o.push('自动发射等待 -0.6 秒'); if(e.autoFree) o.push('自动发射不再等场上宝珠落下，并且更快'); if(e.refill) o.push(`卡包打开后补充得更快（补充时间 -${Math.round((1-Math.pow(.7,e.refill))*100)}%）`);
   if(e.ks) o.push(`<b style="color:#ff9a8a">基石</b>：${KS[e.ks].desc}`); return o.join('<br>'); }
@@ -818,8 +822,9 @@ const basketW=l=>70+14*l;
 const maxSlots=()=>Math.max(1,3+upLv('slot')-(TS.ks.focus?2:0));
 const CH_HP=1.6, CH_VAL=1.6; // 每往后一章，卡包血量 / 金币的倍率（金币跟血量同步：每份伤害换到的金币每章一样）
 // 每往后一章，普通卡包更容易开出好卡（第 5 章封顶，深渊沿用第 5 章）。每章把概率从低稀有度挪到高稀有度：
-const ODDS_STEP=[[-7,4,2.2,.8],[0,-5,3.5,1.5],[0,0,-3,3],[0,0,0,0]];
-const packOdds=t=>{ const k=DAILY?0:Math.min(4,Math.max(0,(M.ch||1)-1)); return PT[t].odds.map((o,i)=>Math.round((o+ODDS_STEP[t][i]*k)*10)/10); };
+// 前期好卡更少（玩家反馈第 1 章 SR / SSR 来得太快），第 5 章的概率和之前一样
+const ODDS_STEP=[[-8.925,5.375,2.725,.825],[0,-7.5,5.5,2],[0,0,-4.75,4.75],[0,0,0,0]];
+const packOdds=t=>{ const k=DAILY?0:Math.min(4,Math.max(0,(M.ch||1)-1)), o=PT[t].odds.map((v,i)=>Math.max(0,Math.round((v+ODDS_STEP[t][i]*k)*10)/10)), j=o.findIndex(v=>v>0); o[j]=Math.round((100-o.reduce((a,v,i)=>i===j?a:a+v,0))*10)/10; return o; };
 const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
 // 本章越打越硬：同一章每打一轮，卡包血量和金币 ×1.15（最多 10 轮，约 ×4），打败首领进下一章后重置。玩家反馈第 5 轮左右就变简单了
 const AGE_G=1.15, AGE_MAX=10;
@@ -880,10 +885,12 @@ const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
 const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6; // 达成目标后，下一轮目标往这一轮实际开包数靠近 80%，一次最多 +6
 const ROUTES={
   normal:{name:'普通',ico:'🎯',desc:g=>`目标：开 ${g} 包`},
-  elite:{name:'精英',ico:'⚔️',desc:g=>`卡包血量 ×1.6、金币 ×1.5<br>目标：开 ${Math.ceil(g*1.25)} 包<br>达成后：SR 以上卡牌三选一 + 一颗随机特殊宝珠`},
+  elite:{name:'精英',ico:'⚔️',desc:g=>`卡包血量 ×${ELITE_HP}、金币 ×${ELITE_COIN}<br>目标：开 ${Math.ceil(g*ELITE_GOAL)} 包<br>达成后：SR 以上卡牌三选一 + 一颗随机特殊宝珠`},
   shop:{name:'黑市',ico:'🏮',desc:()=>'不打这一轮：买卡包、定向选卡、封印卡牌'},
   event:{name:'奇遇',ico:'❔',desc:()=>'不打这一轮：遇到一件随机的事'},
 };
+// 精英轮（玩家反馈太简单）：血量 ×2.2、目标 ×1.4，金币 ×1.8
+const ELITE_HP=2.2, ELITE_GOAL=1.4, ELITE_COIN=1.8;
 function genRoutes(noShop){ if(!unl('routes')) return ['normal']; const pool=['elite','shop','event'].filter(k=>!(noShop&&(k==='shop'||k==='event'))&&(k!=='shop'||unl('market'))); const out=['normal'];
   while(out.length<3&&pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); return out; } // 刚逛完黑市 / 奇遇：只给普通和精英
 
@@ -1035,7 +1042,8 @@ function startRound(boss,opt={}){
   G.daily=daily; G.bag=[]; G.bagOn=unl('routes')&&!daily; if(G.bagOn) ORB_SPECIAL.forEach(k=>{ for(let i=0;i<((M.orbs||{})[k]||0);i++) G.bag.push(k); }); G.bag=G.bag.slice(0,am); while(G.bag.length<am) G.bag.push('normal');
   for(let i=G.bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [G.bag[i],G.bag[j]]=[G.bag[j],G.bag[i]]; }
   G.route=boss||chal||daily?null:(opt.route||'normal');
-  if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*1.25):M.goal; if(G.route==='elite'){ G.mut={hpX:1.6}; G.bo.coin*=1.5; } }
+  if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*ELITE_GOAL):M.goal; if(G.route==='elite'){ G.mut={hpX:ELITE_HP}; G.bo.coin*=ELITE_COIN; } }
+  if(M.nextCurse&&!chal&&!daily){ const cu=CURSES[M.nextCurse]; M.nextCurse=null; if(cu){ cu.go(G); G.curse=cu; setTimeout(()=>toast(`${cu.ico} 诅咒：${cu.name} · ${cu.desc}`),700); } }
   if(M.nextBoon&&!chal&&!daily){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} 奇遇祝福：${nb.name}`),400); } }
   const noB=TS.ks.greed||(mut&&mut.noBasket)||(chal&&chal.noBasket); if(noB){ G.basket=null; G.basket2=null; }
   if(chal&&chal.luck) G.bo.luck=chal.luck; if(mut&&mut.luck) G.bo.luck*=mut.luck;
@@ -1098,7 +1106,7 @@ function addPack(instant,slot){
   const free=freeSlots(); if(!free.length) return;
   slot=slot||free[Math.floor(Math.random()*free.length)];
   const s=DAILY?0:M.up.stage; let t=0; const r=Math.random();
-  const lk=(1+.3*upLv('luck'))*G.bo.luck; if(r<(.002+.002*s)*lk) t=3; else if(r<(.03+.015*s)*lk) t=2; else if(r<(.12+.03*s)*lk) t=1;
+  const lk=(1+.3*upLv('luck'))*G.bo.luck; if(r<(.002+.002*s)*lk) t=3; else if(r<(.02+.015*s)*lk) t=2; else if(r<(.09+.03*s)*lk) t=1; // 秘藏等级 0 时白银 7%、黄金 1.8%
   if(G.mut.minTier) t=Math.max(t,G.mut.minTier);
   if(M.pity>=pityN()){ t=3; M.pity=0; toast('✦ 保底：黑金秘藏现身！'); }
   const hp=packHp(t)*(G.mut.hpX||1);
@@ -1270,7 +1278,14 @@ function payPocket(b){ const pk=pocketAt(b.x); pk.flash=.4; if(!(b.pot>0)) retur
   SFX.play('pocket',pk.m); if(pk.m>=5) buzz([30,40,40]); }
 function startFever(b){ b.fevered=true; G.fever=FEVER.dur; G.slow=FEVER.slow; G.fevers=(G.fevers||0)+1; if(G.fevers>M.best.fever) M.best.fever=G.fevers;
   hitStop(.12,true); shake(12); SFX.play('fever'); buzz([40,30,70]); burst(b.x,b.y,'#ffd76a',40); burst(b.x,b.y,'#ff7ad9',20);
-  G.fx.push({x:W/2,y:H/2-40,t:'狂 热',c:'#ffd76a',life:1.8,sz:40}); G.fx.push({x:W/2,y:H/2-2,t:'伤害、金币 ×2',c:'#f3dc9a',life:1.8,sz:16}); }
+  G.fx.push({x:W/2,y:H/2-40,t:'狂 热',c:'#ffd76a',life:1.8,sz:40}); G.fx.push({x:W/2,y:H/2-2,t:'伤害、金币 ×2',c:'#f3dc9a',life:1.8,sz:16}); G.feverFlash=.5;
+  if(!M.guide.fever){ M.guide.fever=1; save(); setTimeout(()=>explainPop('🔥','狂 热',`一颗宝珠连续撞了 ${FEVER.chain} 下（撞开卡包算 3 下），进入 <b>${FEVER.dur} 秒狂热</b>：<br>伤害和金币都 <b>×2</b>，时间变慢。<br><span class="sub">宝珠头上会显示连锁进度，比如「12/${FEVER.chain}」。狂热结束后 ${FEVER.cd} 秒内不会再触发。</span>`),350); } }
+// 第一次遇到新东西时的说明：暂停游戏，点「知道了」继续
+function explainPop(ico,title,html){ const el=$('boonPop'); if(el.classList.contains('show')) return; const live=G&&G.packs&&!G.ended&&running&&!G.paused;
+  if(live){ G.paused=true; holding=false; }
+  el.innerHTML=`<div class="bi" style="font-size:54px">${ico}</div><div class="bt serif goldtxt">${title}</div><div style="max-width:420px;text-align:center;line-height:1.9;font-size:15px">${html}</div><button class="btn" id="exOk" disabled style="margin-top:6px">知道了</button>`;
+  el.classList.add('show'); setTimeout(()=>{ const b=$('exOk'); if(b) b.disabled=false; },700);
+  $('exOk').onclick=e=>{ e.stopPropagation(); el.classList.remove('show'); if(live){ G.paused=false; G.cool=.25; } }; }
 
 // ---- 珠袋：下一颗 ----
 function nextOrb(take){ if(G.bag&&G.bag.length) return take?G.bag.shift():G.bag[0]; return 'normal'; }
@@ -1295,12 +1310,12 @@ const rerollCost=()=>Math.ceil(packValue(1)*6*Math.pow(1.5,M.pickRolls||0));
 function openPick(o,done){ let ids=rollPick(o); const el=$('boonPop');
   const close=()=>{ el.classList.remove('show'); checkAch(); if(done) done(); };
   const render=()=>{ el.innerHTML=`<div class="bt serif goldtxt">${o.title||'三选一'}</div><div class="sub" style="text-align:center">没有的卡直接获得；已有的 +2 张，升级更快</div>
-    <div class="bcs">${ids.map(id=>`<div class="pk" data-id="${id}" style="width:150px">${cardHTML(id,{isNew:!M.owned[id]})}</div>`).join('')}</div>
+    <div class="bcs pkrow lock">${ids.map(id=>`<div class="pk" data-id="${id}" style="width:150px">${cardHTML(id,{isNew:!M.owned[id]})}</div>`).join('')}</div>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn alt" id="pkRe" style="padding:8px 16px;font-size:14px">换一批 ✦ ${f(rerollCost())}</button><button class="ghost" id="pkSkip">跳过</button></div>`;
     el.querySelectorAll('.pk').forEach(x=>x.onclick=()=>{ const id=x.dataset.id, isNew=!M.owned[id]; M.owned[id]=(M.owned[id]||0)+(isNew?1:2);
       if(isNew&&equipped().length<maxSlots()) M.deck.push(id); save(); renderSide(); SFX.play(byId[id].rar==='N'?'R':byId[id].rar); toast(`${isNew?'获得':'强化'}：${byId[id].name}`); close(); });
     $('pkRe').onclick=e=>{ if(!spend(rerollCost(),e.target)) return; M.pickRolls=(M.pickRolls||0)+1; ids=rollPick(o); render(); };
-    $('pkSkip').onclick=close; };
+    $('pkSkip').onclick=close; clearTimeout(openPick.t); openPick.t=setTimeout(()=>{ const r=el.querySelector('.pkrow'); if(r) r.classList.remove('lock'); },700); };
   render(); el.classList.add('show'); }
 // ---- 路线：黑市 / 奇遇 ----
 const schPickCost=()=>Math.ceil(packValue(1)*10);
@@ -1317,9 +1332,29 @@ function showMarket(){ const box=$('box');
   box.querySelectorAll('[data-sch]').forEach(b=>b.onclick=()=>{ if(!spend(schPickCost(),b)) return; openPick({sch:b.dataset.sch,title:`${SCH[b.dataset.sch].ico} ${SCH[b.dataset.sch].name} · 三选一`},showMarket); });
   box.querySelectorAll('[data-ban]').forEach(el=>el.onclick=()=>{ const id=el.dataset.ban; if(M.banned[id]) delete M.banned[id]; else { if(Object.keys(M.banned).length>=BAN_MAX) return toast(`最多封印 ${BAN_MAX} 张`); M.banned[id]=1; } save(); showMarket(); });
   renderShop($('mkPacks')); $('mkLeave').onclick=leaveDetour; $('ov').classList.add('show'); $('ov').scrollTop=0; }
+// 奇遇的负面结果：下一轮开局生效一次
+const CURSES={
+  short:{ico:'🪨',name:'碎石',desc:'这一轮少 3 颗宝珠',go:G=>{ G.ammo=Math.max(3,G.ammo-3); G.maxAmmo=Math.max(3,G.maxAmmo-3); }},
+  tough:{ico:'🛡️',name:'加固',desc:'这一轮卡包血量 ×1.5',go:G=>{ G.mut=Object.assign({},G.mut,{hpX:((G.mut&&G.mut.hpX)||1)*1.5}); }},
+  fog:{ico:'🌫️',name:'迷雾',desc:'这一轮没有金篮',go:G=>{ G.basket=null; G.basket2=null; }},
+};
 const EVENTS=[
+  {ico:'🦹',name:'扒手',txt:'人群里一只手伸进了你的钱袋，等你回过神，金币已经少了一截。',opts:()=>{ const v=M.money*.15;
+    return [{t:'追上去！（一半概率追回，还多抢一点；一半概率被甩掉，又丢一些）',go:()=>{ if(Math.random()<.5){ M.money+=v*.3; SFX.play('SSR'); return `追上了！金币全追回来，还多拿了 ${f(v*.3)}。`; } M.money=Math.max(0,M.money-v*1.4); SFX.play('deny'); return `没追上，还在混乱里又掉了一些。金币 -${f(v*1.4)}`; }},
+            {t:`算了（金币 -${f(v)}）`,go:()=>{ M.money=Math.max(0,M.money-v); return `你叹了口气。金币 -${f(v)}`; }}]; }},
+  {ico:'🪨',name:'塌方',txt:'前面的通道塌了一半，碎石还在往下掉。',opts:()=>{ const v=M.money*.1+packValue(1)*3;
+    return [{t:`绕远路（金币 -${f(v)}）`,go:()=>{ M.money=Math.max(0,M.money-v); return `绕了一大圈，花了 ${f(v)} 金币雇人带路。`; }},
+            {t:'硬闯过去（下一轮少 3 颗宝珠，但在碎石里捡到一颗特殊宝珠）',go:()=>{ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; M.nextCurse='short'; SFX.play('deny'); return `你冲了过去，发射器被砸歪了：下一轮少 3 颗宝珠。碎石里捡到一颗${ORBS[k].ico} ${ORBS[k].name}。`; }}]; }},
+  {ico:'☠️',name:'诅咒宝箱',txt:'一只缠着锁链的宝箱，箱缝里透出暗红色的光。',opts:[
+    {t:'撬开（一半概率：SR 以上三选一；一半概率：下一轮卡包血量 ×1.5）',go:()=>{ if(Math.random()<.5) return {pick:{minRar:'SR',title:'☠️ 诅咒宝箱 · 三选一'},msg:'宝箱里是一叠闪着光的卡。'}; M.nextCurse='tough'; SFX.play('deny'); return '锁链缠上了你的发射器：下一轮卡包血量 ×1.5。'; }},
+    {t:'不碰它',go:()=>'你绕开了宝箱。'}]},
+  {ico:'🌫️',name:'迷雾',txt:'浓雾漫进了金库，连金篮的影子都看不见了。',opts:()=>{ const v=packValue(1)*8;
+    return [{t:`点灯驱雾（金币 -${f(v)}）`,go:()=>{ if(M.money<v){ M.nextCurse='fog'; return '钱不够，灯没点起来：下一轮没有金篮。'; } M.money-=v; return '雾散了。'; }},
+            {t:'摸黑前进（下一轮没有金篮）',go:()=>{ M.nextCurse='fog'; return '下一轮没有金篮。'; }}]; }},
+
   {ico:'🎲',name:'赌徒',txt:'一个戴面具的人摊开手：「押三成金币，猜对翻倍。」',opts:[
     {t:'押！（一半概率翻倍，一半输掉）',go:()=>{ const v=M.money*.3; if(Math.random()<.5){ M.money+=v; SFX.play('SSR'); return `赢了！金币 +${f(v)}`; } M.money-=v; SFX.play('deny'); return `输了…… 金币 -${f(v)}`; }},
+    {t:'押上全部（三成概率 ×3，七成全输）',go:()=>{ const v=M.money; if(Math.random()<.3){ M.money+=v*2; SFX.play('SSR'); return `赢了！！金币 ×3（+${f(v*2)}）`; } M.money=0; SFX.play('deny'); return `输光了。金币 -${f(v)}`; }},
     {t:'不赌',go:()=>'你摆摆手走开了。'}]},
   {ico:'🔮',name:'铸珠匠',txt:'铸珠匠说今天手痒，可以免费给你打一颗宝珠。',opts:()=>{ const ks=ORB_SPECIAL.slice().sort(()=>Math.random()-.5).slice(0,2);
     return ks.map(k=>({t:`${ORBS[k].ico} ${ORBS[k].name}：${ORBS[k].desc}`,go:()=>{ M.orbs[k]=(M.orbs[k]||0)+1; SFX.play('buy'); return `${ORBS[k].name}放进了珠袋。`; }})); }},
@@ -1336,7 +1371,7 @@ function showEvent(){ const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)], 
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${opts.map((o,i)=>`<button class="row" data-i="${i}" style="font:inherit;color:inherit;text-align:left">${o.t}</button>`).join('')}</div>`;
   box.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{ const o=opts[+b.dataset.i];
     const fin=msg=>{ save(); hud(); box.innerHTML=`<h2 class="serif goldtxt">${ev.ico} 奇遇 · ${ev.name}</h2><p style="line-height:1.9;font-size:15px;margin-top:14px">${msg}</p><div class="foot"><span></span><button class="btn" id="evGo">继续 ▶</button></div>`; $('evGo').onclick=leaveDetour; };
-    if(o.pick) openPick({title:'📜 残卷 · 三选一'},()=>fin('你合上了残卷。')); else fin(o.go()); });
+    if(o.pick) openPick({title:'📜 残卷 · 三选一'},()=>fin('你合上了残卷。')); else { const r=o.go(); if(r&&r.pick) openPick(r.pick,()=>fin(r.msg)); else fin(r); } });
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
 function goRoute(r){ if(r==='shop') showMarket(); else if(r==='event') showEvent(); else startRound(false,{route:r}); }
 function boom(x,y,r,d){ G.parts.push({ring:true,x,y,r:0,max:r,life:.35}); SFX.play('boom'); G.packs.slice().forEach(o=>{ if(Math.hypot(o.x-x,o.y-y)<r) dmgPack(o,d,true,'fire'); }); }
@@ -1588,11 +1623,15 @@ function draw(){
     const t=c?`${c.ico} ${c.name} · ${c.prog(G)}`:`${G.mut.ico} ${G.mut.name} · 金币 ×${G.mut.coinX}`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=c?(G.chalWin?'#7fe0a0':'#9de7ff'):'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
   if(G.paused){ ctx.save(); ctx.fillStyle='#0008'; ctx.fillRect(0,0,W,H); ctx.restore(); }
   // 狂热：金色边框 + 倒计时条
+  if(G.feverFlash>0){ G.feverFlash-=1/60; ctx.fillStyle=`rgba(255,230,150,${Math.max(0,G.feverFlash)*.7})`; ctx.fillRect(0,0,W,H); }
   if(G.fever>0){ const pu=.5+.5*Math.sin(performance.now()/90), k=Math.min(1,G.fever/.6);
     const vg=ctx.createRadialGradient(W/2,H/2,H*.32,W/2,H/2,H*.72); vg.addColorStop(0,'#ffd76a00'); vg.addColorStop(1,`rgba(255,190,80,${(.16+.1*pu)*k})`); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
-    ctx.strokeStyle=`rgba(255,215,106,${(.45+.35*pu)*k})`; ctx.lineWidth=4; ctx.strokeRect(10,10,W-20,H-20);
+    ctx.strokeStyle=`rgba(255,215,106,${(.45+.35*pu)*k})`; ctx.lineWidth=8; ctx.strokeRect(6,6,W-12,H-12);
     ctx.fillStyle='#000a'; ctx.fillRect(W/2-80,H-56,160,5); ctx.fillStyle='#ffd76a'; ctx.fillRect(W/2-80,H-56,160*G.fever/FEVER.dur,5);
-    ctx.font=`bold ${Math.round(12*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText('狂热 ×2',W/2,H-62); ctx.fillStyle='#ffd76a'; ctx.fillText('狂热 ×2',W/2,H-62); }
+    const ft=`🔥 狂热 · 伤害、金币 ×2 · ${G.fever.toFixed(1)}s`; ctx.font=`900 ${Math.round(15*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=4; ctx.strokeStyle='#000c'; ctx.strokeText(ft,W/2,H-64); ctx.fillStyle='#ffd76a'; ctx.fillText(ft,W/2,H-64); }
+  // 连锁进度：快到狂热时在宝珠头上显示「12/20」
+  if(!(G.fever>0)&&!(G.feverCd>0)){ let bb=null; for(const b of G.balls) if(!b.fevered&&!b.reborn&&b.ch>=FEVER.chain*.4&&(!bb||b.ch>bb.ch)) bb=b;
+    if(bb){ ctx.font=`bold ${Math.round(11*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const tt=`🔥${bb.ch}/${FEVER.chain}`; ctx.strokeText(tt,bb.x,bb.y-bb.r-8); ctx.fillStyle=bb.ch>=FEVER.chain*.75?'#ffd76a':'#e8c88a'; ctx.fillText(tt,bb.x,bb.y-bb.r-8); } }
   G.fx.forEach(o=>{ ctx.globalAlpha=Math.min(1,o.life*2); const sz=Math.round((o.sz||(o.small?12:16))*((o.sz||0)>=30?1:UIK)), pop=o.sz&&o.L?1+.6*Math.max(0,1-(o.L-o.life)/.15):1;
     const tx=o.count?'+'+f(o.count*Math.min(1,((o.L||o.life)-o.life)/o.dur))+o.suf:o.t;
     ctx.save(); ctx.translate(o.x,o.y); ctx.scale(pop,pop); ctx.font=`bold ${sz}px sans-serif`; ctx.lineWidth=sz>=20?4:3; ctx.strokeStyle='#000c'; ctx.strokeText(tx,0,0); ctx.fillStyle=o.c; ctx.fillText(tx,0,0); ctx.restore(); }); ctx.globalAlpha=1;
@@ -1789,7 +1828,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-06.2';
+const GAME_V='2026-11-06.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -1887,9 +1926,11 @@ function offerBoon(){
   G.paused=true; holding=false; SFX.play('raise');
   const el=$('boonPop');
   el.innerHTML=`<div class="bt serif goldtxt">✨ 选择一个祝福 ✨</div><div class="sub" style="text-align:center">只在本轮有效 · 已选 ${G.boons.length} 个</div>
-    <div class="bcs">${picks.map((b,i)=>`<button class="bc" data-i="${i}"><div class="bi">${b.ico}</div><b>${b.name}</b><div class="sub">${b.desc}</div></button>`).join('')}</div>
-    <div class="sub" style="text-align:center;font-size:11px">游戏已暂停，慢慢选</div>`;
+    <div class="bcs">${picks.map((b,i)=>`<button class="bc" data-i="${i}" disabled><div class="bi">${b.ico}</div><b>${b.name}</b><div class="sub">${b.desc}</div></button>`).join('')}</div>
+    <div class="sub" id="boonWait" style="text-align:center;font-size:11px">游戏已暂停，慢慢选</div>`;
   el.classList.add('show');
+  // 防误触：弹出后 0.8 秒内点不了（正在连点发射的手指不会直接选中）
+  clearTimeout(offerBoon.t); offerBoon.t=setTimeout(()=>el.querySelectorAll('.bc').forEach(x=>x.disabled=false),800);
   const pick=i=>{ el.classList.remove('show'); const b=picks[i]; b.go(G); G.boons.push(b.id); G.paused=false; G.cool=.25; SFX.play('ach'); toast(`${b.ico} ${b.name}：${b.desc}`); };
   el.querySelectorAll('.bc').forEach(x=>x.onclick=e=>{ e.stopPropagation(); pick(+x.dataset.i); });
 }
@@ -2294,7 +2335,7 @@ function showBetween(){
     <button class="btn" id="lbAskGo" style="padding:7px 16px;font-size:14px;letter-spacing:0">上榜</button><button class="ghost" id="lbAskNo">不再提示</button></div>
     <div class="sub" style="margin-top:4px">昵称会公开显示在「目标 → 排行榜」上，之后也能在那里改名。</div><div id="lbAskStatus" class="sub" role="status"></div></div>`:'';
   const unlHTML=newU.map(u=>`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔓 <b style="color:var(--gold2)">新玩法：${u.name}</b><br><span class="sub">${u.txt}</span></div>`).join('');
-  const RSUB={normal:`开 ${M.goal} 包`,elite:`开 ${Math.ceil(M.goal*1.25)} 包 · SR+ 三选一 · 宝珠`,shop:'卡包 · 选卡 · 封印',event:'随机事件'};
+  const RSUB={normal:`开 ${M.goal} 包`,elite:`开 ${Math.ceil(M.goal*ELITE_GOAL)} 包 · SR+ 三选一 · 宝珠`,shop:'卡包 · 选卡 · 封印',event:'随机事件'};
   const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
   const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 不知道某个东西是什么？<span class="sub">手册里都有，打的时候也能随时打开（右上角「📖 手册」）。</span></span><button class="ghost" id="manTipB">打开手册</button></div>`:'';

@@ -73,7 +73,7 @@ test('普通卡包：金币和血量同步成长，开出好卡的概率随章�
 test('SSR 不再太好拿：保底 100 张（黑金之约点满 50），黑金秘藏自然出现率减半，青铜包第 1 章 SSR 0.2%', () => {
   assert.match(html, /const PITY_BASE=100, PITY_STEP=10;/);
   assert.match(html, /if\(r<\(\.002\+\.002\*s\)\*lk\) t=3;/);
-  assert.match(html, /odds:\[72\.3,23,4\.5,\.2\]/);
+  assert.match(html, /odds:\[80,17\.5,2\.4,\.1\]/);
 });
 
 test('提前配装：存三套，开打前按关卡自动换上，存档校验', () => {
@@ -186,7 +186,7 @@ test('星盘节点价格：30 × 1.5^已点数 × 1.6^(最高章-1) × 类型倍
   ctx.tCount = () => 10; vm.runInContext('tCount=()=>10', ctx);
   assert.equal(ctx.c({t: 's'}), Math.ceil(30 * 1.5 ** 10));
   ctx.M.maxCh = 4; assert.equal(ctx.c({t: 'k'}), Math.ceil(30 * 1.5 ** 10 * 1.6 ** 3 * 3));
-  assert.match(html, /黑金保底 -\$\{10\*e\.up\[k\]\} 张/);
+  assert.match(html, /pityup:n=>`黑金保底 -\$\{10\*n\} 张/);
 });
 
 test('没达成目标：目标降到实际开包 ×1.15 附近（最多减半），小幅没达成仍然只 -2', () => {
