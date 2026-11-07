@@ -1068,5 +1068,17 @@
 "押上全部（三成概率 ×3，七成全输）": "Bet everything (30%: ×3; 70%: lose it all)",
 "赢了！！金币 ×3（": "You won!! Coins ×3 (",
 "输光了。金币": "You lost it all. Coins",
-"狂热 · 伤害、金币": "Frenzy · damage & coins"
+"狂热 · 伤害、金币": "Frenzy · damage & coins",
+"电脑也可以按空格": "On desktop you can press Space too",
+"卡包血量归零就会打开": "A pack opens when its HP hits zero",
+"倍率越高，伤害和金币越多；落底时还按口袋 ×1 / ×2 / ×5 再翻倍": "Higher multipliers mean more damage and coins; the pocket at the bottom multiplies again ×1 / ×2 / ×5",
+"达成开包目标 3 轮就能挑战首领": "Hit the pack goal 3 rounds to challenge the boss",
+"教学": "Tutorial",
+"瞄准卡包，点击台面发射宝珠": "Aim at a pack and tap the board to fire",
+"宝珠撞破卡包，就能拿到金币和新卡": "Break a pack open to get coins and a new card",
+"一颗宝珠连撞越多，倍率越高（×2、×3…）": "The more an orb chains, the higher its multiplier (×2, ×3…)",
+"一颗宝珠连撞 10 下会触发「狂热」！": "Chain 10 hits with one orb to trigger Frenzy!",
+"宝珠头上会显示": "The orb shows",
+"进度；平时要 20 下，教学关简单一点": "progress above it; normally it takes 20 hits — the tutorial is easier",
+"打光宝珠就结算，用金币升级再来": "When your orbs run out, spend coins on upgrades and go again"
 }

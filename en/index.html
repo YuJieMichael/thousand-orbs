@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:5cfc83ff7bfc73288beb56286050925784ab671c -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:cb3bb509a00ff4f44873ee8c4c0fef6518b2502b -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1057,7 +1057,8 @@ function startRound(boss,opt={}){
   M.routes=null; // 章节进度改为「达成目标」才 +1，见 endRound
   [1,2,3].forEach(t=>{ M.shopN[t]=Math.max(0,(M.shopN[t]||0)-1); });
   M.pickRolls=0; M.round++; running=true; $('ov').classList.remove('show'); renderSide();
-  if(M.round===1) guideTip('aim','Aim, then tap — or press Space');
+  G.tut=M.round===1&&!M.prestiges&&!M.guide.tut&&!chal&&!daily&&!boss?{step:0,shots:0,flash:0}:null; // 新玩家第一轮：教学关
+  if(M.round===1&&!G.tut) guideTip('aim','Aim, then tap — or press Space');
   if(chal) setTimeout(()=>toast(`${chal.ico} Challenge: ${chal.goalTxt}`),300);
   if(boss) setTimeout(()=>{ if(G&&!G.ended) offerBoon(); },500);
 }
@@ -1140,6 +1141,7 @@ function shoot(){ // 真正射出一颗（连射/倾泻会排队调用）
   G.ammo--; G.shots++; G.queue--;
   const b=spawnBall(LAUNCH.x,LAUNCH.y,Math.cos(a)*sp,Math.sin(a)*sp,{main:true}); if(G.qDel) b.dmgX*=1.3;
   b.manual=!!G.qManual; b.type=nextOrb(true); applyOrbType(b);
+  if(G.tut){ G.tut.shots++; tutStep(0); if(G.tut.step===3&&G.tut.shots>=3) b.ch=Math.max(b.ch,feverNeed()-4); } // 教学关：第 3 发起给宝珠预充连锁，保证能看到狂热
   for(let i=0;i<G.bo.split;i++){ const a2=a+(i%2?-1:1)*.22*(1+Math.floor(i/2)); spawnBall(b.x,b.y,Math.cos(a2)*sp,Math.sin(a2)*sp,{mini:true}); }
   equipped().forEach((id,i)=>{ const c=byId[id]; if(c.launch){ const [lv,p]=cardP(id); if(c.launch(G,lv,p,b)) flashSlot(i); } });
   burst(LAUNCH.x,LAUNCH.y+10,'#f3dc9a',10); SFX.play('shoot'); rollSpecials();
@@ -1184,6 +1186,7 @@ function hitPack(b,p){
 function openPack(p){
   const i=G.packs.indexOf(p); if(i<0) return; G.packs.splice(i,1);
   if(p.boss) return bossDown(p);
+  if(G.tut) tutStep(1);
   G.opened+=packCount()+(G.R.vip&&p.t>=1?1:0); G.realOpened=(G.realOpened||0)+1; M.opened++; if(p.t===3) G.black++; goalCheck(); // 秘藏等级越高，一个卡包算越多包
   if(G.boonNext&&G.realOpened>=G.boonNext&&G.boons.length<5){ G.boonNext=G.realOpened+8+6*(G.boons.length+1); setTimeout(()=>{ if(G&&!G.ended&&!G.paused) offerBoon(); },250); }
   // 财富卡（聚宝盆、复利、贵宾卡）带来的金币倍率合起来最多 ×6，免得一个流派的收入甩开别人几百倍
@@ -1258,8 +1261,9 @@ function earn(x,px,py,small){ x*=(1+TS.coin)*(TS.ks.greed?2.5:1)*(G&&G.R&&G.R.ei
 function buzz(pat){ if(M.vibe===false||!navigator.vibrate||(navigator.userActivation&&!navigator.userActivation.hasBeenActive)) return; const n=performance.now(); if(n-(buzz.t||0)<90) return; buzz.t=n; try{ navigator.vibrate(pat); }catch(e){} }
 // ---- 连锁倍率 / 特殊铆钉 / 口袋 / 狂热 ----
 function addMx(b,v){ const before=b.mx; b.mx=Math.min(MX.cap,b.mx+v); if(b.mx>M.best.mx) M.best.mx=b.mx;
-  if(Math.floor(b.mx)>Math.floor(before)){ guideTip('multiplier','Chain hits raise the multiplier — more damage and more coins'); const n=Math.floor(b.mx); G.fx.push({x:b.x,y:b.y-20,t:'×'+n,c:mxCol(b.mx),life:.7,sz:14+n*3}); G.parts.push({ring:true,x:b.x,y:b.y,r:b.r,max:b.r+18+n*4,life:.3,dur:.3,c:mxCol(b.mx),lw:2}); SFX.play('mxup',n); } }
-function chainTick(b,n){ b.ch+=n||1; if(!(G.fever>0)&&!(G.feverCd>0)&&!b.fevered&&!b.reborn&&b.ch>=FEVER.chain) startFever(b); } // 重生的宝珠不再触发狂热
+  if(Math.floor(b.mx)>Math.floor(before)){ if(G.tut) tutStep(2); else guideTip('multiplier','Chain hits raise the multiplier — more damage and more coins'); const n=Math.floor(b.mx); G.fx.push({x:b.x,y:b.y-20,t:'×'+n,c:mxCol(b.mx),life:.7,sz:14+n*3}); G.parts.push({ring:true,x:b.x,y:b.y,r:b.r,max:b.r+18+n*4,life:.3,dur:.3,c:mxCol(b.mx),lw:2}); SFX.play('mxup',n); } }
+const feverNeed=()=>G&&G.tut?TUT_CHAIN:FEVER.chain; // 教学关里狂热门槛低一点
+function chainTick(b,n){ b.ch+=n||1; if(!(G.fever>0)&&!(G.feverCd>0)&&!b.fevered&&!b.reborn&&b.ch>=feverNeed()) startFever(b); } // 重生的宝珠不再触发狂热
 function hitStop(v,force){ if(!G) return; if(!force&&G.time-(G.hsLast||-9)<.18) return; G.hs=Math.max(G.hs||0,Math.min(.14,v)); G.hsLast=G.time; }
 function pegHit(b,g){ hcTick(b); chainTick(b); b.pot+=POT.peg*packValue(0)*b.mx; addMx(b,MX.peg);
   G.parts.push({ring:true,x:g.x,y:g.y,r:g.r,max:g.r+9,life:.16,dur:.16,c:mxCol(b.mx),lw:1});
@@ -1277,10 +1281,27 @@ function payPocket(b){ const pk=pocketAt(b.x); pk.flash=.4; if(!(b.pot>0)) retur
   if(pk.m>=5){ G.fx.push({x:W/2,y:H-120,t:'J A C K P O T ×5',c:'#ffd76a',life:1.4,sz:30,slow:1}); for(let i=0;i<34;i++) G.parts.push({coin:true,x:cx+rnd(-14,14),y:H-28,vx:rnd(-170,170),vy:rnd(-620,-300),c:i%3?'#ffd76a':'#f3dc9a',life:rnd(.9,1.4)});
     shake(7); hitStop(.07); const fl=$('flash'); fl.style.transition='none'; fl.style.opacity=.22; requestAnimationFrame(()=>{ fl.style.transition='opacity .5s'; fl.style.opacity=0; }); }
   SFX.play('pocket',pk.m); if(pk.m>=5) buzz([30,40,40]); }
-function startFever(b){ b.fevered=true; G.fever=FEVER.dur; G.slow=FEVER.slow; G.fevers=(G.fevers||0)+1; if(G.fevers>M.best.fever) M.best.fever=G.fevers;
+function startFever(b){ if(G.tut) tutStep(3); b.fevered=true; G.fever=FEVER.dur; G.slow=FEVER.slow; G.fevers=(G.fevers||0)+1; if(G.fevers>M.best.fever) M.best.fever=G.fevers;
   hitStop(.12,true); shake(12); SFX.play('fever'); buzz([40,30,70]); burst(b.x,b.y,'#ffd76a',40); burst(b.x,b.y,'#ff7ad9',20);
   G.fx.push({x:W/2,y:H/2-40,t:'F R E N Z Y',c:'#ffd76a',life:1.8,sz:40}); G.fx.push({x:W/2,y:H/2-2,t:'Damage & coins ×2',c:'#f3dc9a',life:1.8,sz:16}); G.feverFlash=.5;
-  if(!M.guide.fever){ M.guide.fever=1; save(); setTimeout(()=>explainPop('🔥','F R E N Z Y',`One orb chained ${FEVER.chain} hits (opening a pack counts as 3), triggering <b>${FEVER.dur} seconds of Frenzy</b>: <br> Damage and coins are both <b>×2</b>, and time slows down. <br><span class="sub"> An orb shows its chain progress above it, like “12/${FEVER.chain}”. After a Frenzy ends, it can’t trigger again for ${FEVER.cd} seconds.</span>`),350); } }
+  if(!M.guide.fever){ M.guide.fever=1; save(); setTimeout(()=>explainPop('🔥','F R E N Z Y',`One orb chained ${feverNeed()} hits (opening a pack counts as 3), triggering <b>${FEVER.dur} seconds of Frenzy</b>: <br> Damage and coins are both <b>×2</b>, and time slows down. <br><span class="sub"> An orb shows its chain progress above it, like “12/${FEVER.chain}”. After a Frenzy ends, it can’t trigger again for ${FEVER.cd} seconds.</span>`),350); } }
+// ---- 教学关：新玩家第一轮分 5 步提示 ----
+const TUT_CHAIN=10;
+const TUT_STEPS=[
+  {t:'① Aim at a pack and tap the board to fire',s:'On desktop you can press Space too'},
+  {t:'② Break a pack open to get coins and a new card',s:'A pack opens when its HP hits zero'},
+  {t:'③ The more an orb chains, the higher its multiplier (×2, ×3…)',s:'Higher multipliers mean more damage and coins; the pocket at the bottom multiplies again ×1 / ×2 / ×5'},
+  {t:'④ Chain 10 hits with one orb to trigger Frenzy!',s:'The orb shows 🔥 progress above it; normally it takes 20 hits — the tutorial is easier'},
+  {t:'⑤ When your orbs run out, spend coins on upgrades and go again',s:'Hit the pack goal 3 rounds to challenge the boss'},
+];
+function tutStep(n){ const t=G.tut; if(!t||t.step>n) return; t.step=n+1; // 顺序乱了也能往前走（比如还没看到倍率就先触发了狂热）
+  t.flash=1; SFX.play('ach'); if(t.step>=TUT_STEPS.length-1){ M.guide.tut=1; save(); } }
+function drawTut(){ const t=G.tut; if(!t) return; const st=TUT_STEPS[Math.min(t.step,TUT_STEPS.length-1)]; t.flash=Math.max(0,t.flash-1/60);
+  const h=Math.round(56*UIK), y=H-92-h/2, w=Math.min(W-24,460*Math.min(1.25,UIK));
+  ctx.save(); ctx.fillStyle=`rgba(20,14,8,${.88})`; rr(W/2-w/2,y-h/2,w,h,12); ctx.fill(); ctx.strokeStyle=t.flash>0?`rgba(127,224,160,${.5+.5*t.flash})`:'#d9b45a99'; ctx.lineWidth=2; ctx.stroke();
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#d9b45a'; ctx.font=`bold ${Math.round(10*UIK)}px sans-serif`; ctx.fillText(`Tutorial ${Math.min(t.step+1,TUT_STEPS.length)}/${TUT_STEPS.length}`,W/2,y-h/2+10*UIK);
+  ctx.fillStyle='#f3dc9a'; ctx.font=`bold ${Math.round(14*UIK)}px sans-serif`; ctx.fillText(st.t,W/2,y+1*UIK);
+  ctx.fillStyle='#c9b48a'; ctx.font=`${Math.round(10.5*UIK)}px sans-serif`; let s2=st.s; while(ctx.measureText(s2).width>w-20&&s2.length>4) s2=s2.slice(0,-2); ctx.fillText(s2,W/2,y+h/2-10*UIK); ctx.restore(); }
 // 第一次遇到新东西时的说明：暂停游戏，点「知道了」继续
 function explainPop(ico,title,html){ const el=$('boonPop'); if(el.classList.contains('show')) return; const live=G&&G.packs&&!G.ended&&running&&!G.paused;
   if(live){ G.paused=true; holding=false; }
@@ -1616,7 +1637,7 @@ function draw(){
     ctx.font='700 19px "Noto Serif SC",serif'; ctx.lineWidth=4; ctx.strokeStyle='#000c'; ctx.strokeText(G.combo+' Combo',0,0); ctx.fillStyle=G.combo>=50?'#e08cc0':G.combo>=20?'#d8b36a':'#e6cf9c'; ctx.fillText(G.combo+' Combo',0,0); ctx.restore(); ctx.globalAlpha=1; }
   if(G.queue>0&&G.qDel){ ctx.fillStyle='#9de7ff'; ctx.font='bold 14px sans-serif'; ctx.fillText('🌊 Deluge!',LAUNCH.x,LAUNCH.y+48); }
   if(MOBILE.matches){ drawHud(); drawSkillStrip(); }
-  drawBanner();
+  drawBanner(); drawTut();
   if(G.mh&&G.mhT>0) drawMythHint();
   if(G.route){ ctx.save(); ctx.font=`bold ${Math.round(13*UIK)}px sans-serif`; ctx.textAlign='left'; const t=`${G.route==='elite'?'Elite · ':''} Goal ${Math.min(G.opened,G.goal)}/${G.goal} packs ${packWorth()*cntMult()>1.001?`(each counts ×${f(Math.round(packWorth()*cntMult()*100)/100)})`:''}${M.streak?` · streak ${M.streak}`:''}`;
     ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=G.goalHit?'#7fe0a0':G.route==='elite'?'#e8a090':'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
@@ -1631,8 +1652,8 @@ function draw(){
     ctx.fillStyle='#000a'; ctx.fillRect(W/2-80,H-56,160,5); ctx.fillStyle='#ffd76a'; ctx.fillRect(W/2-80,H-56,160*G.fever/FEVER.dur,5);
     const ft=`🔥 Frenzy · damage & coins ×2 · ${G.fever.toFixed(1)}s`; ctx.font=`900 ${Math.round(15*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=4; ctx.strokeStyle='#000c'; ctx.strokeText(ft,W/2,H-64); ctx.fillStyle='#ffd76a'; ctx.fillText(ft,W/2,H-64); }
   // 连锁进度：快到狂热时在宝珠头上显示「12/20」
-  if(!(G.fever>0)&&!(G.feverCd>0)){ let bb=null; for(const b of G.balls) if(!b.fevered&&!b.reborn&&b.ch>=FEVER.chain*.4&&(!bb||b.ch>bb.ch)) bb=b;
-    if(bb){ ctx.font=`bold ${Math.round(11*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const tt=`🔥${bb.ch}/${FEVER.chain}`; ctx.strokeText(tt,bb.x,bb.y-bb.r-8); ctx.fillStyle=bb.ch>=FEVER.chain*.75?'#ffd76a':'#e8c88a'; ctx.fillText(tt,bb.x,bb.y-bb.r-8); } }
+  if(!(G.fever>0)&&!(G.feverCd>0)){ let bb=null; for(const b of G.balls) if(!b.fevered&&!b.reborn&&b.ch>=feverNeed()*.4&&(!bb||b.ch>bb.ch)) bb=b;
+    if(bb){ ctx.font=`bold ${Math.round(11*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const tt=`🔥${bb.ch}/${feverNeed()}`; ctx.strokeText(tt,bb.x,bb.y-bb.r-8); ctx.fillStyle=bb.ch>=feverNeed()*.75?'#ffd76a':'#e8c88a'; ctx.fillText(tt,bb.x,bb.y-bb.r-8); } }
   G.fx.forEach(o=>{ ctx.globalAlpha=Math.min(1,o.life*2); const sz=Math.round((o.sz||(o.small?12:16))*((o.sz||0)>=30?1:UIK)), pop=o.sz&&o.L?1+.6*Math.max(0,1-(o.L-o.life)/.15):1;
     const tx=o.count?'+'+f(o.count*Math.min(1,((o.L||o.life)-o.life)/o.dur))+o.suf:o.t;
     ctx.save(); ctx.translate(o.x,o.y); ctx.scale(pop,pop); ctx.font=`bold ${sz}px sans-serif`; ctx.lineWidth=sz>=20?4:3; ctx.strokeStyle='#000c'; ctx.strokeText(tx,0,0); ctx.fillStyle=o.c; ctx.fillText(tx,0,0); ctx.restore(); }); ctx.globalAlpha=1;
@@ -1829,7 +1850,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-06.3';
+const GAME_V='2026-11-06.4';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
