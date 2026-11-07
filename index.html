@@ -557,6 +557,9 @@ function normalizeSave(data){
       &&m.next.every((e,r)=>Array.isArray(e)&&e.length===m.rows[r].length&&e.every(l=>Array.isArray(l)&&l.every(j=>Number.isSafeInteger(j)&&j>=0&&j<m.rows[r+1].length)))
       &&Number.isSafeInteger(m.r)&&m.r>=-1&&m.r<MAP_ROWS&&Number.isSafeInteger(m.i)&&(m.r<0||(m.i>=0&&m.i<m.rows[m.r].length))&&Number.isSafeInteger(m.hearts);
     if(!ok) delete next.map; } // 地图坏了就丢掉重生成，不影响整份存档
+  if(next.delve!==undefined&&next.delve!==null){ const d=next.delve, nums=o=>saveRecord(o)&&Object.values(o).every(v=>Number.isSafeInteger(v)&&v>=0);
+    if(!(saveRecord(d)&&Number.isSafeInteger(d.layer)&&d.layer>=1&&typeof d.coins==='number'&&Number.isFinite(d.coins)&&d.coins>=0&&nums(d.cards)&&nums(d.orbs)&&Number.isSafeInteger(d.soul)&&d.soul>=0)) bad();
+    for(const id of Object.keys(d.cards)) if(!byId[id]) delete d.cards[id]; for(const k of Object.keys(d.orbs)) if(!ORB_SPECIAL.includes(k)) delete d.orbs[k]; }
   if(next.daily!==undefined&&next.daily!==null){ const d=next.daily; if(!saveRecord(d)||typeof d.day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d.day)||typeof d.paid!=='boolean'||!['best','tries','streak'].every(k=>Number.isSafeInteger(d[k])&&d[k]>=0)) bad(); }
   if(next.dailySent!==undefined){ if(!saveRecord(next.dailySent)) bad(); for(const v of Object.values(next.dailySent)) if(typeof v!=='number'||!Number.isFinite(v)||v<0) bad(); }
   if(next.loads!==undefined){ if(!saveRecord(next.loads)) bad();
@@ -705,7 +708,7 @@ function prestige(){
   M.keep={slot:upLv('slot'),auto:upLv('auto'),reson:upLv('reson')};
   M.up=fresh().up; M.tree={}; M.treeSpent=0; recalcTree(); M.money=M.legacy.start?200*Math.pow(6,M.legacy.start-1):0;
   delete M.bossD; delete M.lastBossHp; delete M.dealtAvg;
-  M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=GOAL_MIN; M.streak=0; delete M.nextBoon;
+  M.delve=null; M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=GOAL_MIN; M.streak=0; delete M.nextBoon;
   // 画面也要跟着回到第 1 章：换掉上一轮的结算数据和台面布局，否则要进一轮游戏才看得出变化
   G={loot:{},reborn:g}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo='';
   save(); renderSide(); hud(); tab='legacy'; SFX.play('melt'); toast(`🔥 熔金完成，获得 ${g} 金魂`); checkAch(); showBetween();
@@ -909,16 +912,42 @@ function genRoutes(noShop){ if(!unl('routes')) return ['normal']; const pool=['e
   while(out.length<3&&pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); return out; } // 刚逛完黑市 / 奇遇：只给普通和精英
 
 
+
+// ================= 🕳️ 深入金库（搜打撤）：连续打好几层，每层打完选「撤离」带走背包，或「继续」更深；失败背包全丢 =================
+const RORD={N:0,R:1,SR:2,SSR:3,UR:4};
+const DELVE_HP=1.3, DELVE_COIN=.35, DELVE_GOAL=.8, DELVE_GOAL_STEP=.25;
+const delveGoal=l=>Math.max(GOAL_MIN,Math.ceil(M.goal*(DELVE_GOAL+DELVE_GOAL_STEP*(l-1))));
+function delveStart(){ M.delve={layer:1,coins:0,cards:{},orbs:{},soul:0}; save(); startRound(false,{route:'delve'}); }
+function delveNext(){ if(!M.delve) return; M.delve.layer++; save(); startRound(false,{route:'delve'}); }
+// 每层结束：这一层的金币和卡先放进背包（从余额 / 卡库里拿出来），达成就能选撤或继续，失败全丢
+function delveSettle(ok){ const d=M.delve; if(!d) return; const L=d.layer;
+  const coins=Math.min(M.money,G.earned); M.money-=coins; d.coins+=coins;
+  for(const [id,n] of Object.entries(G.loot||{})){ const left=Math.max(0,(M.owned[id]||0)-n), took=(M.owned[id]||0)-left; if(!took) continue;
+    if(left>0) M.owned[id]=left; else { delete M.owned[id]; M.deck=M.deck.filter(x=>x!==id); } d.cards[id]=(d.cards[id]||0)+took; }
+  if(ok){ if(L%2===0){ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; d.orbs[k]=(d.orbs[k]||0)+1; } if(L>=3) d.soul+=L-2; G.delveOk=true; }
+  else { G.delveLost={...d}; M.delve=null; loseHeart('被困在金库深处'); }
+  G.delveLayer=L; }
+function delveExtract(){ const d=M.delve; if(!d) return; M.delve=null;
+  M.money+=d.coins; M.life+=d.coins;
+  for(const [id,n] of Object.entries(d.cards)){ const isNew=!M.owned[id]; M.owned[id]=(M.owned[id]||0)+n; if(isNew&&equipped().length<maxSlots()) M.deck.push(id); }
+  for(const [k,n] of Object.entries(d.orbs)) M.orbs[k]=(M.orbs[k]||0)+n; M.soul+=d.soul;
+  save(); renderSide(); SFX.play('SSR'); buzz([30,40,80]);
+  const nCards=Object.values(d.cards).reduce((a,b)=>a+b,0), nOrbs=Object.values(d.orbs).reduce((a,b)=>a+b,0);
+  G={loot:{},delveOut:{...d,nCards,nOrbs}}; tab='loot'; showBetween(); }
+function delveBagHTML(d){ const nCards=Object.values(d.cards).reduce((a,b)=>a+b,0), nOrbs=Object.values(d.orbs).reduce((a,b)=>a+b,0);
+  const best=Object.keys(d.cards).sort((a,b)=>RORD[byId[b].rar]-RORD[byId[a].rar]).slice(0,6).map(id=>`<span title="${byId[id].name}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico}</span>`).join(' ');
+  return `✦ <b style="color:var(--gold2)">${f(d.coins)}</b> 金币 · 🎴 ${nCards} 张卡 ${best}${nOrbs?` · 🔮 ${nOrbs} 颗特殊宝珠`:''}${d.soul?` · 🔥 ${d.soul} 金魂`:''}`; }
+
 // ================= 🗺️ 章节地图：每章一张分岔路线图 + 命数（打败第 1 章首领、开放路线后启用） =================
 // 6 站 + 首领。每站可以选连着的一个节点；普通 / 精英没达成目标、首领战失败都会掉 1 颗心，心用完「本局结束」：本章地图重来
 const MAP_ROWS=6, MAP_HEARTS=3, NODE_TYPES_OK={normal:1,elite:1,shop:1,event:1,delve:1};
-const MAP_W={normal:52,elite:22,shop:12,event:9}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
+const MAP_W={normal:48,elite:20,shop:11,event:9,delve:8}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
 const mapOn=()=>unl('routes');
 const sideName=x=>x<.4?'左':x>.6?'右':'中';
 function genMap(){ const rows=[], next=[];
   for(let r=0;r<MAP_ROWS;r++){ const n=r===0?2:(Math.random()<.55?3:2), row=[];
     for(let i=0;i<n;i++){ let t='normal';
-      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
+      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))&&!(k==='delve'&&(r<2||rows.some(rw=>rw.some(o=>o.t==='delve'))||row.some(o=>o.t==='delve')))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
       row.push({t,x:(i+1)/(n+1)}); }
     rows.push(row); }
   if(!rows.some(row=>row.some(o=>o.t==='elite'))){ const r=2+Math.floor(Math.random()*(MAP_ROWS-2)); rows[r][Math.floor(Math.random()*rows[r].length)].t='elite'; }
@@ -933,7 +962,7 @@ function ensureMap(){ if(!mapOn()) return null; if(!M.map||M.map.ch!==M.ch){ con
 const mapAtBoss=()=>{ const m=M.map; return !!m&&m.ch===M.ch&&m.r===MAP_ROWS-1; };
 function mapReach(){ const m=ensureMap(); if(!m) return []; if(m.r>=MAP_ROWS-1) return [];
   if(m.r<0) return m.rows[0].map((o,i)=>[0,i]); return m.next[m.r][m.i].map(j=>[m.r+1,j]); }
-function goNode(r,i){ const m=ensureMap(); if(!m||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
+function goNode(r,i){ const m=ensureMap(); if(!m||M.delve||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
 function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return; m.hearts--; G.heartLost=why;
   if(m.hearts<=0){ G.runOver=true; M.map=genMap(); M.map.runs=m.runs+1; M.chAge=0; M.streak=0; } }
 const NODE_INFO={
@@ -941,6 +970,7 @@ const NODE_INFO={
   elite:{ico:'⚔️',name:'精英',tip:g=>`卡包血量 ×${ELITE_HP}、金币 ×${ELITE_COIN}，目标开 ${Math.ceil(g*ELITE_GOAL)} 包。达成：SR 以上卡牌三选一 + 一颗特殊宝珠。没达成：掉 1 颗 ❤️。`},
   shop:{ico:'🏮',name:'黑市',tip:()=>'不打这一轮：花金币买卡包、按流派三选一、免费封印不想要的卡。不会掉心。'},
   event:{ico:'❓',name:'奇遇',tip:()=>'不打这一轮：随机遇到一件事。有好事，也有扒手、塌方、诅咒宝箱这类坏事，要自己权衡。'},
+  delve:{ico:'🕳️',name:'深入金库',tip:g=>`搜打撤：连续往下打好几层，第 1 层目标 ${delveGoal(1)} 包，每深一层卡包血量 ×${DELVE_HP}、金币 +${pct(DELVE_COIN)}、目标更高。每层的金币和卡先放进背包，打完一层可以「撤离」全部带走，或「继续」更深：每 2 层多一颗特殊宝珠，第 3 层起每层再加金魂。没达成目标就被困住：背包全丢，还掉 1 颗 ❤️。`},
   boss:{ico:'👑',name:'首领',tip:()=>'本章首领。击败后进入下一章，换一张新地图。失败掉 1 颗 ❤️，可以再打。'},
 };
 function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(), rowH=46, H0=(MAP_ROWS+1)*rowH+10;
@@ -1057,7 +1087,7 @@ function renderDaily(body){ const d=dailyOf(dayKey()), ru=DAILY_RULES.find(x=>x.
 function equipped(){ if(ROUND_EQ) return ROUND_EQ; return M.deck.filter(id=>M.owned[id]).slice(0,maxSlots()); }
 // ---- 提前配装：三套技能卡 + 基石开关，开打前按关卡自动换上 ----
 const LOADS={boss:{ico:'👑',name:'打 Boss',when:'首领战'},special:{ico:'⚔️',name:'特殊关',when:'精英轮 · 挑战关'},farm:{ico:'🪙',name:'打钱',when:'普通轮'}};
-const loadKind=(boss,opt={})=>opt.chal?'special':boss?'boss':opt.route==='elite'?'special':'farm';
+const loadKind=(boss,opt={})=>opt.chal?'special':boss?'boss':opt.route==='elite'||opt.route==='delve'?'special':'farm';
 const loadDeck=k=>{ const L=(M.loads||{})[k]; return L?L.deck.filter(id=>M.owned[id]).slice(0,maxSlots()):null; };
 const loadOn=k=>{ const d=loadDeck(k), L=(M.loads||{})[k]; return !!d&&JSON.stringify(d)===JSON.stringify(equipped())&&JSON.stringify(L.ks||{})===JSON.stringify(M.ksOff||{}); };
 function saveLoad(k){ M.loads=M.loads||{}; M.loads[k]={deck:equipped().slice(),ks:Object.assign({},M.ksOff||{})}; if(M.loadAuto===undefined) M.loadAuto=true; save(); }
@@ -1110,6 +1140,7 @@ function startRound(boss,opt={}){
   for(let i=G.bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [G.bag[i],G.bag[j]]=[G.bag[j],G.bag[i]]; }
   G.route=boss||chal||daily?null:(opt.route||'normal');
   if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*ELITE_GOAL):M.goal; if(G.route==='elite'){ G.mut={hpX:ELITE_HP}; G.bo.coin*=ELITE_COIN; } }
+  if(G.route==='delve'){ const L=(M.delve||{layer:1}).layer; G.delveL=L; G.goal=delveGoal(L); G.mut={hpX:Math.pow(DELVE_HP,L)}; G.bo.coin*=1+DELVE_COIN*L; setTimeout(()=>toast(`🕳️ 深入金库 · 第 ${L} 层`),300); }
   if(M.nextCurse&&!chal&&!daily){ const cu=CURSES[M.nextCurse]; M.nextCurse=null; if(cu){ cu.go(G); G.curse=cu; setTimeout(()=>toast(`${cu.ico} 诅咒：${cu.name} · ${cu.desc}`),700); } }
   if(M.nextBoon&&!chal&&!daily){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} 奇遇祝福：${nb.name}`),400); } }
   const noB=TS.ks.greed||(mut&&mut.noBasket)||(chal&&chal.noBasket); if(noB){ G.basket=null; G.basket2=null; }
@@ -1384,7 +1415,9 @@ const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true; G.fx.push({x:W/2,y:H/2+40,t:'本轮目标达成',c:'#7fe0a0',life:1.6,sz:20}); SFX.play('ach'); } }
 // 没达成：目标降到这轮实际开包数 ×1.15 附近（一次最多减半），旧版本 bug 抬高的目标几轮就能落回来
 const goalAfterMiss=(goal,opened)=>Math.max(GOAL_MIN,Math.min(goal-2,Math.max(Math.ceil(opened*1.15),Math.round(goal*.5))));
-function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('首领战失败'); if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok; M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('目标没达成');
+function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('首领战失败'); if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok;
+  if(G.route==='delve'){ delveSettle(ok); return; }
+  M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('目标没达成');
   if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
     M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*.5)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
@@ -1461,7 +1494,7 @@ function showEvent(){ const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)], 
     const fin=msg=>{ save(); hud(); box.innerHTML=`<h2 class="serif goldtxt">${ev.ico} 奇遇 · ${ev.name}</h2><p style="line-height:1.9;font-size:15px;margin-top:14px">${msg}</p><div class="foot"><span></span><button class="btn" id="evGo">继续 ▶</button></div>`; $('evGo').onclick=leaveDetour; };
     if(o.pick) openPick({title:'📜 残卷 · 三选一'},()=>fin('你合上了残卷。')); else { const r=o.go(); if(r&&r.pick) openPick(r.pick,()=>fin(r.msg)); else fin(r); } });
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
-function goRoute(r){ if(r==='shop') showMarket(); else if(r==='event') showEvent(); else startRound(false,{route:r}); }
+function goRoute(r){ if(r==='shop') showMarket(); else if(r==='event') showEvent(); else if(r==='delve') delveStart(); else startRound(false,{route:r}); }
 function boom(x,y,r,d){ G.parts.push({ring:true,x,y,r:0,max:r,life:.35}); SFX.play('boom'); G.packs.slice().forEach(o=>{ if(Math.hypot(o.x-x,o.y-y)<r) dmgPack(o,d,true,'fire'); }); }
 function tearPack(p){ const P=PT[p.t], body=p.t===3?'#17130f':P.b, edge=p.t===3?'#c8a464':P.a; G.tears=G.tears||[];
   [-1,1].forEach(sg=>G.tears.push({x:p.x+sg*2,y:p.y+sg*p.hh/2,oy:0,w:p.hw*2,h:p.hh,top:sg<0,body,edge,vy:sg<0?-150:40,rot:0,vr:sg*rnd(1.5,3)*(Math.random()<.5?-1:1),life:.55}));
@@ -1917,7 +1950,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-06.5';
+const GAME_V='2026-11-06.6';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2351,6 +2384,7 @@ function manualHTML(){
     '<b>熔金转生</b>（打败第 4 章首领后开放）：重置进度换<b>金魂</b>，在「传承」里换永久加成。卡牌和图鉴都会保留。',
   ]))}
   ${sec('🗺️','关卡和玩法',li([
+    `<b>🕳️ 深入金库</b>（地图上偶尔出现）：搜打撤玩法。连续往下打，每层更难、金币更多，打下的金币和卡先放进背包；每打通一层可以撤离全部带走，或者继续更深，第 2、4…层多一颗特殊宝珠，第 3 层起还有金魂。没达成目标就被困住，背包全丢。`,
     `<b>🗺️ 章节地图</b>（打败第 1 章首领后开放）：每章一张分岔路线图，${MAP_ROWS} 站之后是首领。每次从连着的点里选一个去。没达成目标、首领战失败都会掉 1 颗 ❤️（每章 ${MAP_HEARTS} 颗），心用完本局结束，地图从头开始，卡牌和金币都保留。`,
     '<b>普通轮</b>：完成开包目标。同一章打得越久，卡包越硬（每轮 ×1.15），金币也跟着变多；打败首领进下一章后重置。',
     '<b>精英轮</b>：目标更高，奖励更好，还会附带一个特殊规则。',
@@ -2401,7 +2435,7 @@ function showIntro(){
 function showBetween(){
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
   const total=ids.reduce((s,id)=>s+G.loot[id],0); lastLootTotal=total;
-  const ready=bossReady(), canP=M.maxCh>=4;
+  const ready=bossReady()&&!M.delve, canP=M.maxCh>=4;
   const mechHTML=bossMechs(M.ch).map(k=>`${MECH[k].ico} <b>${MECH[k].name}</b>：${typeof MECH[k].desc==='function'?MECH[k].desc():MECH[k].desc}`).join('<br>');
   const nextBoss=ready&&!(G.packs&&G.isBoss)?`<div class="chap" style="margin-top:12px;border-color:#ff6b5b66;display:flex;gap:12px;align-items:flex-start"><img src="${ART.p1[bossIdx(M.ch)]}" alt="" style="width:56px;height:84px;object-fit:contain;flex:none;background:#0d0b09;border-radius:6px;border:1px solid var(--line)"><div>👑 首领「<b>${chInfo(M.ch).boss}</b>」已现身<br><span class="sub" style="line-height:1.7">${mechHTML}${p2Mech(M.ch)?`<br>半血进入<b style="color:#e8a090">第二阶段</b>：追加「${MECH[p2Mech(M.ch)].name}」，移动更快，并召唤卡包`:''}</span></div></div>`:'';
   const migHTML=G.migrated?`<div class="chap" style="margin-top:12px;border-color:var(--green)">星盘精简过了：你之前点的节点已经全部退还，共 <b>${f(G.migrated)}</b> 金币，去「星盘」重新规划路线吧。</div>`:'';
@@ -2426,14 +2460,18 @@ function showBetween(){
     <button class="btn" id="lbAskGo" style="padding:7px 16px;font-size:14px;letter-spacing:0">上榜</button><button class="ghost" id="lbAskNo">不再提示</button></div>
     <div class="sub" style="margin-top:4px">昵称会公开显示在「目标 → 排行榜」上，之后也能在那里改名。</div><div id="lbAskStatus" class="sub" role="status"></div></div>`:'';
   const unlHTML=newU.map(u=>`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔓 <b style="color:var(--gold2)">新玩法：${u.name}</b><br><span class="sub">${u.txt}</span></div>`).join('');
-  const RSUB={normal:`开 ${M.goal} 包`,elite:`开 ${Math.ceil(M.goal*ELITE_GOAL)} 包 · SR+ 三选一 · 宝珠`,shop:'卡包 · 选卡 · 封印',event:'随机事件'};
-  const routeBtns=mapNodes?mapNodes.map(([r,i],k)=>{ const t=M.map.rows[r][i].t; return `<button class="btn ${k?'alt':''}" data-node="${r},${i}" title="${NODE_INFO[t].tip(M.goal)}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>${NODE_INFO[t].ico} ${NODE_INFO[t].name}${mapNodes.length>1?` · ${sideName(M.map.rows[r][i].x)}`:''} ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[t]}</small></button>`; }).join(''):M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
-      <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
+  const RSUB={delve:`第 1 层 · 开 ${delveGoal(1)} 包 · 搜打撤`,normal:`开 ${M.goal} 包`,elite:`开 ${Math.ceil(M.goal*ELITE_GOAL)} 包 · SR+ 三选一 · 宝珠`,shop:'卡包 · 选卡 · 封印',event:'随机事件'};
+  const delveBtns=M.delve?`<button class="btn" id="dvOut" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>🏃 撤离</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">带走背包</small></button><button class="btn alt" id="dvGo" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>🕳️ 继续 ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">第 ${M.delve.layer+1} 层 · 开 ${delveGoal(M.delve.layer+1)} 包</small></button>`:'';
+  const routeBtns=delveBtns||(mapNodes?mapNodes.map(([r,i],k)=>{ const t=M.map.rows[r][i].t; return `<button class="btn ${k?'alt':''}" data-node="${r},${i}" title="${NODE_INFO[t].tip(M.goal)}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>${NODE_INFO[t].ico} ${NODE_INFO[t].name}${mapNodes.length>1?` · ${sideName(M.map.rows[r][i].x)}`:''} ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[t]}</small></button>`; }).join(''):M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
+      <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join(''));
   const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 不知道某个东西是什么？<span class="sub">手册里都有，打的时候也能随时打开（右上角「📖 手册」）。</span></span><button class="ghost" id="manTipB">打开手册</button></div>`:'';
   const runMsg=G.packs&&G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090">本局结束</b>：心用完了，第 ${M.ch} 章的地图重新开始。<br><span class="sub">卡牌、金币、升级都保留；本章的卡包强度和连胜清零。</span></div>`:G.packs&&G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}，掉了 1 颗心，还剩 ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}。</div>`:'';
+  const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)">成功撤离！</b>带出来：${delveBagHTML(G.delveOut)}</div>`
+    :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">被困在第 ${G.delveLayer} 层</b>：目标 ${G.opened}/${G.goal} 包没达成，背包全丢了：${delveBagHTML(G.delveLost)}</div>`
+    :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>深入金库 · 第 ${G.delveLayer} 层打通</b>（${G.opened}/${G.goal} 包）<br>背包：${delveBagHTML(M.delve)}<br><span class="sub">撤离：全部带走。继续：去第 ${G.delveLayer+1} 层，目标 ${delveGoal(G.delveLayer+1)} 包，卡包血量 ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}；没达成就全丢。${(G.delveLayer+1)%2===0?'打通下一层多一颗特殊宝珠。':''}${G.delveLayer+1>=3?`打通下一层再加 ${G.delveLayer-1} 金魂。`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ 这一轮提前结束了，台面上还在飞的宝珠没有结算。</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):(G.reborn?'熔金转生完成':'欢迎回来')}</h2>${unlHTML}${migHTML}${tab==='loot'?runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):(G.reborn?'熔金转生完成':G.delveOut?'深入金库 · 撤离成功':'欢迎回来')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2461,6 +2499,7 @@ function showBetween(){
   if($('a2hsNo')) $('a2hsNo').onclick=()=>{ M.a2hsOff=1; save(); $('a2hs').remove(); };
   if($('a2hsGo')) $('a2hsGo').onclick=async()=>{ const e=instEvt; instEvt=null; e.prompt(); try{ const r=await e.userChoice; if(r.outcome==='accepted'){ M.a2hsOff=1; save(); } }catch(_){} showBetween(); };
   document.querySelectorAll('#box [data-route]').forEach(b=>b.onclick=()=>goRoute(b.dataset.route));
+  if($('dvOut')) $('dvOut').onclick=delveExtract; if($('dvGo')) $('dvGo').onclick=delveNext;
   document.querySelectorAll('#box [data-node]').forEach(b=>b.onclick=()=>{ const [r,i]=b.dataset.node.split(',').map(Number); goNode(r,i); });
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
   if(G.pendingPick){ G.pendingPick=0; setTimeout(()=>openPick({minRar:'SR',title:'⚔️ 精英奖励 · 三选一'},()=>showBetween()),350); }

@@ -216,7 +216,7 @@ test('本章越打越硬：每轮血量和金币 ×1.15，最多 10 轮，进下
   assert.match(html, /\*Math\.pow\(CH_HP,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
   assert.match(html, /\*Math\.pow\(CH_VAL,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
   assert.match(html, /M\.chRounds=0; M\.chAge=0;/);
-  assert.match(html, /G\.goalOk=ok; M\.chAge=\(M\.chAge\|\|0\)\+1;/);
+  assert.match(html, /\n  M\.chAge=\(M\.chAge\|\|0\)\+1; if\(!ok\) loseHeart/);
 });
 
 test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少一个精英；首站只有普通', () => {
@@ -236,4 +236,19 @@ test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少�
   }
   assert.match(html, /function settleRoute\(\)\{ if\(G\.isBoss&&!G\.bossWin\) loseHeart\('首领战失败'\);/);
   assert.match(html, /if\(!ok\) loseHeart\('目标没达成'\);/);
+});
+
+test('深入金库：每层血量 ×1.3^层、目标逐层提高；失败背包全丢并掉心，地图里每张最多一个', () => {
+  assert.match(html, /const DELVE_HP=1\.3, DELVE_COIN=\.35, DELVE_GOAL=\.8, DELVE_GOAL_STEP=\.25;/);
+  assert.match(html, /G\.mut=\{hpX:Math\.pow\(DELVE_HP,L\)\}/);
+  assert.match(html, /else \{ G\.delveLost=\{\.\.\.d\}; M\.delve=null; loseHeart\('被困在金库深处'\); \}/);
+  assert.match(html, /if\(G\.route==='delve'\)\{ delveSettle\(ok\); return; \}/);
+  const src = between('const MAP_ROWS=', 'function ensureMap(');
+  for (let k = 0; k < 300; k++) {
+    const ctx = vm.createContext({M: {ch: 2}, Math, unl: () => true});
+    vm.runInContext(src + ';this.m=genMap();', ctx);
+    const rows = ctx.m.rows;
+    assert.ok(rows.flat().filter(o => o.t === 'delve').length <= 1);
+    assert.ok(!rows[0].concat(rows[1]).some(o => o.t === 'delve'));
+  }
 });

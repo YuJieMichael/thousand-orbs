@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:b0cf5719632115b238ba14d3cd68d9e03eaf915d -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:635f6d400952dae9f938fbf240868631d722c91d -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -558,6 +558,9 @@ function normalizeSave(data){
       &&m.next.every((e,r)=>Array.isArray(e)&&e.length===m.rows[r].length&&e.every(l=>Array.isArray(l)&&l.every(j=>Number.isSafeInteger(j)&&j>=0&&j<m.rows[r+1].length)))
       &&Number.isSafeInteger(m.r)&&m.r>=-1&&m.r<MAP_ROWS&&Number.isSafeInteger(m.i)&&(m.r<0||(m.i>=0&&m.i<m.rows[m.r].length))&&Number.isSafeInteger(m.hearts);
     if(!ok) delete next.map; } // 地图坏了就丢掉重生成，不影响整份存档
+  if(next.delve!==undefined&&next.delve!==null){ const d=next.delve, nums=o=>saveRecord(o)&&Object.values(o).every(v=>Number.isSafeInteger(v)&&v>=0);
+    if(!(saveRecord(d)&&Number.isSafeInteger(d.layer)&&d.layer>=1&&typeof d.coins==='number'&&Number.isFinite(d.coins)&&d.coins>=0&&nums(d.cards)&&nums(d.orbs)&&Number.isSafeInteger(d.soul)&&d.soul>=0)) bad();
+    for(const id of Object.keys(d.cards)) if(!byId[id]) delete d.cards[id]; for(const k of Object.keys(d.orbs)) if(!ORB_SPECIAL.includes(k)) delete d.orbs[k]; }
   if(next.daily!==undefined&&next.daily!==null){ const d=next.daily; if(!saveRecord(d)||typeof d.day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d.day)||typeof d.paid!=='boolean'||!['best','tries','streak'].every(k=>Number.isSafeInteger(d[k])&&d[k]>=0)) bad(); }
   if(next.dailySent!==undefined){ if(!saveRecord(next.dailySent)) bad(); for(const v of Object.values(next.dailySent)) if(typeof v!=='number'||!Number.isFinite(v)||v<0) bad(); }
   if(next.loads!==undefined){ if(!saveRecord(next.loads)) bad();
@@ -706,7 +709,7 @@ function prestige(){
   M.keep={slot:upLv('slot'),auto:upLv('auto'),reson:upLv('reson')};
   M.up=fresh().up; M.tree={}; M.treeSpent=0; recalcTree(); M.money=M.legacy.start?200*Math.pow(6,M.legacy.start-1):0;
   delete M.bossD; delete M.lastBossHp; delete M.dealtAvg;
-  M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=GOAL_MIN; M.streak=0; delete M.nextBoon;
+  M.delve=null; M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=GOAL_MIN; M.streak=0; delete M.nextBoon;
   // 画面也要跟着回到第 1 章：换掉上一轮的结算数据和台面布局，否则要进一轮游戏才看得出变化
   G={loot:{},reborn:g}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo='';
   save(); renderSide(); hud(); tab='legacy'; SFX.play('melt'); toast(`🔥 Smelting complete, gained ${g} Gold Souls`); checkAch(); showBetween();
@@ -910,16 +913,42 @@ function genRoutes(noShop){ if(!unl('routes')) return ['normal']; const pool=['e
   while(out.length<3&&pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); return out; } // 刚逛完黑市 / 奇遇：只给普通和精英
 
 
+
+// ================= 🕳️ 深入金库（搜打撤）：连续打好几层，每层打完选「撤离」带走背包，或「继续」更深；失败背包全丢 =================
+const RORD={N:0,R:1,SR:2,SSR:3,UR:4};
+const DELVE_HP=1.3, DELVE_COIN=.35, DELVE_GOAL=.8, DELVE_GOAL_STEP=.25;
+const delveGoal=l=>Math.max(GOAL_MIN,Math.ceil(M.goal*(DELVE_GOAL+DELVE_GOAL_STEP*(l-1))));
+function delveStart(){ M.delve={layer:1,coins:0,cards:{},orbs:{},soul:0}; save(); startRound(false,{route:'delve'}); }
+function delveNext(){ if(!M.delve) return; M.delve.layer++; save(); startRound(false,{route:'delve'}); }
+// 每层结束：这一层的金币和卡先放进背包（从余额 / 卡库里拿出来），达成就能选撤或继续，失败全丢
+function delveSettle(ok){ const d=M.delve; if(!d) return; const L=d.layer;
+  const coins=Math.min(M.money,G.earned); M.money-=coins; d.coins+=coins;
+  for(const [id,n] of Object.entries(G.loot||{})){ const left=Math.max(0,(M.owned[id]||0)-n), took=(M.owned[id]||0)-left; if(!took) continue;
+    if(left>0) M.owned[id]=left; else { delete M.owned[id]; M.deck=M.deck.filter(x=>x!==id); } d.cards[id]=(d.cards[id]||0)+took; }
+  if(ok){ if(L%2===0){ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; d.orbs[k]=(d.orbs[k]||0)+1; } if(L>=3) d.soul+=L-2; G.delveOk=true; }
+  else { G.delveLost={...d}; M.delve=null; loseHeart('Trapped deep in the vault'); }
+  G.delveLayer=L; }
+function delveExtract(){ const d=M.delve; if(!d) return; M.delve=null;
+  M.money+=d.coins; M.life+=d.coins;
+  for(const [id,n] of Object.entries(d.cards)){ const isNew=!M.owned[id]; M.owned[id]=(M.owned[id]||0)+n; if(isNew&&equipped().length<maxSlots()) M.deck.push(id); }
+  for(const [k,n] of Object.entries(d.orbs)) M.orbs[k]=(M.orbs[k]||0)+n; M.soul+=d.soul;
+  save(); renderSide(); SFX.play('SSR'); buzz([30,40,80]);
+  const nCards=Object.values(d.cards).reduce((a,b)=>a+b,0), nOrbs=Object.values(d.orbs).reduce((a,b)=>a+b,0);
+  G={loot:{},delveOut:{...d,nCards,nOrbs}}; tab='loot'; showBetween(); }
+function delveBagHTML(d){ const nCards=Object.values(d.cards).reduce((a,b)=>a+b,0), nOrbs=Object.values(d.orbs).reduce((a,b)=>a+b,0);
+  const best=Object.keys(d.cards).sort((a,b)=>RORD[byId[b].rar]-RORD[byId[a].rar]).slice(0,6).map(id=>`<span title="${byId[id].name}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico}</span>`).join(' ');
+  return `✦ <b style="color:var(--gold2)">${f(d.coins)}</b> Coins · 🎴 ${nCards} cards ${best}${nOrbs?` · 🔮 ${nOrbs} special orbs`:''}${d.soul?` · 🔥 ${d.soul} Gold Souls`:''}`; }
+
 // ================= 🗺️ 章节地图：每章一张分岔路线图 + 命数（打败第 1 章首领、开放路线后启用） =================
 // 6 站 + 首领。每站可以选连着的一个节点；普通 / 精英没达成目标、首领战失败都会掉 1 颗心，心用完「本局结束」：本章地图重来
 const MAP_ROWS=6, MAP_HEARTS=3, NODE_TYPES_OK={normal:1,elite:1,shop:1,event:1,delve:1};
-const MAP_W={normal:52,elite:22,shop:12,event:9}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
+const MAP_W={normal:48,elite:20,shop:11,event:9,delve:8}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
 const mapOn=()=>unl('routes');
 const sideName=x=>x<.4?'left':x>.6?'right':'middle';
 function genMap(){ const rows=[], next=[];
   for(let r=0;r<MAP_ROWS;r++){ const n=r===0?2:(Math.random()<.55?3:2), row=[];
     for(let i=0;i<n;i++){ let t='normal';
-      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
+      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))&&!(k==='delve'&&(r<2||rows.some(rw=>rw.some(o=>o.t==='delve'))||row.some(o=>o.t==='delve')))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
       row.push({t,x:(i+1)/(n+1)}); }
     rows.push(row); }
   if(!rows.some(row=>row.some(o=>o.t==='elite'))){ const r=2+Math.floor(Math.random()*(MAP_ROWS-2)); rows[r][Math.floor(Math.random()*rows[r].length)].t='elite'; }
@@ -934,7 +963,7 @@ function ensureMap(){ if(!mapOn()) return null; if(!M.map||M.map.ch!==M.ch){ con
 const mapAtBoss=()=>{ const m=M.map; return !!m&&m.ch===M.ch&&m.r===MAP_ROWS-1; };
 function mapReach(){ const m=ensureMap(); if(!m) return []; if(m.r>=MAP_ROWS-1) return [];
   if(m.r<0) return m.rows[0].map((o,i)=>[0,i]); return m.next[m.r][m.i].map(j=>[m.r+1,j]); }
-function goNode(r,i){ const m=ensureMap(); if(!m||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
+function goNode(r,i){ const m=ensureMap(); if(!m||M.delve||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
 function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return; m.hearts--; G.heartLost=why;
   if(m.hearts<=0){ G.runOver=true; M.map=genMap(); M.map.runs=m.runs+1; M.chAge=0; M.streak=0; } }
 const NODE_INFO={
@@ -942,6 +971,7 @@ const NODE_INFO={
   elite:{ico:'⚔️',name:'Elite',tip:g=>`Pack HP ×${ELITE_HP}, coins ×${ELITE_COIN}, goal: open ${Math.ceil(g*ELITE_GOAL)} packs. Success: pick 1 of 3 SR+ cards plus a special orb. Miss: lose 1 ❤️.`},
   shop:{ico:'🏮',name:'Black Market',tip:()=>'No round here: spend coins on packs, pick 1 of 3 from a school, or seal unwanted cards for free. You can’t lose hearts.'},
   event:{ico:'❓',name:'Encounter',tip:()=>'No round here: something random happens. Some events are good, others — pickpockets, cave-ins, cursed chests — are bad, so weigh your choices.'},
+  delve:{ico:'🕳️',name:'The Deep Vault',tip:g=>`Loot-and-extract: fight down layer after layer. Layer 1’s goal is ${delveGoal(1)} packs; each layer deeper gives packs ×${DELVE_HP} HP, +${pct(DELVE_COIN)} coins and a higher goal. Coins and cards from each layer go into your bag. After clearing a layer, Extract to take it all home, or Push On: every 2 layers adds a special orb, and from layer 3 each layer adds Gold Souls. Miss a goal and you’re trapped: you lose the whole bag and 1 ❤️.`},
   boss:{ico:'👑',name:'boss',tip:()=>'This chapter’s boss. Beat it to reach the next chapter and a new map. Losing costs 1 ❤️, and you can try again.'},
 };
 function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(), rowH=46, H0=(MAP_ROWS+1)*rowH+10;
@@ -1058,7 +1088,7 @@ function renderDaily(body){ const d=dailyOf(dayKey()), ru=DAILY_RULES.find(x=>x.
 function equipped(){ if(ROUND_EQ) return ROUND_EQ; return M.deck.filter(id=>M.owned[id]).slice(0,maxSlots()); }
 // ---- 提前配装：三套技能卡 + 基石开关，开打前按关卡自动换上 ----
 const LOADS={boss:{ico:'👑',name:'Boss',when:'boss rounds'},special:{ico:'⚔️',name:'Special',when:'Elite · Challenges'},farm:{ico:'🪙',name:'Farming',when:'Normal rounds'}};
-const loadKind=(boss,opt={})=>opt.chal?'special':boss?'boss':opt.route==='elite'?'special':'farm';
+const loadKind=(boss,opt={})=>opt.chal?'special':boss?'boss':opt.route==='elite'||opt.route==='delve'?'special':'farm';
 const loadDeck=k=>{ const L=(M.loads||{})[k]; return L?L.deck.filter(id=>M.owned[id]).slice(0,maxSlots()):null; };
 const loadOn=k=>{ const d=loadDeck(k), L=(M.loads||{})[k]; return !!d&&JSON.stringify(d)===JSON.stringify(equipped())&&JSON.stringify(L.ks||{})===JSON.stringify(M.ksOff||{}); };
 function saveLoad(k){ M.loads=M.loads||{}; M.loads[k]={deck:equipped().slice(),ks:Object.assign({},M.ksOff||{})}; if(M.loadAuto===undefined) M.loadAuto=true; save(); }
@@ -1111,6 +1141,7 @@ function startRound(boss,opt={}){
   for(let i=G.bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [G.bag[i],G.bag[j]]=[G.bag[j],G.bag[i]]; }
   G.route=boss||chal||daily?null:(opt.route||'normal');
   if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*ELITE_GOAL):M.goal; if(G.route==='elite'){ G.mut={hpX:ELITE_HP}; G.bo.coin*=ELITE_COIN; } }
+  if(G.route==='delve'){ const L=(M.delve||{layer:1}).layer; G.delveL=L; G.goal=delveGoal(L); G.mut={hpX:Math.pow(DELVE_HP,L)}; G.bo.coin*=1+DELVE_COIN*L; setTimeout(()=>toast(`🕳️ The Deep Vault · Depth ${L}`),300); }
   if(M.nextCurse&&!chal&&!daily){ const cu=CURSES[M.nextCurse]; M.nextCurse=null; if(cu){ cu.go(G); G.curse=cu; setTimeout(()=>toast(`${cu.ico} Curse: ${cu.name} · ${cu.desc}`),700); } }
   if(M.nextBoon&&!chal&&!daily){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} Encounter blessing: ${nb.name}`),400); } }
   const noB=TS.ks.greed||(mut&&mut.noBasket)||(chal&&chal.noBasket); if(noB){ G.basket=null; G.basket2=null; }
@@ -1385,7 +1416,9 @@ const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true; G.fx.push({x:W/2,y:H/2+40,t:'Round goal reached',c:'#7fe0a0',life:1.6,sz:20}); SFX.play('ach'); } }
 // 没达成：目标降到这轮实际开包数 ×1.15 附近（一次最多减半），旧版本 bug 抬高的目标几轮就能落回来
 const goalAfterMiss=(goal,opened)=>Math.max(GOAL_MIN,Math.min(goal-2,Math.max(Math.ceil(opened*1.15),Math.round(goal*.5))));
-function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('Boss fight lost'); if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok; M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('Goal missed');
+function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('Boss fight lost'); if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok;
+  if(G.route==='delve'){ delveSettle(ok); return; }
+  M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('Goal missed');
   if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
     M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*.5)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
@@ -1462,7 +1495,7 @@ function showEvent(){ const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)], 
     const fin=msg=>{ save(); hud(); box.innerHTML=`<h2 class="serif goldtxt">${ev.ico} Encounter · ${ev.name}</h2><p style="line-height:1.9;font-size:15px;margin-top:14px">${msg}</p><div class="foot"><span></span><button class="btn" id="evGo"> Continue ▶</button></div>`; $('evGo').onclick=leaveDetour; };
     if(o.pick) openPick({title:'📜 Torn Codex · Pick 1 of 3'},()=>fin('You close the codex.')); else { const r=o.go(); if(r&&r.pick) openPick(r.pick,()=>fin(r.msg)); else fin(r); } });
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
-function goRoute(r){ if(r==='shop') showMarket(); else if(r==='event') showEvent(); else startRound(false,{route:r}); }
+function goRoute(r){ if(r==='shop') showMarket(); else if(r==='event') showEvent(); else if(r==='delve') delveStart(); else startRound(false,{route:r}); }
 function boom(x,y,r,d){ G.parts.push({ring:true,x,y,r:0,max:r,life:.35}); SFX.play('boom'); G.packs.slice().forEach(o=>{ if(Math.hypot(o.x-x,o.y-y)<r) dmgPack(o,d,true,'fire'); }); }
 function tearPack(p){ const P=PT[p.t], body=p.t===3?'#17130f':P.b, edge=p.t===3?'#c8a464':P.a; G.tears=G.tears||[];
   [-1,1].forEach(sg=>G.tears.push({x:p.x+sg*2,y:p.y+sg*p.hh/2,oy:0,w:p.hw*2,h:p.hh,top:sg<0,body,edge,vy:sg<0?-150:40,rot:0,vr:sg*rnd(1.5,3)*(Math.random()<.5?-1:1),life:.55}));
@@ -1918,7 +1951,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-06.5';
+const GAME_V='2026-11-06.6';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2352,6 +2385,7 @@ function manualHTML(){
     '<b> Smelting</b> (opens after the Chapter 4 boss): reset progress for <b> Gold Souls</b>, spent on permanent bonuses in “Legacy”. Cards and Codex are kept.',
   ]))}
   ${sec('🗺️','Rounds and Modes',li([
+    `<b>🕳️ The Deep Vault</b> (appears now and then on the map): a loot-and-extract mode. Fight down layer by layer — each one is tougher and pays more — with your coins and cards held in a bag. After each cleared layer, extract with everything or push deeper; layers 2, 4… add a special orb and layer 3+ adds Gold Souls. Miss a goal and you’re trapped, losing the whole bag.`,
     `<b>🗺️ Chapter Map</b> (opens after the Chapter 1 boss): each chapter is a branching route map —${MAP_ROWS} stops, then the boss. Each time, pick one of the connected nodes. Missing a goal or losing a boss fight costs 1 ❤️(${MAP_HEARTS} per chapter); run out and the run ends — the map restarts, but you keep cards and coins.`,
     '<b> Normal rounds</b>: hit the pack goal. The longer you stay in a chapter, the tougher packs get (×1.15 per round) — and the more coins they give. It resets when you beat the boss.',
     '<b> Elite rounds</b>: higher goal, better rewards, plus a special rule.',
@@ -2402,7 +2436,7 @@ function showIntro(){
 function showBetween(){
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
   const total=ids.reduce((s,id)=>s+G.loot[id],0); lastLootTotal=total;
-  const ready=bossReady(), canP=M.maxCh>=4;
+  const ready=bossReady()&&!M.delve, canP=M.maxCh>=4;
   const mechHTML=bossMechs(M.ch).map(k=>`${MECH[k].ico} <b>${MECH[k].name}</b>：${typeof MECH[k].desc==='function'?MECH[k].desc():MECH[k].desc}`).join('<br>');
   const nextBoss=ready&&!(G.packs&&G.isBoss)?`<div class="chap" style="margin-top:12px;border-color:#ff6b5b66;display:flex;gap:12px;align-items:flex-start"><img src="${ART.p1[bossIdx(M.ch)]}" alt="" style="width:56px;height:84px;object-fit:contain;flex:none;background:#0d0b09;border-radius:6px;border:1px solid var(--line)"><div>👑 Boss “<b>${chInfo(M.ch).boss}</b>” has appeared <br><span class="sub" style="line-height:1.7">${mechHTML}${p2Mech(M.ch)?`<br> At half HP it enters <b style="color:#e8a090"> Phase II</b>: adds “${MECH[p2Mech(M.ch)].name}”, moves faster and summons packs`:''}</span></div></div>`:'';
   const migHTML=G.migrated?`<div class="chap" style="margin-top:12px;border-color:var(--green)"> The Star Chart was simplified: all your previous nodes were refunded, totaling <b>${f(G.migrated)}</b> coins — head to the Star Chart and plan a new path.</div>`:'';
@@ -2427,14 +2461,18 @@ function showBetween(){
     <button class="btn" id="lbAskGo" style="padding:7px 16px;font-size:14px;letter-spacing:0"> Join</button><button class="ghost" id="lbAskNo"> Don’t show again</button></div>
     <div class="sub" style="margin-top:4px"> Your nickname is shown publicly under “Goals → Leaderboard”; you can rename it there later.</div><div id="lbAskStatus" class="sub" role="status"></div></div>`:'';
   const unlHTML=newU.map(u=>`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔓 <b style="color:var(--gold2)"> New feature: ${u.name}</b><br><span class="sub">${u.txt}</span></div>`).join('');
-  const RSUB={normal:`Open ${M.goal} packs`,elite:`Open ${Math.ceil(M.goal*ELITE_GOAL)} packs · SR+ & orb`,shop:'Packs · Picks · Seals',event:'Random event'};
-  const routeBtns=mapNodes?mapNodes.map(([r,i],k)=>{ const t=M.map.rows[r][i].t; return `<button class="btn ${k?'alt':''}" data-node="${r},${i}" title="${NODE_INFO[t].tip(M.goal)}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>${NODE_INFO[t].ico} ${NODE_INFO[t].name}${mapNodes.length>1?` · ${sideName(M.map.rows[r][i].x)}`:''} ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[t]}</small></button>`; }).join(''):M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'; ')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
-      <span>${M.routes.length===1?`Round ${M.round+1}`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
+  const RSUB={delve:`Depth 1 · Open ${delveGoal(1)} packs · loot & extract`,normal:`Open ${M.goal} packs`,elite:`Open ${Math.ceil(M.goal*ELITE_GOAL)} packs · SR+ & orb`,shop:'Packs · Picks · Seals',event:'Random event'};
+  const delveBtns=M.delve?`<button class="btn" id="dvOut" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>🏃 Extract</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px"> take the bag</small></button><button class="btn alt" id="dvGo" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>🕳️ Continue ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">Depth ${M.delve.layer+1} · Open ${delveGoal(M.delve.layer+1)} packs</small></button>`:'';
+  const routeBtns=delveBtns||(mapNodes?mapNodes.map(([r,i],k)=>{ const t=M.map.rows[r][i].t; return `<button class="btn ${k?'alt':''}" data-node="${r},${i}" title="${NODE_INFO[t].tip(M.goal)}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>${NODE_INFO[t].ico} ${NODE_INFO[t].name}${mapNodes.length>1?` · ${sideName(M.map.rows[r][i].x)}`:''} ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[t]}</small></button>`; }).join(''):M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'; ')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
+      <span>${M.routes.length===1?`Round ${M.round+1}`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join(''));
   const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 Not sure what something is? <span class="sub"> It’s all in the manual — open it any time, even mid-round (“📖 Manual” at the top right).</span></span><button class="ghost" id="manTipB"> Open manual</button></div>`:'';
   const runMsg=G.packs&&G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090"> Run over</b>: you’re out of hearts, so the Chapter ${M.ch} map starts over. <br><span class="sub"> Cards, coins and upgrades are kept; this chapter’s pack strength and your streak reset.</span></div>`:G.packs&&G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}, lost 1 heart. Left: ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}.</div>`:'';
+  const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)"> Extracted!</b> Brought out: ${delveBagHTML(G.delveOut)}</div>`
+    :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">Trapped on layer ${G.delveLayer}</b>: missed the goal (${G.opened}/${G.goal} packs) and lost the whole bag: ${delveBagHTML(G.delveLost)}</div>`
+    :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>The Deep Vault · Layer ${G.delveLayer} cleared</b> (${G.opened}/${G.goal} packs)<br>Bag: ${delveBagHTML(M.delve)}<br><span class="sub">Extract: take everything home. Push on: layer ${G.delveLayer+1}, goal ${delveGoal(G.delveLayer+1)} packs, pack HP ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}; miss it and you lose it all. ${(G.delveLayer+1)%2===0?'Clearing the next layer adds a special orb. ':''}${G.delveLayer+1>=3?`Clearing it also adds ${G.delveLayer-1} Gold Souls.`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ This round ended early; orbs still in flight didn’t pay out.</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ Blessings: ${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span> Coins this round</span></div><div class="stat"><b>${G.opened}</b><span> Packs opened</span></div><div class="stat"><b>${G.hits}</b><span> Hits</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span> New</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2462,6 +2500,7 @@ function showBetween(){
   if($('a2hsNo')) $('a2hsNo').onclick=()=>{ M.a2hsOff=1; save(); $('a2hs').remove(); };
   if($('a2hsGo')) $('a2hsGo').onclick=async()=>{ const e=instEvt; instEvt=null; e.prompt(); try{ const r=await e.userChoice; if(r.outcome==='accepted'){ M.a2hsOff=1; save(); } }catch(_){} showBetween(); };
   document.querySelectorAll('#box [data-route]').forEach(b=>b.onclick=()=>goRoute(b.dataset.route));
+  if($('dvOut')) $('dvOut').onclick=delveExtract; if($('dvGo')) $('dvGo').onclick=delveNext;
   document.querySelectorAll('#box [data-node]').forEach(b=>b.onclick=()=>{ const [r,i]=b.dataset.node.split(',').map(Number); goNode(r,i); });
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
   if(G.pendingPick){ G.pendingPick=0; setTimeout(()=>openPick({minRar:'SR',title:'⚔️ Elite Reward · Pick 1 of 3'},()=>showBetween()),350); }

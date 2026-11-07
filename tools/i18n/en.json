@@ -1111,5 +1111,16 @@
 "（打败第 1 章首领后开放）：每章一张分岔路线图，": "(opens after the Chapter 1 boss): each chapter is a branching route map —",
 "站之后是首领。每次从连着的点里选一个去。没达成目标、首领战失败都会掉 1 颗": "stops, then the boss. Each time, pick one of the connected nodes. Missing a goal or losing a boss fight costs 1",
 "（每章": "(",
-"颗），心用完本局结束，地图从头开始，卡牌和金币都保留。": "per chapter); run out and the run ends — the map restarts, but you keep cards and coins."
+"颗），心用完本局结束，地图从头开始，卡牌和金币都保留。": "per chapter); run out and the run ends — the map restarts, but you keep cards and coins.",
+"被困在金库深处": "Trapped deep in the vault",
+"张卡": "cards",
+"颗特殊宝珠": "special orbs",
+"深入金库": "The Deep Vault",
+"包 · 搜打撤": "packs · loot & extract",
+"撤离": "Extract",
+"带走背包": "take the bag",
+"成功撤离！": "Extracted!",
+"带出来：": "Brought out: ",
+"深入金库 · 撤离成功": "The Deep Vault · Extracted",
+"金魂。": "Gold Souls."
 }
