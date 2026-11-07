@@ -30,7 +30,7 @@ test('卡包补充最快 0.45 秒，补货节点再多也不会更快', () => {
 function settle(goal, opened, route = 'normal') {
   const ctx = vm.createContext({
     G: {route, opened, goal, earned: 0}, M: {goal, streak: 0, bestStreak: 0, chRounds: 0, money: 0, life: 0, orbs: {}},
-    ORB_SPECIAL: ['fire'], Math,
+    ORB_SPECIAL: ['fire'], Math, loseHeart() {},
   });
   vm.runInContext(between('const GOAL_MIN=', '\n') + '\n' + between('const goalAfterMiss=', '// ---- 卡牌三选一'), ctx);
   vm.runInContext('settleRoute()', ctx);
@@ -217,4 +217,23 @@ test('本章越打越硬：每轮血量和金币 ×1.15，最多 10 轮，进下
   assert.match(html, /\*Math\.pow\(CH_VAL,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
   assert.match(html, /M\.chRounds=0; M\.chAge=0;/);
   assert.match(html, /G\.goalOk=ok; M\.chAge=\(M\.chAge\|\|0\)\+1;/);
+});
+
+test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少一个精英；首站只有普通', () => {
+  const src = between('const MAP_ROWS=', 'function ensureMap(');
+  for (let k = 0; k < 200; k++) {
+    const ctx = vm.createContext({M: {ch: 2}, Math, unl: () => true});
+    vm.runInContext(src + ';this.m=genMap();', ctx);
+    const m = ctx.m;
+    assert.equal(m.rows.length, 6); assert.equal(m.next.length, 5); assert.equal(m.hearts, 3); assert.equal(m.r, -1);
+    assert.ok(m.rows[0].every(o => o.t === 'normal'));
+    assert.ok(m.rows.flat().some(o => o.t === 'elite'));
+    assert.ok(!m.rows[1].some(o => o.t === 'shop'));
+    for (let r = 0; r < 5; r++) {
+      assert.ok(m.next[r].every(l => l.length >= 1));
+      const hit = new Set(m.next[r].flat()); assert.equal(hit.size, m.rows[r + 1].length);   // 下一站每个点都有路
+    }
+  }
+  assert.match(html, /function settleRoute\(\)\{ if\(G\.isBoss&&!G\.bossWin\) loseHeart\('首领战失败'\);/);
+  assert.match(html, /if\(!ok\) loseHeart\('目标没达成'\);/);
 });

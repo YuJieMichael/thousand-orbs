@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:cb3bb509a00ff4f44873ee8c4c0fef6518b2502b -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:b0cf5719632115b238ba14d3cd68d9e03eaf915d -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -212,6 +212,15 @@
   .eqbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#0c0907}
   .eqbar .ghost{padding:4px 10px;font-size:12px}
   .loads{display:grid;gap:6px;margin-top:8px}
+  .map{position:relative;margin-top:8px;border-radius:10px;background:radial-gradient(circle at 50% 0%,#ff6b5b14,transparent 60%),#0c0907;border:1px solid var(--line);overflow:hidden}
+  .map svg{position:absolute;inset:0;width:100%;height:100%}
+  .mnode{position:absolute;margin:-17px 0 0 -17px;transform:none!important;width:34px;height:34px;border-radius:50%;border:1.5px solid #d9b45a44;background:#15110c;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;color:inherit;opacity:.55}
+  .mnode.can{opacity:1;border-color:var(--gold);box-shadow:0 0 0 0 #d9b45a88;animation:mpulse 1.4s infinite}
+  .mnode.cur{opacity:1;border-color:var(--gold2);background:#3a2c14;box-shadow:0 0 12px #d9b45a88}
+  .mnode.past{opacity:.25;filter:grayscale(1)}
+  .mnode.boss{width:42px;height:42px;margin:-21px 0 0 -21px;font-size:20px;border-color:#ff6b5b88}
+  .mnode>*{margin:0!important;flex:none;position:static!important}
+  @keyframes mpulse{0%{box-shadow:0 0 0 0 #d9b45a88}70%{box-shadow:0 0 0 9px #d9b45a00}100%{box-shadow:0 0 0 0 #d9b45a00}}
   .man summary{cursor:pointer;font-size:15px;list-style:none;padding:2px 0} .man summary::-webkit-details-marker{display:none} .man summary::after{content:'＋';float:right;color:var(--gold3)} .man[open] summary::after{content:'－'}
   .manb ul{margin:8px 0 2px;padding-left:20px;line-height:1.85} .manb li{margin:2px 0}
   .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:10px}
@@ -544,6 +553,11 @@ function normalizeSave(data){
   if(next.dealtAvg!==undefined&&(typeof next.dealtAvg!=='number'||!Number.isFinite(next.dealtAvg)||next.dealtAvg<0)) bad();
   if(next.lastBossHp!==undefined&&(typeof next.lastBossHp!=='number'||!Number.isFinite(next.lastBossHp)||next.lastBossHp<0)) bad();
   if(next.loadAuto!==undefined&&typeof next.loadAuto!=='boolean') bad();
+  if(next.map!==undefined){ const m=next.map, okRow=row=>Array.isArray(row)&&row.length>0&&row.every(o=>saveRecord(o)&&Object.hasOwn(NODE_TYPES_OK,o.t)&&typeof o.x==='number');
+    const ok=saveRecord(m)&&Number.isSafeInteger(m.ch)&&Array.isArray(m.rows)&&m.rows.length===MAP_ROWS&&m.rows.every(okRow)&&Array.isArray(m.next)&&m.next.length===MAP_ROWS-1
+      &&m.next.every((e,r)=>Array.isArray(e)&&e.length===m.rows[r].length&&e.every(l=>Array.isArray(l)&&l.every(j=>Number.isSafeInteger(j)&&j>=0&&j<m.rows[r+1].length)))
+      &&Number.isSafeInteger(m.r)&&m.r>=-1&&m.r<MAP_ROWS&&Number.isSafeInteger(m.i)&&(m.r<0||(m.i>=0&&m.i<m.rows[m.r].length))&&Number.isSafeInteger(m.hearts);
+    if(!ok) delete next.map; } // 地图坏了就丢掉重生成，不影响整份存档
   if(next.daily!==undefined&&next.daily!==null){ const d=next.daily; if(!saveRecord(d)||typeof d.day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d.day)||typeof d.paid!=='boolean'||!['best','tries','streak'].every(k=>Number.isSafeInteger(d[k])&&d[k]>=0)) bad(); }
   if(next.dailySent!==undefined){ if(!saveRecord(next.dailySent)) bad(); for(const v of Object.values(next.dailySent)) if(typeof v!=='number'||!Number.isFinite(v)||v<0) bad(); }
   if(next.loads!==undefined){ if(!saveRecord(next.loads)) bad();
@@ -894,6 +908,59 @@ const ROUTES={
 const ELITE_HP=2.2, ELITE_GOAL=1.4, ELITE_COIN=1.8;
 function genRoutes(noShop){ if(!unl('routes')) return ['normal']; const pool=['elite','shop','event'].filter(k=>!(noShop&&(k==='shop'||k==='event'))&&(k!=='shop'||unl('market'))); const out=['normal'];
   while(out.length<3&&pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); return out; } // 刚逛完黑市 / 奇遇：只给普通和精英
+
+
+// ================= 🗺️ 章节地图：每章一张分岔路线图 + 命数（打败第 1 章首领、开放路线后启用） =================
+// 6 站 + 首领。每站可以选连着的一个节点；普通 / 精英没达成目标、首领战失败都会掉 1 颗心，心用完「本局结束」：本章地图重来
+const MAP_ROWS=6, MAP_HEARTS=3, NODE_TYPES_OK={normal:1,elite:1,shop:1,event:1,delve:1};
+const MAP_W={normal:52,elite:22,shop:12,event:9}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
+const mapOn=()=>unl('routes');
+const sideName=x=>x<.4?'left':x>.6?'right':'middle';
+function genMap(){ const rows=[], next=[];
+  for(let r=0;r<MAP_ROWS;r++){ const n=r===0?2:(Math.random()<.55?3:2), row=[];
+    for(let i=0;i<n;i++){ let t='normal';
+      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
+      row.push({t,x:(i+1)/(n+1)}); }
+    rows.push(row); }
+  if(!rows.some(row=>row.some(o=>o.t==='elite'))){ const r=2+Math.floor(Math.random()*(MAP_ROWS-2)); rows[r][Math.floor(Math.random()*rows[r].length)].t='elite'; }
+  for(let r=0;r<MAP_ROWS-1;r++){ const a=rows[r], b=rows[r+1], e=a.map(()=>[]);
+    a.forEach((o,i)=>{ const near=b.map((q,j)=>[Math.abs(q.x-o.x),j]).sort((u,v)=>u[0]-v[0]); e[i].push(near[0][1]); if(near[1]&&near[1][0]<.42&&Math.random()<.6) e[i].push(near[1][1]); });
+    b.forEach((q,j)=>{ if(!e.some(l=>l.includes(j))){ let bi=0,bd=9; a.forEach((o,i)=>{ const d=Math.abs(o.x-q.x); if(d<bd){ bd=d; bi=i; } }); e[bi].push(j); } });
+    next.push(e.map(l=>[...new Set(l)].sort())); }
+  return {ch:M.ch,rows,next,r:-1,i:-1,hearts:MAP_HEARTS,runs:((M.map&&M.map.runs)||0)}; }
+function ensureMap(){ if(!mapOn()) return null; if(!M.map||M.map.ch!==M.ch){ const first=!M.map; M.map=genMap();
+    if(first&&M.chRounds>0){ M.map.r=M.chRounds>=3?MAP_ROWS-1:Math.min(MAP_ROWS-2,M.chRounds*2-1); M.map.i=0; } } // 老存档：按已达成的轮数放到地图上，首领已就绪的直接站在首领前
+  return M.map; }
+const mapAtBoss=()=>{ const m=M.map; return !!m&&m.ch===M.ch&&m.r===MAP_ROWS-1; };
+function mapReach(){ const m=ensureMap(); if(!m) return []; if(m.r>=MAP_ROWS-1) return [];
+  if(m.r<0) return m.rows[0].map((o,i)=>[0,i]); return m.next[m.r][m.i].map(j=>[m.r+1,j]); }
+function goNode(r,i){ const m=ensureMap(); if(!m||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
+function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return; m.hearts--; G.heartLost=why;
+  if(m.hearts<=0){ G.runOver=true; M.map=genMap(); M.map.runs=m.runs+1; M.chAge=0; M.streak=0; } }
+const NODE_INFO={
+  normal:{ico:'🎯',name:'Normal',tip:g=>`Goal: open ${g} packs. Success: streak bonus coins and +1 boss progress. Miss: lose 1 ❤️, and the goal drops.`},
+  elite:{ico:'⚔️',name:'Elite',tip:g=>`Pack HP ×${ELITE_HP}, coins ×${ELITE_COIN}, goal: open ${Math.ceil(g*ELITE_GOAL)} packs. Success: pick 1 of 3 SR+ cards plus a special orb. Miss: lose 1 ❤️.`},
+  shop:{ico:'🏮',name:'Black Market',tip:()=>'No round here: spend coins on packs, pick 1 of 3 from a school, or seal unwanted cards for free. You can’t lose hearts.'},
+  event:{ico:'❓',name:'Encounter',tip:()=>'No round here: something random happens. Some events are good, others — pickpockets, cave-ins, cursed chests — are bad, so weigh your choices.'},
+  boss:{ico:'👑',name:'boss',tip:()=>'This chapter’s boss. Beat it to reach the next chapter and a new map. Losing costs 1 ❤️, and you can try again.'},
+};
+function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(), rowH=46, H0=(MAP_ROWS+1)*rowH+10;
+  const yOf=r=>H0-20-r*rowH; // 起点在下，首领在上
+  const lines=[]; m.next.forEach((e,r)=>e.forEach((l,i)=>l.forEach(j=>{ const a=m.rows[r][i], b=m.rows[r+1][j], on=(m.r===r&&m.i===i)||(r<m.r); lines.push(`<line x1="${a.x*100}" y1="${yOf(r)}" x2="${b.x*100}" y2="${yOf(r+1)}" stroke="${m.r===r&&m.i===i?'var(--gold)':'#d9b45a33'}" stroke-width="${m.r===r&&m.i===i?2:1}" stroke-dasharray="${on?'':'3 3'}" vector-effect="non-scaling-stroke"/>`); })));
+  m.rows[MAP_ROWS-1].forEach(o=>lines.push(`<line x1="${o.x*100}" y1="${yOf(MAP_ROWS-1)}" x2="50" y2="${yOf(MAP_ROWS)}" stroke="#ff6b5b55" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`));
+  const node=(r,i,o)=>{ const can=reach.some(([a,b])=>a===r&&b===i), cur=m.r===r&&m.i===i, past=r<m.r||(r===m.r&&!cur), info=NODE_INFO[o.t];
+    return `<button class="mnode${can?' can':''}${cur?' cur':''}${past?' past':''}" data-mr="${r}" data-mi="${i}" style="left:${o.x*100}%;top:${yOf(r)}px" title="${info.name}">${info.ico}</button>`; };
+  const nodes=m.rows.map((row,r)=>row.map((o,i)=>node(r,i,o)).join('')).join('')+`<button class="mnode boss${mapAtBoss()?' can':''}" data-mboss="1" style="left:50%;top:${yOf(MAP_ROWS)}px" title="boss">👑</button>`;
+  const hearts='❤️'.repeat(Math.max(0,m.hearts))+'<span style="opacity:.25">'+'❤️'.repeat(Math.max(0,MAP_HEARTS-m.hearts))+'</span>';
+  return `<div class="chap" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>🗺️ Chapter ${M.ch} Route</b><span>${hearts} <span class="sub">stop ${Math.max(0,m.r+1)}/${MAP_ROWS}</span></span></div>
+    <div class="sub" style="margin-top:4px"> Climb from the bottom up, picking a node connected to where you are (glowing nodes are reachable). Missing a goal or losing a boss fight costs 1 ❤️; run out of hearts and this run ends — the map restarts (you keep cards and coins).</div>
+    <div class="map" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
+    <div id="mapInfo" class="sub" style="min-height:2.4em;margin-top:6px"> Tap a node on the map to see what it is.</div>
+    <details style="margin-top:6px"><summary class="sub" style="cursor:pointer"> What is each node?</summary><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>: ${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
+function bindMap(root){ root.querySelectorAll('.mnode').forEach(b=>b.onclick=()=>{ const info=$('mapInfo'); if(!info) return;
+  if(b.dataset.mboss){ const go=mapAtBoss(); info.innerHTML=`👑 <b> boss</b>: ${NODE_INFO.boss.tip()}${go?' <button class="btn boss" id="mapGo" style="padding:4px 12px;font-size:13px"> Challenges</button>':' <span> (reach the top stop first)</span>'}`; if(go) $('mapGo').onclick=()=>startRound(true); return; }
+  const r=+b.dataset.mr, i=+b.dataset.mi, o=M.map.rows[r][i], can=b.classList.contains('can'), x=NODE_INFO[o.t];
+  info.innerHTML=`${x.ico} <b>${x.name}</b>: ${x.tip(M.goal)}${can?' <button class="btn" id="mapGo" style="padding:4px 12px;font-size:13px">▶ Go here</button>':''}`; if(can) $('mapGo').onclick=()=>goNode(r,i); }); }
 
 // ================= 台面 =================
 const cv=$('cv'),ctx=cv.getContext('2d'); const W=cv.width,H=cv.height;
@@ -1318,7 +1385,7 @@ const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true; G.fx.push({x:W/2,y:H/2+40,t:'Round goal reached',c:'#7fe0a0',life:1.6,sz:20}); SFX.play('ach'); } }
 // 没达成：目标降到这轮实际开包数 ×1.15 附近（一次最多减半），旧版本 bug 抬高的目标几轮就能落回来
 const goalAfterMiss=(goal,opened)=>Math.max(GOAL_MIN,Math.min(goal-2,Math.max(Math.ceil(opened*1.15),Math.round(goal*.5))));
-function settleRoute(){ if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok; M.chAge=(M.chAge||0)+1;
+function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('Boss fight lost'); if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok; M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('Goal missed');
   if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
     M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*.5)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
@@ -1782,8 +1849,9 @@ function drawBanner(){ const b=G.banner; if(!b) return; b.life-=1/60; if(b.life<
   let t=b.t; while(ctx.measureText(t).width>W-200&&t.length>4) t=t.slice(0,-2); if(t!==b.t) t+='…';
   const by=G.isBoss?(MOBILE.matches?206:182):(MOBILE.matches?146+(UIK-1)*22:112); ctx.lineWidth=4; ctx.strokeStyle='#000c'; ctx.strokeText(t,W/2,by); ctx.fillStyle='#e6cf9c'; ctx.fillText(t,W/2,by); ctx.restore(); }
 let lastAmmo=-1;
-function chapHTML(){ const ci=chInfo(M.ch), ready=M.chRounds>=3;
-  return `${ci.ico} Chapter <b>${M.ch}</b> · <b>${ci.name}</b>${M.soul||M.prestiges?` <span style="float:right;color:var(--dim)">🔥 Gold Souls ${M.soul}</span>`:''}<div class="sub" style="font-size:11px;margin-top:3px">${ready?`👑 Boss “${ci.boss}” has appeared — challenge it from the results screen`:`Reach the goal ${3-M.chRounds} more round(s) to challenge the boss · Goal ${M.goal} packs ${M.streak?` · streak ${M.streak}`:''}`}</div>${ageMult()>1.001?`<div class="sub" style="font-size:11px;margin-top:2px;color:var(--gold3)">🔺 Pack strength ×${ageMult().toFixed(2)} · packs toughen each round in a chapter, with more coins; resets after the boss</div>`:''}<div class="bar"><i style="width:${Math.min(100,M.chRounds/3*100)}%"></i></div>`; }
+const bossReady=()=>mapOn()?mapAtBoss():M.chRounds>=3;
+function chapHTML(){ const ci=chInfo(M.ch), ready=bossReady();
+  return `${ci.ico} Chapter <b>${M.ch}</b> · <b>${ci.name}</b>${M.soul||M.prestiges?` <span style="float:right;color:var(--dim)">🔥 Gold Souls ${M.soul}</span>`:''}<div class="sub" style="font-size:11px;margin-top:3px">${ready?`👑 Boss “${ci.boss}” has appeared — challenge it from the results screen`:mapOn()&&M.map&&M.map.ch===M.ch?`🗺️ stop ${Math.max(0,M.map.r+1)}/${MAP_ROWS} · ${'❤️'.repeat(Math.max(0,M.map.hearts))} · Goal ${M.goal} packs ${M.streak?` · streak ${M.streak}`:''}`:`Reach the goal ${3-M.chRounds} more round(s) to challenge the boss · Goal ${M.goal} packs ${M.streak?` · streak ${M.streak}`:''}`}</div>${ageMult()>1.001?`<div class="sub" style="font-size:11px;margin-top:2px;color:var(--gold3)">🔺 Pack strength ×${ageMult().toFixed(2)} · packs toughen each round in a chapter, with more coins; resets after the boss</div>`:''}<div class="bar"><i style="width:${mapOn()&&M.map&&M.map.ch===M.ch?Math.max(0,M.map.r+1)/MAP_ROWS*100:Math.min(100,M.chRounds/3*100)}%"></i></div>`; }
 let lastChap='';
 function hud(){
   const ch=chapHTML(); if(ch!==lastChap){ lastChap=ch; $('chap').innerHTML=ch; }
@@ -1850,7 +1918,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-06.4';
+const GAME_V='2026-11-06.5';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2284,6 +2352,7 @@ function manualHTML(){
     '<b> Smelting</b> (opens after the Chapter 4 boss): reset progress for <b> Gold Souls</b>, spent on permanent bonuses in “Legacy”. Cards and Codex are kept.',
   ]))}
   ${sec('🗺️','Rounds and Modes',li([
+    `<b>🗺️ Chapter Map</b> (opens after the Chapter 1 boss): each chapter is a branching route map —${MAP_ROWS} stops, then the boss. Each time, pick one of the connected nodes. Missing a goal or losing a boss fight costs 1 ❤️(${MAP_HEARTS} per chapter); run out and the run ends — the map restarts, but you keep cards and coins.`,
     '<b> Normal rounds</b>: hit the pack goal. The longer you stay in a chapter, the tougher packs get (×1.15 per round) — and the more coins they give. It resets when you beat the boss.',
     '<b> Elite rounds</b>: higher goal, better rewards, plus a special rule.',
     '<b> Encounters / Black Market</b>: random events, or spend coins on packs, school picks and sealing cards.',
@@ -2333,7 +2402,7 @@ function showIntro(){
 function showBetween(){
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
   const total=ids.reduce((s,id)=>s+G.loot[id],0); lastLootTotal=total;
-  const ready=M.chRounds>=3, canP=M.maxCh>=4;
+  const ready=bossReady(), canP=M.maxCh>=4;
   const mechHTML=bossMechs(M.ch).map(k=>`${MECH[k].ico} <b>${MECH[k].name}</b>：${typeof MECH[k].desc==='function'?MECH[k].desc():MECH[k].desc}`).join('<br>');
   const nextBoss=ready&&!(G.packs&&G.isBoss)?`<div class="chap" style="margin-top:12px;border-color:#ff6b5b66;display:flex;gap:12px;align-items:flex-start"><img src="${ART.p1[bossIdx(M.ch)]}" alt="" style="width:56px;height:84px;object-fit:contain;flex:none;background:#0d0b09;border-radius:6px;border:1px solid var(--line)"><div>👑 Boss “<b>${chInfo(M.ch).boss}</b>” has appeared <br><span class="sub" style="line-height:1.7">${mechHTML}${p2Mech(M.ch)?`<br> At half HP it enters <b style="color:#e8a090"> Phase II</b>: adds “${MECH[p2Mech(M.ch)].name}”, moves faster and summons packs`:''}</span></div></div>`:'';
   const migHTML=G.migrated?`<div class="chap" style="margin-top:12px;border-color:var(--green)"> The Star Chart was simplified: all your previous nodes were refunded, totaling <b>${f(G.migrated)}</b> coins — head to the Star Chart and plan a new path.</div>`:'';
@@ -2346,6 +2415,7 @@ function showBetween(){
   const goalMsg=G.packs&&G.route?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)"> Goal reached</b> ${G.opened}/${G.goal} packs · streak <b>${M.streak}</b> · Reward <b style="color:var(--gold2)">+${f(G.goalBonus)}</b> (${pct(G.goalK)} of this round’s coins — grows with your streak) ${G.route==='elite'?`<br>⚔️ Elite reward: pick 1 of 3 SR+ cards, and your Orb Bag gains a <b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub"> Boss progress +1 · Next goal ${M.goal} packs</span></div>`
       :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090"> Goal missed</b> ${G.opened}/${G.goal} packs ${G.lostStreak?` · ${G.lostStreak} streak broken`:''}<br><span class="sub"> This round doesn’t count toward the boss. Next goal drops to ${M.goal} packs.</span></div>`):'';
   if(!M.routes||(!unl('routes')&&M.routes.length>1)) M.routes=genRoutes();
+  const mapNodes=mapOn()?mapReach():null; if(mapOn()) ensureMap();
   const newU=UNL.filter(u=>u.ok()&&!(M.unl||(M.unl={}))[u.id]); newU.forEach(u=>M.unl[u.id]=1); if(newU.length) save();
   const standalone=matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone;
   const a2hsHTML=MOBILE.matches&&!standalone&&!M.a2hsOff&&M.round>=2&&tab==='loot'?`<div class="chap" id="a2hs" style="margin-top:12px">📱 <b> Add to Home Screen for a bigger, full-screen board</b><br><span class="sub">${/iPhone|iPad|iPod/.test(navigator.userAgent)?'iPhone: tap Safari’s “Share” button→“Add to Home Screen”':'Android: open the browser menu →“Add to Home screen” or “Install app”'}</span>
@@ -2358,12 +2428,13 @@ function showBetween(){
     <div class="sub" style="margin-top:4px"> Your nickname is shown publicly under “Goals → Leaderboard”; you can rename it there later.</div><div id="lbAskStatus" class="sub" role="status"></div></div>`:'';
   const unlHTML=newU.map(u=>`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔓 <b style="color:var(--gold2)"> New feature: ${u.name}</b><br><span class="sub">${u.txt}</span></div>`).join('');
   const RSUB={normal:`Open ${M.goal} packs`,elite:`Open ${Math.ceil(M.goal*ELITE_GOAL)} packs · SR+ & orb`,shop:'Packs · Picks · Seals',event:'Random event'};
-  const routeBtns=M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'; ')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
+  const routeBtns=mapNodes?mapNodes.map(([r,i],k)=>{ const t=M.map.rows[r][i].t; return `<button class="btn ${k?'alt':''}" data-node="${r},${i}" title="${NODE_INFO[t].tip(M.goal)}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>${NODE_INFO[t].ico} ${NODE_INFO[t].name}${mapNodes.length>1?` · ${sideName(M.map.rows[r][i].x)}`:''} ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[t]}</small></button>`; }).join(''):M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'; ')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`Round ${M.round+1}`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join('');
   const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 Not sure what something is? <span class="sub"> It’s all in the manual — open it any time, even mid-round (“📖 Manual” at the top right).</span></span><button class="ghost" id="manTipB"> Open manual</button></div>`:'';
+  const runMsg=G.packs&&G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090"> Run over</b>: you’re out of hearts, so the Chapter ${M.ch} map starts over. <br><span class="sub"> Cards, coins and upgrades are kept; this chapter’s pack strength and your streak reset.</span></div>`:G.packs&&G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}, lost 1 heart. Left: ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}.</div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ This round ended early; orbs still in flight didn’t pay out.</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ Blessings: ${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span> Coins this round</span></div><div class="stat"><b>${G.opened}</b><span> Packs opened</span></div><div class="stat"><b>${G.hits}</b><span> Hits</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span> New</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2390,7 +2461,9 @@ function showBetween(){
   }
   if($('a2hsNo')) $('a2hsNo').onclick=()=>{ M.a2hsOff=1; save(); $('a2hs').remove(); };
   if($('a2hsGo')) $('a2hsGo').onclick=async()=>{ const e=instEvt; instEvt=null; e.prompt(); try{ const r=await e.userChoice; if(r.outcome==='accepted'){ M.a2hsOff=1; save(); } }catch(_){} showBetween(); };
-  document.querySelectorAll('#box [data-route]').forEach(b=>b.onclick=()=>goRoute(b.dataset.route)); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
+  document.querySelectorAll('#box [data-route]').forEach(b=>b.onclick=()=>goRoute(b.dataset.route));
+  document.querySelectorAll('#box [data-node]').forEach(b=>b.onclick=()=>{ const [r,i]=b.dataset.node.split(',').map(Number); goNode(r,i); });
+  bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
   if(G.pendingPick){ G.pendingPick=0; setTimeout(()=>openPick({minRar:'SR',title:'⚔️ Elite Reward · Pick 1 of 3'},()=>showBetween()),350); }
   if($('autoT')) $('autoT').onchange=e=>{ M.autoOn=e.target.checked; save(); };
   let body=$('tabBody');

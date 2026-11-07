@@ -32,5 +32,7 @@
  "命中的卡包燃烧 4 秒（每秒 ${pct(.6*p)} 伤害）": "Hit packs burn for 4s, taking ${pct(.6*p)} damage per second",
  "卡包被打开时爆炸，波及附近卡包（${pct(1.25*p)} 伤害）": "Opened packs explode, dealing ${pct(1.25*p)} damage to nearby packs",
  "卡包燃烧结束时爆炸，波及附近（${pct(1.2*p)} 伤害）": "When a burn ends, the pack explodes for ${pct(1.2*p)} damage to nearby packs",
- "`白银及以上卡包的金币 ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)}，而且每个多算 1 包`": "`Silver packs and better give ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)} coins and count as 1 extra pack each`"
+ "`白银及以上卡包的金币 ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)}，而且每个多算 1 包`": "`Silver packs and better give ×${Math.min(2,1.5+.05*(lv-1)).toFixed(2)} coins and count as 1 extra pack each`",
+ "第 ${Math.max(0,m.r+1)}/${MAP_ROWS} 站": "stop ${Math.max(0,m.r+1)}/${MAP_ROWS}",
+ "第 ${Math.max(0,M.map.r+1)}/${MAP_ROWS} 站": "stop ${Math.max(0,M.map.r+1)}/${MAP_ROWS}"
 }
