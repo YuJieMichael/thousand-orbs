@@ -17,7 +17,7 @@ function fixture() {
     M: {money: 0, life: 0, up: {stage: 0}, legacy: {rich: 0, start: 0},
       ch: 1, maxCh: 1, round: 8, goal: 10, chRounds: 3, bossTries: 0, best: {}, orbs: {}, shopN: {}},
     TS: {coin: 0, ks: {}}, PT: [{hp: 1, val: 1}, {hp: 4, val: 4}, {hp: 12, val: 15}],
-    SFX: {play() {}}, CHAL: [], ORB_SPECIAL: [], BOONS: [], GOAL_MIN: 8,
+    SFX: {play() {}}, CHAL: [], ORB_SPECIAL: [], BOONS: [], GOAL_MIN: 8, GOAL_REBORN: .3,
     $: () => ({classList: {remove() {}}}),
     buildLayout() {}, buildPockets() {}, rollSpecials() {}, renderSide() {}, guideTip() {}, hud() {},
     equipped: () => [], upLv: () => 0, ammoN: () => 8, packN: () => 3, unl: () => false,
@@ -116,9 +116,9 @@ test('normal damage accounting excludes overkill and cannot count a removed pack
 });
 
 test('prestige clears the prior run boss basis, growth cap and normal-output history', () => {
-  const f = fixture(); f.start(); f.run('M.soul=0;M.prestiges=0;M.lastBossHp=5000;M.dealtAvg=1e9;prestige();');
+  const f = fixture(); f.start(); f.run('M.soul=0;M.prestiges=0;M.lastBossHp=5000;M.dealtAvg=1e9;M.goal=400;prestige();'); const goalBefore = 400;
   const {M} = f.state();
   assert.equal(M.ch, 1); assert.equal(M.bossD, undefined);
   assert.equal(M.lastBossHp, undefined); assert.equal(M.dealtAvg, undefined);
-  assert.equal(M.goal, 8); assert.equal(M.streak, 0);                          // 转生后目标和连胜也回到起点
+  assert.equal(M.goal, Math.max(8, Math.round((goalBefore || 8) * 0.3))); assert.equal(M.streak, 0);   // 转生保留三成目标，连胜清零
 });

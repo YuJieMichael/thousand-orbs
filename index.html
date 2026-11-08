@@ -708,7 +708,7 @@ function prestige(){
   M.keep={slot:upLv('slot'),auto:upLv('auto'),reson:upLv('reson')};
   M.up=fresh().up; M.tree={}; M.treeSpent=0; recalcTree(); M.money=M.legacy.start?200*Math.pow(6,M.legacy.start-1):0;
   delete M.bossD; delete M.lastBossHp; delete M.dealtAvg;
-  M.delve=null; M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=GOAL_MIN; M.streak=0; delete M.nextBoon;
+  M.delve=null; M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=Math.max(GOAL_MIN,Math.round(M.goal*GOAL_REBORN)); M.streak=0; // 转生保留三成目标：卡牌和传承都还在，实力比新号强得多 delete M.nextBoon;
   // 画面也要跟着回到第 1 章：换掉上一轮的结算数据和台面布局，否则要进一轮游戏才看得出变化
   G={loot:{},reborn:g}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo='';
   save(); renderSide(); hud(); tab='legacy'; SFX.play('melt'); toast(`🔥 熔金完成，获得 ${g} 金魂`); checkAch(); showBetween();
@@ -899,7 +899,8 @@ const unl=id=>UNL.find(u=>u.id===id).ok();
 // 统计显示后期一轮能开 5000 包、金币滚雪球：补货最快 0.45 秒；一轮开到 200 包以后，每包金币按 √(200/已开) 递减
 const REFILL_MIN=.45, PACK_SOFT=200, CLEAR_CD=1, CLEAR_REFILL=.15;
 const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
-const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6; // 达成目标后，下一轮目标往这一轮实际开包数靠近 80%，一次最多 +6
+// GOAL_GROW：远超目标时每轮最多翻倍（原来 +50%；统计里转生后的老玩家开两千多包、目标才几十）
+const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6, GOAL_GROW=1, GOAL_REBORN=.3; // 达成目标后，下一轮目标往这一轮实际开包数靠近 80%，一次最多 +6
 const ROUTES={
   normal:{name:'普通',ico:'🎯',desc:g=>`目标：开 ${g} 包`},
   elite:{name:'精英',ico:'⚔️',desc:g=>`卡包血量 ×${ELITE_HP}、金币 ×${ELITE_COIN}<br>目标：开 ${Math.ceil(g*ELITE_GOAL)} 包<br>达成后：SR 以上卡牌三选一 + 一颗随机特殊宝珠`},
@@ -1420,7 +1421,7 @@ function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('首领战失败'); i
   M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('目标没达成');
   if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
-    M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*.5)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
+    M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*GOAL_GROW)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
   else { G.lostStreak=M.streak; M.streak=0; M.goal=goalAfterMiss(M.goal,G.opened); } }
 // ---- 卡牌三选一（精英奖励 / 黑市定向 / 奇遇）----
 const BAN_MAX=6;
@@ -1950,7 +1951,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-06.6';
+const GAME_V='2026-11-08.1';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;

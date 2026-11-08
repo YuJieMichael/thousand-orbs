@@ -37,10 +37,10 @@ function settle(goal, opened, route = 'normal') {
   return ctx.M.goal;
 }
 
-test('目标每轮最多涨 max(6, 目标的一半)：后期开几千包时目标能追上来', () => {
+test('目标每轮最多涨 max(6, 目标的 1 倍)：后期开几千包时目标能追上来', () => {
   assert.equal(settle(10, 12), 12);           // 小幅超额：按 80% 跟上
-  assert.equal(settle(10, 100), 16);          // 早期：最多 +6
-  assert.equal(settle(100, 1000), 150);       // 后期：最多 +50%
+  assert.equal(settle(10, 100), 20);          // 早期：最多翻倍
+  assert.equal(settle(100, 1000), 200);       // 后期：最多翻倍
   assert.equal(settle(100, 90), 98);          // 没达成：-2
 });
 
