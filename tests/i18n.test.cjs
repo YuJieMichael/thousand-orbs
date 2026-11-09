@@ -22,3 +22,11 @@ test('英文版的资源路径指向上一级', () => {
   assert.match(en, /href="\.\.\/manifest\.webmanifest"/);
   assert.doesNotMatch(en, /href="icons\//);
 });
+
+test('中英文两个版本的脚本都能正常解析（翻译里的引号不能把字符串截断）', () => {
+  for (const f of ['index.html', 'en/index.html']) {
+    const html = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+    const m = /<script>([\s\S]*?)<\/script>/.exec(html);
+    assert.doesNotThrow(() => new Function(m[1]), `${f} 脚本解析失败`);
+  }
+});

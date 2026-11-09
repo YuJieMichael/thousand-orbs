@@ -2200,7 +2200,7 @@ const SQUADS=[
   {id:'iron',ico:'🛡️',name:'Iron Guard',desc:'4  hearts; but 1 fewer orb every round.',need:'Clear an expedition',ok:()=>M.wins>=1},
   {id:'sage',ico:'🔷',name:'Sigil Scholar',desc:'Start with a Gold Sigil pick; Sigil limit 5.',need:'Reach Chapter 2',ok:()=>M.bestAct>=2},
   {id:'gamb',ico:'🎲',name:'The Gambler',desc:'Start with 2 random Relics; but only 2 hearts.',need:'Reach Chapter 3',ok:()=>M.bestAct>=3},
-  {id:'spec',ico:'🔔',name:'School Specialist',desc:'Opening recruits come only from your chosen school, and that school's resonance counts one extra card.',need:'Clear an expedition at Danger 1+',ok:()=>M.dangerMax>=2},
+  {id:'spec',ico:'🔔',name:'School Specialist',desc:'Opening recruits come only from your chosen school, and that school’s resonance counts one extra card.',need:'Clear an expedition at Danger 1+',ok:()=>M.dangerMax>=2},
 ];
 const squadOk=q=>!q.ok||q.ok();
 const runSquad=()=>M.run&&M.run.squad;
@@ -2742,7 +2742,7 @@ function manualHTML(){
     '<b> Encounters / Black Market</b>: random events, or spend coins on packs, school picks and sealing cards.',
     '<b> Boss fights</b>: one per chapter, each with its own mechanics; at half HP it enters <b> Phase II</b>. Lose and you drop 1 ❤️; upgrade and try again.',
     '<b>🔥 Danger level</b> (chosen at camp): clear your highest level to unlock the next. Each level: goals +15%, pack HP +10%, boss HP +25% — and a higher score.',
-    '<b>📅 Daily Challenge</b> (from camp): one round a day with the same deck and rules for everyone — most packs opened wins; there's a daily board.',
+    '<b>📅 Daily Challenge</b> (from camp): one round a day with the same deck and rules for everyone — most packs opened wins; there’s a daily board.',
     '<b> Orb Bag</b>: later, orbs come in types like Fire, Heavy and Split; the next three are shown by the launcher.',
   ]))}
   ${sec('🔮','Myth Cards (✦ Myth)',li([
