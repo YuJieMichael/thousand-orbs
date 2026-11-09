@@ -43,7 +43,7 @@ test('固定目标曲线：只看章节和地图第几站，不再追着开包�
 test('开发者模式：不上传统计、不上排行榜，存档里是布尔值', () => {
   assert.match(between('function statSend(', '\n'), /M\.dev/);
   assert.match(between('async function lbSubmit(', '\n'), /M\.dev/);
-  assert.match(html, /for\(const k of \['stats','vibe','dev','calm'\]\)/);
+  assert.match(html, /for\(const k of \['stats','vibe','dev','calm','music'\]\)/);
 });
 
 test('秘卡门槛：无尽回响 50 次命中，奇点 20 颗宝珠', () => {
@@ -212,7 +212,7 @@ test('本章轮数只让金币小幅上涨（×1.07/轮，最多 10 轮）；卡
   ctx.DAILY = {}; assert.equal(ctx.a(), 1);
   assert.doesNotMatch(between('const packHp=', '\n'), /ageMult/);
   assert.match(html, /\*Math\.pow\(CH_VAL,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
-  assert.match(html, /M\.chRounds=0; M\.chAge=0; syncGoal\(\);/);
+  assert.match(html, /M\.chRounds=0; M\.chAge=0; M\.charms=\[\]; syncGoal\(\);/);
 });
 
 test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少一个精英；首站只有普通', () => {
