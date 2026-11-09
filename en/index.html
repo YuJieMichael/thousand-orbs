@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:bf438b0bafecbe6f15101240ef038c1380dc9003 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:3eb45e31e2ce8414bd535bd7d94bc1f13eed818a -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -341,7 +341,7 @@
     <div class="plate pMoney">
       <div class="tools"><button class="ghost" id="manB" title="Game manual (hotkey H)" style="font-size:13px;padding:5px 10px">📖 Manual</button><button class="ghost" id="spdB" title="Game speed (hotkey F)" style="font-size:13px;padding:5px 10px;min-width:44px">×1</button><button class="ghost" id="endB" title="End this round early (tap twice)" style="font-size:13px;padding:5px 10px;visibility:hidden">⏹ End</button><button class="ghost" id="muteB" title="Sound (M)" style="font-size:16px;padding:4px 10px">🔊</button></div>
       <div class="title serif goldtxt ttlrow" id="ttl" style="user-select:none"><img id="emb" alt="" style="width:34px;height:34px;border-radius:6px"> Thousand Orbs</div>
-      <div class="tagline"> Shatter the seals · Collect every card</div>
+      <div class="tagline"> Shatter the seals · Collect every card · <span style="color:var(--gold2)"> Beta</span></div>
       <div class="money serif goldtxt" style="margin-top:10px">✦ <span id="money">0</span></div>
       <div class="kv">
         <div><small> Round</small><b id="round">1</b></div>
@@ -1952,7 +1952,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-08.1';
+const GAME_V='2026-11-09.1';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2005,12 +2005,15 @@ function renderRank(body){
 
 // ================= 💬 反馈：单独的反馈页（游戏本身不需要登录） =================
 const FB_URL='https://claude.ai/artifact/HEr4fWnrFfuqkhqYxPp1UF';
+// 公开渠道（B 站等）。填上 url 才会显示
+const FB_LINKS=[{ico:'📺',name:'B stop',url:'',txt:'Comment on the video or message the creator'}];
 function renderFB(body){
   const url=`${FB_URL}#ch=${Math.min(6,M.maxCh)}&r=${M.round}&c=${Object.keys(M.owned).length}`;
   body.innerHTML=`<div class="chap" style="margin-top:0;text-align:center;padding:20px 14px">
     <div style="font-size:38px">💬</div><b style="font-size:17px"> Message the developer</b>
-    <div class="sub" style="margin:6px auto 14px;max-width:440px;line-height:1.7"> Found a bug, something too hard or too easy, or want a new card? Say so on the feedback page — the developer replies there. <br> (Leaving a message needs a claude.ai login; playing doesn’t.)</div>
-    <a class="btn" href="${url}" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none"> Open feedback page ↗</a>
+    <div class="sub" style="margin:6px auto 14px;max-width:440px;line-height:1.7"> Found a bug, something too hard or too easy, or want a new card? Tell the developer. <br> (The feedback page needs a claude.ai login; playing doesn’t.)</div>
+    ${FB_LINKS.filter(l=>l.url).map(l=>`<a class="btn" href="${l.url}" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none;margin:0 4px 8px">${l.ico} ${l.name} ↗</a><div class="sub" style="font-size:11px;margin-bottom:10px">${l.txt}</div>`).join('')}
+    <a class="${FB_LINKS.some(l=>l.url)?'ghost':'btn'}" href="${url}" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none"> Open feedback page ↗</a>
     <div class="sub" style="font-size:11px;margin-top:10px"> Your progress: furthest Chapter ${Math.min(6,M.maxCh)}  · Round ${M.round} · Codex ${Object.keys(M.owned).length}/${CARDS.length}</div></div>`;
 }
 // ---- 花钱：扣款、飘字、音效；钱不够时说清楚差多少 ----
@@ -2427,7 +2430,7 @@ function showLangPick(){
 }
 function showIntro(){
   if(!langPref()) return showLangPick();
-  $('box').innerHTML=`<img class="hero" src="${ART.hero}" alt=""><h2 class="serif goldtxt"> Thousand Orbs</h2><div class="sub" style="letter-spacing:3px;margin-top:4px"> Shatter the seals · Collect every card</div>
+  $('box').innerHTML=`<img class="hero" src="${ART.hero}" alt=""><h2 class="serif goldtxt"> Thousand Orbs</h2><div class="sub" style="letter-spacing:3px;margin-top:4px"><span class="tag" style="color:var(--gold2);border:1px solid var(--gold3);border-radius:6px;padding:0 6px;letter-spacing:1px"> Beta</span> Shatter the seals · Collect every card</div>
     <p style="line-height:1.9;font-size:16px;color:var(--ink);margin-top:16px"><b> Aim at a pack and tap to fire.</b><br> Break packs open with orbs to get coins and new cards. <br> When the orbs run out, upgrade with your loot and go again.</p>
     <p class="sub"> You can also press Space. Other features are explained when you meet them.</p>
     <div class="foot"><span class="sub schrow">${SCH5.map(k=>`<span>${badge(k)}${SCH[k].name}</span>`).join('')}</span><span style="display:flex;gap:8px"><button class="ghost" id="goMan">📖 Game Manual</button><button class="btn" id="go"> Open the Vault</button></span></div>`;
@@ -2567,6 +2570,8 @@ function showBetween(){
     body.innerHTML=`${PLAY_HELP}<div class="chap">🌐 Language · Language <span style="display:inline-flex;gap:6px;margin-left:10px"><button class="ghost" data-lang="zh" ${LANG==='zh'?'disabled':''}>中文</button><button class="ghost" data-lang="en" ${LANG==='en'?'disabled':''}>English</button></span></div><div class="chap">🔊 Sound <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}> On</label> <span class="sub"> (hotkey M)</span></div>
       <div class="chap">📳 Vibration ${navigator.vibrate?`<label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sVibe" ${M.vibe===false?'':'checked'}> On</label> <span class="sub"> (light buzz on rare packs, ×5 jackpots, frenzy and bosses)</span>`:'<span class="sub"> This device’s browser doesn’t support vibration</span>'}</div>
       <div class="chap">📊 Anonymous stats <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sStats" ${M.stats===false?'':'checked'}> On</label> <span class="sub"> After each round, anonymously send the schools and cards used, chapter and round results to help balance the game. Only a random id is sent — no nickname or other personal info.</span></div>
+      <details class="chap"><summary style="cursor:pointer">🔒 Privacy</summary><div class="sub" style="line-height:1.8;margin-top:6px">· <b> Saves</b> live only in this device’s browser — use “Export save” below to move devices. <br>· <b> Anonymous stats</b> (optional): one record per round with a random id, the cards and schools you used, your chapter, and the round’s results and length — used for balancing. <br>· <b> Leaderboard</b> (opt-in): you only appear after picking a nickname; your nickname and scores are public. <br>· No accounts, phone numbers, location or other personal info are collected. No ads, no third-party tracking. <br>· This is a <b> Beta</b>: numbers change often and there may be bugs — feedback is very welcome.</div></details>
+      <div class="sub" style="text-align:right;font-size:11px"> Beta · ${GAME_V}</div>
       <div class="chap">🛠 Developer mode <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sDev" ${M.dev?'checked':''}> On</label> <span class="sub"> For the developer’s own testing: this device sends no stats and no leaderboard scores.</span></div>
       <div class="chap"><b>📤 Export save</b><div class="sub" style="margin:4px 0 6px"> Copy this save code to restore your progress on another device or after clearing your cache.</div>
         <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy"> Copy</button></div></div>

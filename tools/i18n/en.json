@@ -1122,5 +1122,20 @@
 "成功撤离！": "Extracted!",
 "带出来：": "Brought out: ",
 "深入金库 · 撤离成功": "The Deep Vault · Extracted",
-"金魂。": "Gold Souls."
+"金魂。": "Gold Souls.",
+"测试版": "Beta",
+"隐私说明": "Privacy",
+"存档": "Saves",
+"只存在你这台设备的浏览器里，换设备请用下面的「导出存档」。": "live only in this device’s browser — use “Export save” below to move devices.",
+"（可以关）：每轮上传一条记录，只有一个随机 id、用的卡和流派、章节、这一轮的成绩和时长，用来调平衡。": "(optional): one record per round with a random id, the cards and schools you used, your chapter, and the round’s results and length — used for balancing.",
+"（自愿）：起了昵称才会上榜，昵称和成绩会公开显示。": "(opt-in): you only appear after picking a nickname; your nickname and scores are public.",
+"· 不收集账号、手机号、位置等任何个人信息，没有广告和第三方追踪。": "· No accounts, phone numbers, location or other personal info are collected. No ads, no third-party tracking.",
+"· 这是": "· This is a",
+"：数值还会经常调整，偶尔可能有 bug，遇到问题欢迎反馈。": ": numbers change often and there may be bugs — feedback is very welcome.",
+"在视频评论区留言或私信 UP 主": "Comment on the video or message the creator",
+"遇到 bug、觉得哪里太难或太简单、想要什么新卡，都可以告诉作者。": "Found a bug, something too hard or too easy, or want a new card? Tell the developer.",
+"（「反馈页」需要登录 claude.ai，玩游戏不需要。）": "(The feedback page needs a claude.ai login; playing doesn’t.)",
+"B 站": "Bilibili",
+"不收集账号、手机号、位置等任何个人信息，没有广告和第三方追踪。": "No accounts, phone numbers, location or other personal info are collected. No ads, no third-party tracking.",
+"这是": "This is a"
 }

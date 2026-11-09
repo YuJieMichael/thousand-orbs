@@ -340,7 +340,7 @@
     <div class="plate pMoney">
       <div class="tools"><button class="ghost" id="manB" title="游戏手册（快捷键 H）" style="font-size:13px;padding:5px 10px">📖 手册</button><button class="ghost" id="spdB" title="游戏速度（快捷键 F）" style="font-size:13px;padding:5px 10px;min-width:44px">×1</button><button class="ghost" id="endB" title="提前结束这一轮（点两次）" style="font-size:13px;padding:5px 10px;visibility:hidden">⏹ 结束</button><button class="ghost" id="muteB" title="音效（M）" style="font-size:16px;padding:4px 10px">🔊</button></div>
       <div class="title serif goldtxt ttlrow" id="ttl" style="user-select:none"><img id="emb" alt="" style="width:34px;height:34px;border-radius:6px">千珠落尽</div>
-      <div class="tagline">以珠破封 · 收藏万卡</div>
+      <div class="tagline">以珠破封 · 收藏万卡 · <span style="color:var(--gold2)">测试版</span></div>
       <div class="money serif goldtxt" style="margin-top:10px">✦ <span id="money">0</span></div>
       <div class="kv">
         <div><small>本轮</small><b id="round">1</b></div>
@@ -1951,7 +1951,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-08.1';
+const GAME_V='2026-11-09.1';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2004,12 +2004,15 @@ function renderRank(body){
 
 // ================= 💬 反馈：单独的反馈页（游戏本身不需要登录） =================
 const FB_URL='https://claude.ai/artifact/HEr4fWnrFfuqkhqYxPp1UF';
+// 公开渠道（B 站等）。填上 url 才会显示
+const FB_LINKS=[{ico:'📺',name:'B 站',url:'',txt:'在视频评论区留言或私信 UP 主'}];
 function renderFB(body){
   const url=`${FB_URL}#ch=${Math.min(6,M.maxCh)}&r=${M.round}&c=${Object.keys(M.owned).length}`;
   body.innerHTML=`<div class="chap" style="margin-top:0;text-align:center;padding:20px 14px">
     <div style="font-size:38px">💬</div><b style="font-size:17px">给作者留言</b>
-    <div class="sub" style="margin:6px auto 14px;max-width:440px;line-height:1.7">遇到 bug、觉得哪里太难或太简单、想要什么新卡，都可以去反馈页说。作者会在那里回复你。<br>（留言需要登录 claude.ai，玩游戏不需要。）</div>
-    <a class="btn" href="${url}" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">打开反馈页 ↗</a>
+    <div class="sub" style="margin:6px auto 14px;max-width:440px;line-height:1.7">遇到 bug、觉得哪里太难或太简单、想要什么新卡，都可以告诉作者。<br>（「反馈页」需要登录 claude.ai，玩游戏不需要。）</div>
+    ${FB_LINKS.filter(l=>l.url).map(l=>`<a class="btn" href="${l.url}" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none;margin:0 4px 8px">${l.ico} ${l.name} ↗</a><div class="sub" style="font-size:11px;margin-bottom:10px">${l.txt}</div>`).join('')}
+    <a class="${FB_LINKS.some(l=>l.url)?'ghost':'btn'}" href="${url}" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">打开反馈页 ↗</a>
     <div class="sub" style="font-size:11px;margin-top:10px">你的进度：最远第 ${Math.min(6,M.maxCh)} 章 · 第 ${M.round} 轮 · 图鉴 ${Object.keys(M.owned).length}/${CARDS.length}</div></div>`;
 }
 // ---- 花钱：扣款、飘字、音效；钱不够时说清楚差多少 ----
@@ -2426,7 +2429,7 @@ function showLangPick(){
 }
 function showIntro(){
   if(!langPref()) return showLangPick();
-  $('box').innerHTML=`<img class="hero" src="${ART.hero}" alt=""><h2 class="serif goldtxt">千珠落尽</h2><div class="sub" style="letter-spacing:3px;margin-top:4px">以珠破封 · 收藏万卡</div>
+  $('box').innerHTML=`<img class="hero" src="${ART.hero}" alt=""><h2 class="serif goldtxt">千珠落尽</h2><div class="sub" style="letter-spacing:3px;margin-top:4px"><span class="tag" style="color:var(--gold2);border:1px solid var(--gold3);border-radius:6px;padding:0 6px;letter-spacing:1px">测试版</span> 以珠破封 · 收藏万卡</div>
     <p style="line-height:1.9;font-size:16px;color:var(--ink);margin-top:16px"><b>瞄准卡包，点击发射。</b><br>宝珠撞破卡包，就能开出金币和新卡。<br>宝珠用完后，用收获升级，再开下一轮。</p>
     <p class="sub">也可以按空格发射。其他玩法会在遇到时告诉你。</p>
     <div class="foot"><span class="sub schrow">${SCH5.map(k=>`<span>${badge(k)}${SCH[k].name}</span>`).join('')}</span><span style="display:flex;gap:8px"><button class="ghost" id="goMan">📖 游戏手册</button><button class="btn" id="go">开启秘藏</button></span></div>`;
@@ -2566,6 +2569,8 @@ function showBetween(){
     body.innerHTML=`${PLAY_HELP}<div class="chap">🌐 语言 · Language <span style="display:inline-flex;gap:6px;margin-left:10px"><button class="ghost" data-lang="zh" ${LANG==='zh'?'disabled':''}>中文</button><button class="ghost" data-lang="en" ${LANG==='en'?'disabled':''}>English</button></span></div><div class="chap">🔊 音效 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}>开启</label> <span class="sub">（快捷键 M）</span></div>
       <div class="chap">📳 震动 ${navigator.vibrate?`<label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sVibe" ${M.vibe===false?'':'checked'}>开启</label> <span class="sub">（开出稀有包、×5 大奖、狂热、首领时轻震）</span>`:'<span class="sub">这台设备的浏览器不支持震动</span>'}</div>
       <div class="chap">📊 匿名统计 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sStats" ${M.stats===false?'':'checked'}>开启</label> <span class="sub">每轮结算时匿名上传用的流派和卡、章节、这一轮的成绩，帮作者调平衡。只带一个随机 id，不带昵称和其他个人信息。</span></div>
+      <details class="chap"><summary style="cursor:pointer">🔒 隐私说明</summary><div class="sub" style="line-height:1.8;margin-top:6px">· <b>存档</b>只存在你这台设备的浏览器里，换设备请用下面的「导出存档」。<br>· <b>匿名统计</b>（可以关）：每轮上传一条记录，只有一个随机 id、用的卡和流派、章节、这一轮的成绩和时长，用来调平衡。<br>· <b>排行榜</b>（自愿）：起了昵称才会上榜，昵称和成绩会公开显示。<br>· 不收集账号、手机号、位置等任何个人信息，没有广告和第三方追踪。<br>· 这是<b>测试版</b>：数值还会经常调整，偶尔可能有 bug，遇到问题欢迎反馈。</div></details>
+      <div class="sub" style="text-align:right;font-size:11px">测试版 · ${GAME_V}</div>
       <div class="chap">🛠 开发者模式 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sDev" ${M.dev?'checked':''}>开启</label> <span class="sub">作者自己测试时打开：这台设备的成绩不上传统计、不上排行榜。</span></div>
       <div class="chap"><b>📤 导出存档</b><div class="sub" style="margin:4px 0 6px">复制这段存档码，换设备或清缓存后可以用它恢复进度。</div>
         <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy">复制</button></div></div>
