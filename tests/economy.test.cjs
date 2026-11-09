@@ -28,12 +28,14 @@ test('卡包补充最快 0.45 秒，补货节点再多也不会更快', () => {
 });
 
 test('固定目标曲线：只看章节和地图第几站，不再追着开包数涨', () => {
-  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, Math});
+  let worth = 1;
+  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, Math});
   vm.runInContext(between('const GOAL_MIN=', 'const ROUTES={') + ';this.g=goalFor;this.s=syncGoal;', ctx);
-  assert.equal(ctx.g(1, 0), 10); assert.equal(ctx.g(1, 5), 14);
-  assert.equal(ctx.g(2, 0), 60); assert.equal(ctx.g(3, 0), 170); assert.equal(ctx.g(3, 5), 238);
-  assert.equal(ctx.g(6, 0), 400); assert.equal(ctx.g(7, 0), 448);
-  ctx.M.map = {ch: 1, r: 2}; ctx.s(); assert.equal(ctx.M.goal, 12);          // 下一站是第 3 排（r+1）
+  assert.equal(ctx.g(1, 0), 10); assert.equal(ctx.g(1, 5), 16);
+  assert.equal(ctx.g(2, 0), 35); assert.equal(ctx.g(3, 0), 55); assert.equal(ctx.g(3, 5), 88);
+  assert.equal(ctx.g(6, 0), 105); assert.equal(ctx.g(7, 0), 118);
+  worth = 4; assert.equal(ctx.g(1, 0), 20); worth = 1;                       // 一包算 4 包时目标只 ×√4
+  ctx.M.map = {ch: 1, r: 2}; ctx.s(); assert.equal(ctx.M.goal, 14);          // 下一站是第 3 排（r+1）
   ctx.s(true); assert.equal(ctx.M.goal, 12);                                 // 正在打第 2 排
   const settle = between('function settleRoute(){', '// ---- 卡牌三选一');
   assert.doesNotMatch(settle, /M\.goal\+=/); assert.doesNotMatch(settle, /goalAfterMiss\(/);
@@ -236,7 +238,7 @@ test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少�
 });
 
 test('深入金库：每层血量 ×1.3^层、目标逐层提高；失败背包全丢并掉心，地图里每张最多一个', () => {
-  assert.match(html, /const DELVE_HP=1\.3, DELVE_COIN=\.35, DELVE_GOAL=1, DELVE_GOAL_STEP=\.1;/);
+  assert.match(html, /const DELVE_HP=1\.3, DELVE_COIN=\.35, DELVE_GOAL=1, DELVE_GOAL_STEP=\.2;/);
   assert.match(html, /G\.mut=\{hpX:Math\.pow\(DELVE_HP,L\)\}/);
   assert.match(html, /else \{ G\.delveLost=\{\.\.\.d\}; M\.delve=null; loseHeart\('被困在金库深处'\); \}/);
   assert.match(html, /if\(G\.route==='delve'\)\{ M\.chAge=\(M\.chAge\|\|0\)\+1; delveSettle\(ok\); return; \}/);

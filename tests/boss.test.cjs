@@ -73,12 +73,12 @@ test('ordinary group damage and legacy overkill averages never inflate a fresh b
 
 test('the first boss has a finite cap even with extreme single-shot damage or stale lastBossHp', () => {
   const f = fixture(); f.run('damage=1e9;M.lastBossHp=1e12;');
-  assert.equal(f.start(), 42 * 12);
+  assert.equal(f.start(), 36 * 100);   // 第 1 章基础血量（×0.30）× 跨章上限 100
 });
 
 test('the cross-chapter cap bounds the entire HP calculation, including the base term', () => {
   const f = fixture(); f.run('M.ch=3;M.maxCh=3;M.up.stage=3;M.lastBossHp=100;damage=1e9;');
-  assert.equal(f.start(), 1200);
+  assert.equal(f.start(), 10000);   // 上一章 100 × 跨章上限 100
 });
 
 test('retries keep HP stable after upgrades and normal rounds; a new chapter gets a new basis', () => {

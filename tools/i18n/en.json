@@ -1211,5 +1211,20 @@
 "命用完、打过首领或转生时清空": "Cleared when you run out of hearts, beat the boss, or Rebirth",
 "护符：": "Charm: ",
 "护符": "Charms",
-"出发时可以选一个": "pick one when you set out"
+"出发时可以选一个": "pick one when you set out",
+"包。达成：拿连胜奖励金币，往首领再近一站。没达成：掉 1 颗": "packs. Hit it: earn a streak bonus and move one stop closer to the boss. Miss: lose 1",
+"，心用完本局结束，地图重来（卡牌和升级保留，散落一部分金币，护符清空）。": ". Run out of hearts and the run ends — the map restarts (cards and upgrades are kept; you drop some coins and lose your charms).",
+"直击！+2 包": "Direct hit! +2 packs",
+"直击！+1 包": "Direct hit! +1 pack",
+"，每次直击多算 1 包目标": ", and each direct hit counts 1 extra pack toward the goal",
+"颗），心用完本局结束，地图从头开始：卡牌和升级保留，散落一部分金币（Chapter 3起），护符清空。": " per chapter). Run out and the run ends; the map restarts: cards and upgrades are kept, you drop some coins (from Chapter 3), and charms are cleared.",
+"：完成开包目标。目标只看章节和走到第几站，越往首领走越高；同一章打得越久，金币也会多一点。": ": hit the pack goal. The goal depends only on the chapter and how far along the map you are — it rises toward the boss; the longer you stay in a chapter, the more coins you earn.",
+"开包数不够？试试升级「秘藏等级」和「清点术」：一个卡包能算好几个。": "Not opening enough? Upgrade “Vault Level” and “Tally” — each pack then counts as several.",
+"下一步：升级「秘藏等级」": "Next: upgrade “Vault Level”",
+"从第 2 章起目标会高很多。秘藏等级让": "From Chapter 2 the goals get much higher. Vault Level makes ",
+"一个卡包算好几个": "each pack count as several",
+"、金币也更多——光升伤害是不够的。": " and pays more coins — damage alone won’t be enough.",
+"去看看": "Show me",
+"卡牌和升级都保留，连胜和护符清零。": "Cards and upgrades are kept; your streak and charms reset.",
+"，心没有少。": " — no heart lost."
 }

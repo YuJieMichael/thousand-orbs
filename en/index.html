@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:90c6effe579812620a2b1e9c3052117b6668fb55 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:9850ab3487377f7ef7b86f44edb6122aea27bfaa -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -610,7 +610,7 @@ function normalizeSave(data){
   if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
   if(typeof CHARMS!=='undefined'&&(!next.charms.every(id=>typeof id==='string'&&CHARMS.some(c=>c.id===id))||next.charms.length>CHARM_MAX)) next.charms=[];
   if(next.inRound!==undefined&&next.inRound!==null&&!['normal','elite','delve','boss'].includes(next.inRound)) bad();
-  if(next.elitePick!==undefined&&![0,1].includes(next.elitePick)) bad();
+  if(next.elitePick!==undefined&&!(Number.isSafeInteger(next.elitePick)&&next.elitePick>=0&&next.elitePick<=5)) bad();
   for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
   if(next.routes!==null&&(!Array.isArray(next.routes)||!next.routes.every(r=>['normal','elite','shop','event'].includes(r)))) bad();
   for(const s of Object.values(next.lbSent)) if(!saveRecord(s)||typeof s.value!=='number'||s.value<0||!Number.isFinite(s.value)||(s.tb!==undefined&&(typeof s.tb!=='number'||s.tb<0||!Number.isFinite(s.tb)))) bad();
@@ -676,7 +676,7 @@ function exportCode(){ const s=JSON.stringify(M); let h=0; for(let i=0;i<s.lengt
 function importCode(code){ const m=String(code).trim().match(/^JZMC1\.([A-Za-z0-9+/=]+)\.([a-z0-9]+)$/); if(!m) throw new Error('Wrong format');
   const s=decodeURIComponent(escape(atob(m[1]))); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0;
   if((h>>>0).toString(36)!==m[2]) throw new Error('The save code is incomplete'); const d=JSON.parse(s); if(!d||typeof d.owned!=='object'||typeof d.up!=='object') throw new Error('Not a Thousand Orbs save');
-  applySavedState(normalizeSave(d)); }
+  const n=normalizeSave(d); n.inRound=null; applySavedState(n); }
 
 // ================= 升级 =================
 const STAGE_G=3.4; // 秘藏等级价格增长：原来 ×5 会在 Lv5 左右卡墙，模拟后改为 ×3.4
@@ -794,7 +794,7 @@ const ACH=[
   {id:'fever3',ico:'🔥',name:'Heat Wave',desc:'Enter Frenzy 3 times in one round',soul:2,ok:()=>M.best.fever>=3},
   {id:'streak10',ico:'🔗',name:'Ten-Win Streak',desc:'Hit the goal 10 rounds in a row',soul:2,ok:()=>(M.bestStreak||0)>=10},
   {id:'round50',ico:'💥',name:'Full House',desc:'Open 50 packs in one round',soul:2,ok:()=>M.best.opened>=50},
-  {id:'res5',ico:'🔔',name:'Five-Part Harmony',desc:'Equip 5 cards of one school',soul:2,ok:()=>Object.values(schoolCount()).some(v=>v>=5)},
+  {id:'res5',ico:'🔔',name:'Five-Part Harmony',desc:'Equip 5 cards of one school',soul:2,ok:()=>Object.values(schoolCount(true)).some(v=>v>=5)},
   {id:'foil',ico:'✨',name:'Shimmer',desc:'Get your first foil card',soul:1,ok:()=>Object.keys(M.foil).length>0},
   {id:'set1',ico:'📖',name:'True Lineage',desc:'Collect every card of any one school',soul:2,ok:()=>SCH5.some(setDone)},
   {id:'setAll',ico:'📚',name:'The Complete Vault',desc:'Collect every card of all five schools',soul:5,ok:allSets},
@@ -972,11 +972,13 @@ const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
 const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6, GOAL_GROW=1, GOAL_REBORN=.3; // 旧的「目标追实力」参数，只留给旧测试和说明
 // 固定目标曲线（CCGS 测评 P0）：目标只看章节和地图上走到第几站，不再追着你的开包数涨——变强就是真的变强
 // 按模拟（新号贪心升级）各章常见开包数定的表：首站约为常见开包的 1/3～1/2，越往后的站越高；第 6 章以后每章 ×1.12
-const GOAL_TABLE=[10,60,170,300,360,400], GOAL_CH=1.12, GOAL_STOP=.08;
+const GOAL_TABLE=[10,35,55,80,95,105], GOAL_CH=1.12, GOAL_STOP=.12;
+// 目标再乘 √(一包算几包)：升秘藏等级 / 清点术仍然明显更轻松（收益只被抵消一半），只升伤害的玩家也不会被卡死（CCGS 复测）
+const goalWorth=()=>DAILY?1:Math.sqrt(packWorth()*(1+CNT_STEP*(M.up.cnt||0)));
 // 有地图时 = 第几排（正在打的那一站，或下一站）；没开地图时 = 本章已达成几轮
 const mapStop=(playing=false)=>M.map&&M.map.ch===M.ch&&mapOn()?Math.max(0,Math.min(MAP_ROWS-1,(M.map.r|0)+(playing?0:1))):Math.min(MAP_ROWS,M.chRounds||0);
 const goalBase=ch=>ch<=GOAL_TABLE.length?GOAL_TABLE[Math.max(1,ch)-1]:GOAL_TABLE[GOAL_TABLE.length-1]*Math.pow(GOAL_CH,ch-GOAL_TABLE.length);
-const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)));
+const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)*goalWorth()));
 function syncGoal(playing=false){ if(!DAILY&&M) M.goal=goalFor(M.ch,mapStop(playing)); }
 const ROUTES={
   normal:{name:'Normal',ico:'🎯',desc:g=>`Goal: open ${g} packs`},
@@ -993,7 +995,7 @@ function genRoutes(noShop){ if(!unl('routes')) return ['normal']; const pool=['e
 
 // ================= 🕳️ 深入金库（搜打撤）：连续打好几层，每层打完选「撤离」带走背包，或「继续」更深；失败背包全丢 =================
 const RORD={N:0,R:1,SR:2,SSR:3,UR:4};
-const DELVE_HP=1.3, DELVE_COIN=.35, DELVE_GOAL=1, DELVE_GOAL_STEP=.1;
+const DELVE_HP=1.3, DELVE_COIN=.35, DELVE_GOAL=1, DELVE_GOAL_STEP=.2;
 const delveGoal=l=>Math.max(GOAL_MIN,Math.ceil(M.goal*(DELVE_GOAL+DELVE_GOAL_STEP*(l-1))));
 function delveStart(){ M.delve={layer:1,coins:0,cards:{},orbs:{},soul:0}; save(); startRound(false,{route:'delve'}); }
 function delveNext(){ if(!M.delve) return; M.delve.layer++; save(); startRound(false,{route:'delve'}); }
@@ -1047,13 +1049,13 @@ function abandonRound(){ const r=M.inRound; if(!r) return; M.inRound=null; // �
   if(r==='delve'){ G.earned=0; G.loot={}; delveSettle(false); } else if(r==='boss') loseHeart('Left a boss fight midway');
   else { M.chAge=(M.chAge||0)+1; M.streak=0; loseHeart('Left the last round midway'); syncGoal(); }
   save(); setTimeout(()=>toast('You left the last round midway — counted as a miss'),600); }
-const RUN_LOSS=.25; // 命用完：散落四分之一金币（CCGS 测评：失败要有代价）
+const RUN_LOSS=.15, RUN_LOSS_CH=3; // 命用完：第 3 章起散落 15% 金币（最多上一轮金币的 3 倍），新手章节不罚
 function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return;
   if(why==='Goal missed'&&hasCharm('ward')){ M.charms=M.charms.filter(x=>x!=='ward'); G.heartLost='Your Ward shattered and took this miss for you'; G.wardSaved=1; return; }
   m.hearts--; G.heartLost=why;
-  if(m.hearts<=0){ G.runOver=true; const lost=Math.floor(M.money*RUN_LOSS); M.money-=lost; G.runLoss=lost; M.map=genMap(); M.map.runs=m.runs+1; M.streak=0; M.charms=[]; } }
+  if(m.hearts<=0){ G.runOver=true; const lost=M.ch<RUN_LOSS_CH?0:Math.floor(Math.min(M.money*RUN_LOSS,(G.earned||M.lastEarned||0)*3)); M.money-=lost; G.runLoss=lost; M.map=genMap(); M.map.runs=m.runs+1; M.streak=0; M.charms=[]; } }
 const NODE_INFO={
-  normal:{ico:'🎯',name:'Normal',tip:g=>`Goal: open ${g} packs. Success: streak bonus coins and +1 boss progress. Miss: lose 1 ❤️, and the goal drops.`},
+  normal:{ico:'🎯',name:'Normal',tip:g=>`Goal: open ${g} packs. Hit it: earn a streak bonus and move one stop closer to the boss. Miss: lose 1 ❤️.`},
   elite:{ico:'⚔️',name:'Elite',tip:g=>`Pack HP ×${ELITE_HP}, coins ×${ELITE_COIN}, goal: open ${Math.ceil(g*ELITE_GOAL)} packs. Success: pick 1 of 3 SR+ cards plus a special orb. Miss: lose 1 ❤️.`},
   shop:{ico:'🏮',name:'Black Market',tip:()=>'No round here: spend coins on packs, pick 1 of 3 from a school, or seal unwanted cards for free. You can’t lose hearts.'},
   event:{ico:'❓',name:'Encounter',tip:()=>'No round here: something random happens. Some events are good, others — pickpockets, cave-ins, cursed chests — are bad, so weigh your choices.'},
@@ -1069,7 +1071,7 @@ function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(
   const nodes=m.rows.map((row,r)=>row.map((o,i)=>node(r,i,o)).join('')).join('')+`<button class="mnode boss${mapAtBoss()?' can':''}" data-mboss="1" style="left:50%;top:${yOf(MAP_ROWS)}px" title="boss">👑</button>`;
   const hearts='❤️'.repeat(Math.max(0,m.hearts))+'<span style="opacity:.25">'+'❤️'.repeat(Math.max(0,MAP_HEARTS-m.hearts))+'</span>';
   return `<div class="chap" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>🗺️ Chapter ${M.ch} Route</b><span>${hearts} <span class="sub">stop ${Math.max(0,m.r+1)}/${MAP_ROWS}</span></span></div>${charmsHTML()}
-    <div class="sub" style="margin-top:4px"> Climb from the bottom up, picking a node connected to where you are (glowing nodes are reachable). Missing a goal or losing a boss fight costs 1 ❤️; run out of hearts and this run ends — the map restarts (you keep cards and coins).</div>
+    <div class="sub" style="margin-top:4px"> Climb from the bottom up, picking a node connected to where you are (glowing nodes are reachable). Missing a goal or losing a boss fight costs 1 ❤️. Run out of hearts and the run ends — the map restarts (cards and upgrades are kept; you drop some coins and lose your charms).</div>
     <div class="map" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
     <div id="mapInfo" class="sub" style="min-height:2.4em;margin-top:6px"> Tap a node on the map to see what it is.</div>
     <details style="margin-top:6px"><summary class="sub" style="cursor:pointer"> What is each node?</summary><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>: ${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
@@ -1195,9 +1197,9 @@ function bindLoadBar(body){
   body.querySelectorAll('[data-lsave]').forEach(b=>b.onclick=()=>{ const k=b.dataset.lsave; saveLoad(k); SFX.play('buy'); toast(`${LOADS[k].ico} Saved as “${LOADS[k].name}” loadout`); showBetween(); });
   body.querySelectorAll('[data-luse]').forEach(b=>b.onclick=()=>{ applyLoad(b.dataset.luse); renderSide(); hud(); showBetween(); });
   const a=body.querySelector('#lAuto'); if(a) a.onchange=()=>{ M.loadAuto=a.checked; save(); toast(a.checked?'Loadouts will switch automatically':'Auto-switch turned off'); }; }
-function schoolCount(){ const eq=equipped(),n={}; eq.forEach(id=>{ const c=byId[id]; n[c.sch]=(n[c.sch]||0)+1; if(c.sch2) n[c.sch2]=(n[c.sch2]||0)+1; });
+function schoolCount(raw){ const eq=equipped(),n={}; eq.forEach(id=>{ const c=byId[id]; n[c.sch]=(n[c.sch]||0)+1; if(c.sch2) n[c.sch2]=(n[c.sch2]||0)+1; });
   if(eq.includes('lord')){ const k=levelOf(M.owned.lord)>=6?2:1; Object.keys(n).forEach(s=>{ if(s!=='myth') n[s]+=k; }); }
-  if(!DAILY&&!(G&&G.chal)) for(const id of (M.charms||[])){ const c=charmOf(id); if(c&&c.sch&&n[c.sch]) n[c.sch]+=1; } return n; }
+  if(!raw&&!DAILY&&!(G&&G.chal)) for(const id of (M.charms||[])){ const c=charmOf(id); if(c&&c.sch&&n[c.sch]) n[c.sch]+=1; } return n; }
 const cardLv=id=>{ const c=byId[id]; return c.comps?Math.min(...c.comps.map(x=>levelOf(M.owned[x]||0))):levelOf(M.owned[id]||0); };
 const starOf=id=>(M.asc&&M.asc[id])||0;
 function cardP(id){ if(DAILY){ const c=byId[id],sc=schoolCount(); return [DAILY_LV,powerOf(DAILY_LV)*resMult(Math.max(sc[c.sch]||0,c.sch2?sc[c.sch2]||0:0))]; }
@@ -1248,7 +1250,7 @@ function startRound(boss,opt={}){
   M.routes=null; // 章节进度改为「达成目标」才 +1，见 endRound
   [1,2,3].forEach(t=>{ M.shopN[t]=Math.max(0,(M.shopN[t]||0)-1); });
   M.pickRolls=0; M.round++; running=true; $('ov').classList.remove('show'); renderSide();
-  G.tut=M.round===1&&!M.prestiges&&!M.guide.tut&&!chal&&!daily&&!boss?{step:0,shots:0,flash:0}:null; // 新玩家第一轮：教学关
+  G.tut=M.round<=3&&!M.prestiges&&!M.guide.tut&&!chal&&!daily&&!boss?{step:0,shots:0,flash:0}:null; // 新玩家第一轮：教学关
   if(G.tut){ G.boonNext=0; G.goal=Math.max(G.goal,TUT_GOAL); } // 教学轮不弹祝福，目标稍高一点，才感觉得到「目标」
   if(M.round===1&&!G.tut) guideTip('aim','Aim, then tap — or press Space');
   if(chal) setTimeout(()=>toast(`${chal.ico} Challenge: ${chal.goalTxt}`),300);
@@ -1256,19 +1258,20 @@ function startRound(boss,opt={}){
 }
 function freeSlots(){ return SLOTS.filter(s=>!(G.isBoss&&s.y===335)&&!G.packs.some(p=>p.slot===s)&&!G.refill.some(r=>r.slot===s)); }
 // 前几章首领更弱：第 1~4 章血量 ×0.35 / ×0.5 / ×0.7 / ×0.85，第 5 章起不变
-const BOSS_EASE=[.35,.5,.7,.85];
+const BOSS_EASE=[.3,.5,.7,.85];
 // 前三章参考首次挑战的单发伤害；不参考普通轮群伤或过量伤害。
-const BOSS_HITS=[26,34,42], BOSS_PLAIN=4.5; // 基准伤害只看打磨等级和传承，不看当时带的卡：故意弱配装先输一次压不了血
+const BOSS_HITS=[26,70,140,180,220], BOSS_PLAIN=4.5; // 第 6 章起每章再 +20
+const bossHits=ch=>BOSS_HITS[ch-1]||BOSS_HITS[BOSS_HITS.length-1]+20*(ch-BOSS_HITS.length); // 基准伤害只看打磨等级和传承，不看当时带的卡：故意弱配装先输一次压不了血
 const dPlain=()=>orbDmg(M.up.dmg)*(1+.3*M.legacy.pow)*(1+TS.dmg)*BOSS_PLAIN;
 // 整体血量最多为上一章首领的 12 倍；首章 / 缺少旧记录时用章节基础血量封顶。
-const BOSS_STEP=12, BOSS_HP_V=2, BOSS_HARD=1.25;
+const BOSS_STEP=100, BOSS_HP_V=2, BOSS_HARD=1.25; // 跨章上限放宽到 100：以前上限一直压着，第 2 章起首领几乎都是一次过（实测统计 89%～100%）
 function bossHp(){
   const old=M.bossD&&M.bossD.ch===M.ch?M.bossD:null;
   if(old&&old.v===BOSS_HP_V&&Number.isFinite(old.hp)&&old.hp>0) return old.hp;
   const base=packHpBase(0)*60*Math.pow(3.2,M.ch-1)*(BOSS_EASE[M.ch-1]||1);
   // 旧存档保留已经锁定的单发基准，避免升级后迁移反而抬高首领血量。
   const d=old&&Number.isFinite(old.d)?old.d:dPlain();
-  const floor=d*(BOSS_HITS[M.ch-1]||0);
+  const floor=d*bossHits(M.ch);
   const previous=M.ch>1&&M.lastBossHp>0?M.lastBossHp:base;
   const hp=Math.min(Math.max(base,floor)*(M.ch>=2?BOSS_HARD:1),previous*BOSS_STEP); // 第 2 章起 +25%（统计：第 2 章以后胜率 100%）
   // 整体快照写入原存档；同章重试、刷新、换装或升级都不会重新抬高血量。
@@ -1366,8 +1369,8 @@ function hitPack(b,p){
   if(b.manual&&!b.mini&&Math.abs(b.x-p.x)<(p.boss?10:6)&&Math.abs(b.y-p.y)>=p.hh-2){ mult*=1.6; addMx(b,.3); G.wk=(G.wk||0)+1;
     G.fx.push({x:p.x,y:p.y-p.hh-38,t:'Bullseye!',c:'#9de7ff',life:.7,sz:15}); G.parts.push({ring:true,x:b.x,y:b.y,r:4,max:30,life:.25,dur:.25,c:'#9de7ff',lw:2}); SFX.play('crit'); }
   // 直击：手动发射的宝珠，第一下就撞上卡包（中途没碰铆钉）——伤害 ×2.5，倍率 +0.5（CCGS 测评：瞄准要值得）
-  if(b.manual&&!b.mini&&!b.pegged&&!b.direct&&!p.boss){ b.direct=1; mult*=hasCharm('eye')?4:DIRECT_X; addMx(b,.5); G.direct=(G.direct||0)+1;
-    G.fx.push({x:p.x,y:p.y-p.hh-22,t:'Direct hit!',c:'#ffe08a',life:.8,sz:17}); G.parts.push({ring:true,x:b.x,y:b.y,r:6,max:40,life:.3,dur:.3,c:'#ffe08a',lw:3}); shake(2); }
+  if(b.manual&&!b.mini&&!b.pegged&&!b.direct&&!p.boss){ b.direct=1; mult*=DIRECT_X+(hasCharm('eye')?1:0); addMx(b,.5); G.direct=(G.direct||0)+1; if(!p.boss&&G.route) G.opened+=hasCharm('eye')?2:1; // 直击也算进开包目标
+    G.fx.push({x:p.x,y:p.y-p.hh-22,t:hasCharm('eye')?'Direct hit! +2 packs':'Direct hit! +1 pack',c:'#ffe08a',life:.8,sz:17}); G.parts.push({ring:true,x:b.x,y:b.y,r:6,max:40,life:.3,dur:.3,c:'#ffe08a',lw:3}); shake(2); }
   if(b.type==='fire'){ p.burn=Math.max(p.burn,G.R.burnT); p.fb=.5; }
   p.mx=Math.max(p.mx||1,b.mx); b.pot+=POT.pack*packValue(0)*b.mx;
   dmgPack(p,D()*b.dmgX*(1+b.walls*G.R.wallBonus)*fast*mult*mxDmg(b)); addMx(b,MX.pack*(b.pierce?.5:1));
@@ -2097,7 +2100,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-09.9d';
+const GAME_V='2026-11-09.9f';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2178,7 +2181,7 @@ function spendFx(txt,el,big){ if(!el) return; const r=el.getBoundingClientRect()
 const CHARM_MAX=3;
 const CHARMS=[
   ...['combo','fire','acid','gold','grav'].map(k=>({id:'s_'+k,sch:k,w:3,ico:'🔔',name:k,desc:''})),
-  {id:'eye',w:3,ico:'🦅',name:'Hawk Eye',desc:'“Direct hit” damage ×2.5 → ×4'},
+  {id:'eye',w:3,ico:'🦅',name:'Hawk Eye',desc:'“Direct hit” damage ×2.5 → ×3.5, and each direct hit counts 1 extra pack toward the goal'},
   {id:'ward',w:2,ico:'🛡️',name:'Ward',desc:'The first missed goal this run costs no heart (then it breaks)'},
   {id:'heat',w:3,ico:'🔥',name:'Burning Heart',desc:'Hits needed for Fever -4'},
   {id:'pouch',w:3,ico:'🔮',name:'Deep Pouch',desc:'+2 orbs at the start of every round'},
@@ -2192,7 +2195,7 @@ const charmDesc=c=>c.sch?`${SCH[c.sch].name} resonance counts one extra card (ev
 const hasCharm=id=>!DAILY&&(M.charms||[]).includes(id);
 function charmsRound(G){ if(G.chal||G.daily) return; // 每轮开局生效
   if(hasCharm('pouch')){ G.ammo+=2; G.maxAmmo+=2; } if(hasCharm('thread')) G.bo.coin*=1.25; if(hasCharm('spring')) G.bo.refill/=1.5; }
-function offerCharm(after){ M.charms=M.charms||[]; if(M.charms.length>=CHARM_MAX||!mapOn()){ after&&after(); return; }
+function offerCharm(after,start){ M.charms=M.charms||[]; if(M.charms.length>=CHARM_MAX||!mapOn()){ if(start&&M.map) M.map.charm=1; after&&after(); return; }
   const pool=CHARMS.filter(c=>!M.charms.includes(c.id)), picks=[];
   while(picks.length<3&&pool.length){ const tot=pool.reduce((a,c)=>a+c.w,0); let r=Math.random()*tot; let i=pool.findIndex(c=>(r-=c.w)<0); if(i<0) i=0; picks.push(pool.splice(i,1)[0]); }
   const el=$('boonPop');
@@ -2200,7 +2203,7 @@ function offerCharm(after){ M.charms=M.charms||[]; if(M.charms.length>=CHARM_MAX
     <div class="bcs">${picks.map((c,i)=>`<button class="bc" data-i="${i}" disabled><div class="bi">${c.sch?badge(c.sch):c.ico}</div><b>${charmName(c)}</b><div class="sub">${charmDesc(c)}</div></button>`).join('')}</div>`;
   el.classList.add('show'); SFX.play('raise');
   setTimeout(()=>el.querySelectorAll('.bc').forEach(b=>b.disabled=false),700);
-  el.querySelectorAll('.bc').forEach(b=>b.onclick=()=>{ const c=picks[+b.dataset.i]; M.charms.push(c.id); save(); SFX.play('ach'); el.classList.remove('show'); toast(`🧿 Charm: ${charmName(c)}`); recalcTree(); renderSide(); after&&after(); }); }
+  el.querySelectorAll('.bc').forEach(b=>b.onclick=()=>{ const c=picks[+b.dataset.i]; M.charms.push(c.id); if(start&&M.map) M.map.charm=1; save(); SFX.play('ach'); el.classList.remove('show'); toast(`🧿 Charm: ${charmName(c)}`); recalcTree(); renderSide(); after&&after(); }); }
 function charmsHTML(){ const cs=(M.charms||[]).map(charmOf).filter(Boolean); if(!mapOn()) return '';
   return `<div class="sub" style="margin-top:6px">🧿 Charms ${cs.length}/${CHARM_MAX}: ${cs.length?cs.map(c=>`<b style="color:var(--gold2)" title="${charmDesc(c)}">${charmName(c)}</b>`).join(' · '):'pick one when you set out'}</div>`; }
 
@@ -2568,8 +2571,8 @@ function manualHTML(){
   ]))}
   ${sec('🗺️','Rounds and Modes',li([
     `<b>🕳️ The Deep Vault</b> (appears now and then on the map): a loot-and-extract mode. Fight down layer by layer — each one is tougher and pays more — with your coins and cards held in a bag. After each cleared layer, extract with everything or push deeper; layers 2, 4… add a special orb and layer 3+ adds Gold Souls. Miss a goal and you’re trapped, losing the whole bag.`,
-    `<b>🗺️ Chapter Map</b> (opens after the Chapter 1 boss): each chapter is a branching route map —${MAP_ROWS} stops, then the boss. Each time, pick one of the connected nodes. Missing a goal or losing a boss fight costs 1 ❤️(${MAP_HEARTS} per chapter); run out and the run ends — the map restarts, but you keep cards and coins.`,
-    '<b> Normal rounds</b>: hit the pack goal. The longer you stay in a chapter, the tougher packs get (×1.15 per round) — and the more coins they give. It resets when you beat the boss.',
+    `<b>🗺️ Chapter Map</b> (opens after the Chapter 1 boss): each chapter is a branching route map —${MAP_ROWS} stops, then the boss. Each time, pick one of the connected nodes. Missing a goal or losing a boss fight costs 1 ❤️(${MAP_HEARTS}  per chapter). Run out and the run ends; the map restarts: cards and upgrades are kept, you drop some coins (from Chapter 3), and charms are cleared.`,
+    '<b> Normal rounds</b>: hit the pack goal. The goal depends only on the chapter and how far along the map you are — it rises toward the boss; the longer you stay in a chapter, the more coins you earn.',
     '<b> Elite rounds</b>: higher goal, better rewards, plus a special rule.',
     '<b> Encounters / Black Market</b>: random events, or spend coins on packs, school picks and sealing cards.',
     '<b> Boss fights</b>: one per chapter, each with its own mechanics; at half HP it enters <b> Phase II</b>. Losing costs nothing — upgrade and come back.',
@@ -2662,7 +2665,7 @@ function showBetween(){
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 Again</button><button class="ghost" id="dailyRank"> Today’s board</button><span class="sub">${M.lbName?'':'Pick a nickname to join today’s board'}</span></div></div>`:'';
   const chalMsg=chalC?`<div class="chap" style="margin-top:12px;border-color:${G.chalWin?'var(--green)':'var(--line)'}">${chalC.ico} Challenge “<b>${chalC.name}</b>” ${G.chalWin?`<b style="color:var(--green)"> complete!</b>${G.chalFirst?` First clear, Gold Souls +${chalC.soul}`:''}`:`not complete (${chalC.prog(G)}). Try a different build.`}</div>`:'';
   const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)"> Goal reached</b> ${G.opened}/${G.goal} packs ${G.realOpened&&G.realOpened!==G.opened?`<span class="sub"> (actually opened ${G.realOpened}  — some packs count as several)</span>`:''} · streak <b>${M.streak}</b> · <br> Coins this round: packs & pockets ${f(G.earned-G.goalBonus)} + streak bonus <b style="color:var(--gold2)">${f(G.goalBonus)}</b> (${pct(G.goalK)} of this round’s coins — grows with your streak)= <b style="color:var(--gold2)">${f(G.earned)}</b>${G.route==='elite'?`<br>⚔️ Elite reward: pick 1 of 3 SR+ cards, and your Orb Bag gains a <b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub">${mapOn()?'':'Boss progress +1 · '} Next goal ${M.goal} packs</span></div>`
-      :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090"> Goal missed</b> ${G.opened}/${G.goal} packs ${G.realOpened&&G.realOpened!==G.opened?`<span class="sub"> (actually opened ${G.realOpened})</span>`:''}${G.lostStreak?` · ${G.lostStreak} streak broken`:''}<br><span class="sub">${mapOn()?'':'This round doesn’t count toward the boss. '} Next goal drops to ${M.goal} packs.</span></div>`):'';
+      :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090"> Goal missed</b> ${G.opened}/${G.goal} packs ${G.realOpened&&G.realOpened!==G.opened?`<span class="sub"> (actually opened ${G.realOpened})</span>`:''}${G.lostStreak?` · ${G.lostStreak} streak broken`:''}<br><span class="sub">${mapOn()?'':'This round doesn’t count toward the boss. '} Next goal ${M.goal} packs. ${M.up.stage<2&&M.ch>=2?'<br> Not opening enough? Upgrade “Vault Level” and “Tally” — each pack then counts as several.':''}</span></div>`):'';
   if(!M.routes||(!unl('routes')&&M.routes.length>1)) M.routes=genRoutes();
   const mapNodes=mapOn()?mapReach():null; if(mapOn()) ensureMap();
   const newU=UNL.filter(u=>u.ok()&&!(M.unl||(M.unl={}))[u.id]); newU.forEach(u=>M.unl[u.id]=1); if(newU.length) save();
@@ -2671,6 +2674,8 @@ function showBetween(){
     <div style="margin-top:6px;display:flex;gap:8px">${instEvt?'<button class="btn" id="a2hsGo" style="padding:6px 14px;font-size:13px;letter-spacing:0"> Install</button>':''}<button class="ghost" id="a2hsNo"> Don’t show again</button></div></div>`:'';
   const lbMine=LB.progress.mine();
   const learnOn=tab==='loot'&&firstUpgradeReady(); $('box').classList.toggle('learning',learnOn); // 引导升级时只留一个主按钮
+  const stageOn=!learnOn&&tab==='loot'&&!M.guide.stageTip&&M.up.stage===0&&M.up.dmg>=3&&!M.prestiges&&!DAILY; // 教学第二步：秘藏等级
+  const stageHTML=stageOn?`<div class="learn-step" id="stagePrompt"><b> Next: upgrade “Vault Level”</b><br> From Chapter 2 the goals get much higher. Vault Level makes <b> each pack count as several</b> and pays more coins — damage alone won’t be enough. <br><button class="btn" id="learnStage"> Show me</button> <button class="ghost" id="stageLater"> Got it</button></div>`:'';
   const learnHTML=learnOn?`<div class="learn-step" id="firstUpgradePrompt"><b> Spend coins to make the next round stronger</b><br> You can spend ${f(REP[0].cost(0))} coins to polish your orbs: base damage ${f(orbDmg(0))} → ${f(orbDmg(1))}. <br><button class="btn" id="learnUpgrade"> Upgrade orbs</button></div>`:'';
   const lbAskHTML=G.packs&&tab==='loot'&&(!M.lbName||M.lbSentName!==M.lbName)&&!M.lbAskOff&&M.round>=2?`<div class="chap" id="lbAsk" style="margin-top:12px;border-color:var(--gold3)">🏆 <b> Join the leaderboard</b> <span class="sub"> Your best: ${lbMine?LB.progress.fmt(lbMine.value,lbMine.tb):''}${M.best.roundCoins>0?' · best round ✦'+f(M.best.roundCoins):''}${M.bestStreak?' · '+M.bestStreak+'-round streak':''}</span>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><input id="lbAskName" maxlength="12" value="${escH(M.lbName||'')}" placeholder="Nickname (up to 12 characters)" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
@@ -2687,13 +2692,13 @@ function showBetween(){
   const bkMsg=bkNeed?`<div class="chap" id="bkBox" style="margin-top:12px;border-color:var(--gold3)">💾 <b> Back up your save</b><br><span class="sub"> Your save lives only in this browser — clearing data or switching phones loses it. Download a save file or copy the save code into your notes; restore it any time under “More → Settings → Import”.</span>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="ghost" id="bkDl"> Download save file</button><button class="ghost" id="bkCopy"> Copy save code</button><button class="ghost" id="bkLater"> Not now</button></div></div>`:'';
   const soulMsg=tab==='loot'&&M.soul>0&&!M.guide.soul?(M.guide.soul=1,save(),`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🔥 <b> Your first Gold Soul</b><br><span class="sub"> Gold Souls come from challenges, myth cards and Rebirth. Spend them under “More → Legacy” on permanent bonuses — they survive Rebirth.</span></div>`):'';
-  const runMsg=G.packs&&G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090"> Run over</b>: you’re out of hearts, so the Chapter ${M.ch} map starts over. <br><span class="sub"> You dropped <b style="color:#e8a090">${f(G.runLoss||0)}</b> coins (a quarter) escaping. Cards and upgrades are kept; your streak resets.</span></div>`:G.packs&&G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}, lost 1 heart. Left: ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}.</div>`:'';
+  const runMsg=G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090"> Run over</b>: you’re out of hearts, so the Chapter ${M.ch} map starts over. <br><span class="sub">${G.runLoss?`You dropped <b style="color:#e8a090">${f(G.runLoss)}</b> coins.`:''} Cards and upgrades are kept; your streak and charms reset.</span></div>`:G.wardSaved?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🛡️ ${G.heartLost} — no heart lost.</div>`:G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}, lost 1 heart. Left: ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}.</div>`:'';
   const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)"> Extracted!</b> Brought out: ${delveBagHTML(G.delveOut)}</div>`
     :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">Trapped on layer ${G.delveLayer}</b>: missed the goal (${G.opened}/${G.goal} packs) and lost the whole bag: ${delveBagHTML(G.delveLost)}</div>`
     :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>The Deep Vault · Layer ${G.delveLayer} cleared</b> (${G.opened}/${G.goal} packs)<br>Bag: ${delveBagHTML(M.delve)}<br><span class="sub">Extract: take everything home. Push on: layer ${G.delveLayer+1}, goal ${delveGoal(G.delveLayer+1)} packs, pack HP ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}; miss it and you lose it all. ${(G.delveLayer+1)%2===0?'Clearing the next layer adds a special orb. ':''}${G.delveLayer+1>=3?`Clearing it also adds ${G.delveLayer-1} Gold Souls.`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ This round ended early; orbs still in flight didn’t pay out.</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ Blessings: ${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+soulMsg+bkMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+soulMsg+bkMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${stageHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span> Coins this round</span></div><div class="stat"><b>${G.opened}</b><span> Packs opened</span></div><div class="stat"><b>${G.hits}</b><span> Hits</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span> New</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2708,6 +2713,8 @@ function showBetween(){
   if($('dailyRank')) $('dailyRank').onclick=()=>{ tab='daily'; TLAST.goal='daily'; showBetween(); };
   if($('lbAskNo')) $('lbAskNo').onclick=()=>{ M.lbAskOff=1; save(); $('lbAsk').remove(); };
   if($('learnUpgrade')) $('learnUpgrade').onclick=()=>{ tab='up'; showBetween(); $('ov').scrollTop=0; };
+  if($('learnStage')) $('learnStage').onclick=()=>{ M.guide.stageTip=1; save(); tab='up'; showBetween(); $('ov').scrollTop=0; };
+  if($('stageLater')) $('stageLater').onclick=()=>{ M.guide.stageTip=1; save(); const b=$('stagePrompt'); if(b) b.remove(); };
   if($('bkBox')){ const done=msg=>{ M.bkCh=M.maxCh+M.prestiges*100; save(); const b=$('bkBox'); if(b) b.innerHTML=`💾 ${msg}`; };
     $('bkDl').onclick=()=>{ downloadText('thousand-orbs-save.txt',exportCode()); done('Save file downloaded.'); };
     $('bkCopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(exportCode()); done('Save code copied — paste it into your notes.'); }catch(e){ tab='sys'; showBetween(); } };
@@ -2733,9 +2740,9 @@ function showBetween(){
     box.querySelectorAll('[data-node]').forEach(b=>{ const k=b.dataset.node; ['pointerenter','focus'].forEach(e=>b.addEventListener(e,()=>hl(k,true))); ['pointerleave','blur'].forEach(e=>b.addEventListener(e,()=>hl(k,false))); });
     box.querySelectorAll('.mnode.can[data-mr]').forEach(d=>{ const k=d.dataset.mr+','+d.dataset.mi; d.addEventListener('pointerenter',()=>hl(k,true)); d.addEventListener('pointerleave',()=>hl(k,false)); }); }
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
-  if(mapOn()&&M.map&&M.map.ch===M.ch&&M.map.r===-1&&!M.map.charm&&!M.delve&&!running&&!G.pendingPick&&!M.elitePick){ M.map.charm=1; save(); setTimeout(()=>{ if(!running) offerCharm(()=>showBetween()); },450); }
-  if(!G.pendingPick&&M.elitePick&&!running){ M.elitePick=0; save(); setTimeout(()=>{ if(!running) openPick({minRar:'SR',title:'⚔️ Elite reward · Pick 1 of 3 (delivered late)'},()=>showBetween()); },350); }
-  if(G.pendingPick){ G.pendingPick=0; const g0=G; M.elitePick=1; setTimeout(()=>{ if(G!==g0||running) return; M.elitePick=0; save(); openPick({minRar:'SR',title:'⚔️ Elite Reward · Pick 1 of 3'},()=>offerCharm(()=>showBetween())); },350); }
+  if(mapOn()&&M.map&&M.map.ch===M.ch&&!M.map.charm&&!M.delve&&!running&&!G.pendingPick&&!M.elitePick&&!offerCharm.busy){ offerCharm.busy=1; setTimeout(()=>{ offerCharm.busy=0; if(!running&&!M.map.charm) offerCharm(()=>showBetween(),true); },450); }
+  if(!G.pendingPick&&M.elitePick>0&&!running){ M.elitePick--; save(); setTimeout(()=>{ if(!running) openPick({minRar:'SR',title:'⚔️ Elite reward · Pick 1 of 3 (delivered late)'},()=>offerCharm(()=>showBetween())); },350); }
+  if(G.pendingPick){ G.pendingPick=0; const g0=G; M.elitePick=Math.min(5,(M.elitePick||0)+1); save(); setTimeout(()=>{ if(G!==g0||running) return; M.elitePick=Math.max(0,M.elitePick-1); save(); openPick({minRar:'SR',title:'⚔️ Elite Reward · Pick 1 of 3'},()=>offerCharm(()=>showBetween())); },350); }
   if($('autoT')) $('autoT').onchange=e=>{ M.autoOn=e.target.checked; save(); };
   let body=$('tabBody');
   if(tab==='loot'){
