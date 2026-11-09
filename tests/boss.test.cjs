@@ -25,7 +25,7 @@ function fixture() {
     buzz() {}, shake() {}, toast() {}, bossIdx: ch => ch, chInfo: () => ({name: 'test', boss: 'test'}),
     urUnlocked: () => [], f: x => String(x), rnd: () => 0,
     recalcTree() {}, save() {}, soulGain: () => 0, checkAch() {}, showBetween() {},
-    fresh: () => ({up: {stage: 0}}), ensureMap() {}, charmsRound() {},
+    fresh: () => ({up: {stage: 0}}), ensureMap() {}, sigilsRound() {}, relicsRound() {}, dropRelic() {}, hasRelic: () => false, hasSigil: () => false, RELIC_BLACK: 0,
   });
   vm.runInContext(`let G=null, ROUND_EQ=null, running=false, tab='';
     const D=()=>damage; const orbDmg=()=>damage/4.5; const syncGoal=()=>{ M.goal=10; }; // 首领基准只看 dPlain（打磨等级），测试里用 damage 代表它

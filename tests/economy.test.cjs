@@ -70,7 +70,7 @@ test('普通卡包：金币和血量同步成长，开出好卡的概率随章�
 
 test('SSR 不再太好拿：保底 100 张（黑金之约点满 50），黑金秘藏自然出现率减半，青铜包第 1 章 SSR 0.2%', () => {
   assert.match(html, /const PITY_BASE=100, PITY_STEP=10;/);
-  assert.match(html, /if\(r<\(\.002\+\.002\*s\)\*lk\*\(1\+BLACK_PACT\*upLv\('pityup'\)\)\) t=3;/);
+  assert.match(html, /if\(r<\(\.002\+\.002\*s\)\*lk\*\(1\+BLACK_PACT\*upLv\('pityup'\)\)\*\(hasRelic\('compass'\)\?2:1\)\) t=3;/);
   assert.match(html, /Math\.min\(STAGE_ODDS_MAX,M\.up\.stage\)/);
   assert.match(html, /odds:\[80,17\.5,2\.4,\.1\]/);
 });
@@ -214,7 +214,7 @@ test('本章轮数只让金币小幅上涨（×1.07/轮，最多 10 轮）；卡
   ctx.DAILY = {}; assert.equal(ctx.a(), 1);
   assert.doesNotMatch(between('const packHp=', '\n'), /ageMult/);
   assert.match(html, /\*Math\.pow\(CH_VAL,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
-  assert.match(html, /M\.chRounds=0; M\.chAge=0; M\.charms=\[\]; syncGoal\(\);/);
+  assert.match(html, /M\.chRounds=0; M\.chAge=0; M\.sigils=\[\]; M\.sigQ=\[\]; syncGoal\(\);/);
 });
 
 test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少一个精英；首站只有普通', () => {
@@ -264,4 +264,18 @@ test('火力补货：场上宝珠越多卡包补得越快，最多 ×5；连发�
   assert.ok(Math.abs(ctx.fr(3) - 3.2) < 1e-9);
   const body = between('G.clrCd=Math.max(0,', 'function ');
   assert.match(body, /G\.refill\.forEach\(r=>r\.t-=dt\*fr\)/);
+});
+
+test('秘符：三个品级都至少有 3 个可选；遗珍三种稀有度都有；精英必掉遗珍并给秘符', () => {
+  const src = between('const SIGIL_MAX=', 'const sigilOf=');
+  const ctx = vm.createContext({});
+  vm.runInContext(src + ';this.S=SIGILS;this.O=SIGIL_ODDS;', ctx);
+  for (const t of ['s', 'g', 'p']) assert.ok(ctx.S.filter(c => c.t === t).length >= 3, `tier ${t}`);
+  for (const k of ['start', 'mid', 'elite']) assert.equal(ctx.O[k].length, 3);
+  const rsrc = between('const RELIC_MAX=', 'const relicOf=');
+  const rc = vm.createContext({}); vm.runInContext(rsrc + ';this.R=RELICS;this.RA=RARE;', rc);
+  for (const r of ['c', 'r', 'l']) assert.ok(rc.R.some(x => x.r === r));
+  assert.match(html, /if\(G\.route==='elite'\)\{ dropRelic\('elite'\); M\.sigQ\.push\('elite'\);/);
+  assert.match(html, /giveCard\(p,2\); dropRelic\('boss',p\.x,p\.y\);/);
+  assert.match(html, /if\(false&&G\.boonNext/);   // 局内祝福已取消
 });

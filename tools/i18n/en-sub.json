@@ -6,7 +6,6 @@
  "每轮额外 +${l} 颗宝珠": "+${l} orbs every round",
  "，卡包里出现了<b>新卡</b>。": ", and <b>new cards</b> appear in packs.",
  "👑 <b>首领被击败！</b>第 ${M.ch} 章": "👑 <b>Boss defeated!</b> Chapter ${M.ch}",
- "包 · SR+ 三选一 · 宝珠`": "packs · SR+ & orb`",
  "更多技能槽……": "更多技能槽…",
  "闪电跳向 3 个卡包（各 ${pct(.5*p)} 伤害）": "lightning jumps to 3 packs for ${pct(.5*p)} damage each",
  "雷击全场所有卡包（各 ${pct(p)} 伤害）": "lightning strikes every pack on the board for ${pct(p)} damage",
