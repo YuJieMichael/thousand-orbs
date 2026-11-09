@@ -1380,7 +1380,7 @@
 "（从营地进入）：每天所有人用同一套卡组和规则打一轮，比谁开的卡包多，有今日榜。": " (from camp): one round a day with the same deck and rules for everyone — most packs opened wins; there’s a daily board.",
 "远征开始": "Expedition begins",
 "开局招募（还剩": "Opening recruit (",
-"次）": " left)",
+"次）": "left)",
 "金魂（回到营地，在「传承」里花）。": "Gold Souls (spend them on Legacy back at camp).",
 "不死鸟之羽燃尽，你以 1 颗心复活": " — the Phoenix Feather burns away and you rise again with 1 heart",
 "每日远征": "Daily Expedition",
@@ -1412,5 +1412,8 @@
 "心用完时，以 1 颗心复活一次（用掉后消失）": "When you run out of hearts, revive once with 1 heart (then it’s gone)",
 "金算盘": "Golden Abacus",
 "首领还带着上次的伤：只剩": "The boss is still wounded from last time: only",
-"血": "HP left"
+"血": "HP left",
+"一轮里打出的最多金币": "Most coins earned in a single round",
+"血量。升级宝珠、调整技能后再来挑战吧。首领不会回满血，这次打掉的血会留着。": "HP left. Upgrade your orbs, adjust your skills and try again. The boss won’t fully heal: the damage you dealt stays.",
+"每局远征结束按分数发金魂，秘卡和成就也会给。回到营地后在「传承」里买永久加成，以后每一局都有效。": "Every expedition pays Gold Souls based on its score; myth cards and achievements give some too. Back at camp, spend them on Legacy for permanent bonuses that apply to every run."
 }

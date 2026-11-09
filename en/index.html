@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:f25e97ee822b1c53e4abb491b7e4aff4deb24277 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:e6e39ff0c99ca0a53f02d19a37cce47b8feb4f1a -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -641,6 +641,11 @@ function normalizeSave(data){
   if(next.pid&&!/^[a-f0-9]{24}$/.test(next.pid)) bad();
   for(const k of ['owned','asc','foil']) for(const id of Object.keys(next[k])) if(!byId[id]) delete next[k][id];
   next.deck=[...new Set(next.deck.filter(id=>byId[id]))];
+  // 远征数据：不合法就整局丢掉（不报错，局外进度照常导入）
+  const R=next.run, nn=v=>Number.isInteger(v)&&v>=0;
+  if(R!==null&&!(R&&typeof R==='object'&&!Array.isArray(R)&&['std','rich','iron','sage','gamb','spec'].includes(R.squad)&&nn(R.danger)&&R.danger<=Math.min(5,Math.max(next.dangerMax||0,R.daily?1:0))
+    &&nn(R.hearts)&&R.hearts<=5&&['score','goals','bosses'].every(k=>R[k]===undefined||nn(R[k]))&&[undefined,null,'win','lose'].includes(R.over))) next.run=null;
+  if(next.run&&(next.run.score||0)>20000) next.run=null;
   return next;
 }
 function readSave(raw){ return normalizeSave(JSON.parse(raw)); }
@@ -1544,20 +1549,21 @@ const notBanned=pool=>{ const p=pool.filter(c=>!(M.banned||{})[c.id]); return p.
 function rollPick(o){ const minI=RO.indexOf(o.minRar||'N'); const pool=notBanned(CARDS.filter(c=>c.rar!=='UR'&&RO.indexOf(c.rar)>=minI&&(c.ch||1)<=M.maxCh&&(!o.sch||c.sch===o.sch))).slice(), out=[];
   const w=c=>({N:6,R:5,SR:3,SSR:1.2}[c.rar]||1); while(out.length<3&&pool.length){ const tot=pool.reduce((a,c)=>a+w(c),0); let r=runRand()*tot; let i=pool.findIndex(c=>(r-=w(c))<0); if(i<0) i=0; out.push(pool.splice(i,1)[0].id); } return out; }
 const rerollCost=()=>Math.ceil(packValue(1)*6*Math.pow(1.5,M.pickRolls||0));
-function openPick(o,done){ let ids=rollPick(o); const el=$('boonPop');
+function openPick(o,done){ let ids=o.recruit&&Array.isArray(M.recruitPicks)&&M.recruitPicks.every(id=>byId[id])?M.recruitPicks:rollPick(o); if(o.recruit){ M.recruitPicks=ids; save(); } const el=$('boonPop');
   const close=()=>{ el.classList.remove('show'); checkAch(); if(done) done(); };
   const render=()=>{ el.innerHTML=`<div class="bt serif goldtxt">${o.title||'Pick 1 of 3'}</div><div class="sub" style="text-align:center"> New cards are added; owned ones get +2 copies and level up faster</div>
     <div class="bcs pkrow lock">${ids.map(id=>`<div class="pk" data-id="${id}" style="width:150px">${cardHTML(id,{isNew:!M.owned[id]})}</div>`).join('')}</div>
     ${o.recruit?'':`<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn alt" id="pkRe" style="padding:8px 16px;font-size:14px"> Reroll ✦ ${f(rerollCost())}</button><button class="ghost" id="pkSkip"> Skip</button></div>`}`;
     el.querySelectorAll('.pk').forEach(x=>x.onclick=()=>{ const id=x.dataset.id, isNew=!M.owned[id]; M.owned[id]=(M.owned[id]||0)+(isNew?1:2);
-      if(isNew&&equipped().length<maxSlots()) M.deck.push(id); save(); renderSide(); SFX.play(byId[id].rar==='N'?'R':byId[id].rar); toast(`${isNew?'New':'Upgraded'}: ${byId[id].name}`); close(); });
+      if(isNew&&equipped().length<maxSlots()) M.deck.push(id); if(o.recruit) M.recruitPicks=null; save(); renderSide(); SFX.play(byId[id].rar==='N'?'R':byId[id].rar); toast(`${isNew?'New':'Upgraded'}: ${byId[id].name}`); close(); });
     if($('pkRe')) $('pkRe').onclick=e=>{ if(!spend(rerollCost(),e.target)) return; M.pickRolls=(M.pickRolls||0)+1; ids=rollPick(o); render(); };
     if($('pkSkip')) $('pkSkip').onclick=close; clearTimeout(openPick.t); openPick.t=setTimeout(()=>{ const r=el.querySelector('.pkrow'); if(r) r.classList.remove('lock'); },700); };
   render(); el.classList.add('show'); }
 // ---- 路线：黑市 / 奇遇 ----
-const schPickCost=()=>Math.ceil(packValue(1)*10*(hasSigil('patron')?.8:1));
-const srPickCost=()=>Math.ceil(packValue(1)*25*(hasSigil('patron')?.8:1)); // 原来的精英奖励「SR 以上三选一」挪到黑市
-function leaveDetour(){ M.routes=genRoutes(true); save(); G={loot:{}}; tab='loot'; showBetween(); }
+const mkOff=()=>hasSigil('patron')||runSquad()==='rich'?.8:1;
+const schPickCost=()=>Math.ceil(packValue(1)*10*mkOff());
+const srPickCost=()=>Math.ceil(packValue(1)*25*mkOff()); // 原来的精英奖励「SR 以上三选一」挪到黑市
+function leaveDetour(){ M.detour=null; M.routes=genRoutes(true); save(); G={loot:{}}; tab='loot'; showBetween(); }
 function showMarket(){ const box=$('box');
   const banPool=CARDS.filter(c=>c.rar!=='UR'&&(c.ch||1)<=M.maxCh), nb=Object.keys(M.banned).length;
   box.innerHTML=`<h2 class="serif goldtxt">🏮 Black Market</h2><div class="sub" style="margin-top:4px"> Skip a round and browse: buy packs, pick cards by school, seal cards you don’t want.</div>
@@ -1606,14 +1612,14 @@ const EVENTS=[
   {ico:'📜',name:'Torn Codex',txt:'A battered codex lies by the road; three cards are visible inside.',opts:[
     {t:'Open it (free pick 1 of 3)',pick:1},{t:'Sell it',go:()=>{ const v=packValue(2)*4; M.money+=v; return `Sold for ${f(v)} coins.`; }}]},
 ];
-function showEvent(){ const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)], opts=typeof ev.opts==='function'?ev.opts():ev.opts, box=$('box');
+function showEvent(){ const D=M.detour; let ei=D&&D.t==='event'&&EVENTS[D.ev]?D.ev:Math.floor(Math.random()*EVENTS.length); if(D&&D.t==='event'){ D.ev=ei; save(); } const ev=EVENTS[ei], opts=typeof ev.opts==='function'?ev.opts():ev.opts, box=$('box');
   box.innerHTML=`<h2 class="serif goldtxt">${ev.ico} Encounter · ${ev.name}</h2><p style="line-height:1.9;font-size:15px;margin-top:14px">${ev.txt}</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${opts.map((o,i)=>`<button class="row" data-i="${i}" style="font:inherit;color:inherit;text-align:left">${o.t}</button>`).join('')}</div>`;
-  box.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{ const o=opts[+b.dataset.i];
+  box.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{ const o=opts[+b.dataset.i]; M.detour=null; save();
     const fin=msg=>{ save(); hud(); box.innerHTML=`<h2 class="serif goldtxt">${ev.ico} Encounter · ${ev.name}</h2><p style="line-height:1.9;font-size:15px;margin-top:14px">${msg}</p><div class="foot"><span></span><button class="btn" id="evGo"> Continue ▶</button></div>`; $('evGo').onclick=leaveDetour; };
     if(o.pick) openPick({title:'📜 Torn Codex · Pick 1 of 3'},()=>fin('You close the codex.')); else { const r=o.go(); if(r&&r.pick) openPick(r.pick,()=>fin(r.msg)); else fin(r); } });
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
-function goRoute(r){ if(r==='camp') showCampfire(); else if(r==='shop') showMarket(); else if(r==='event') showEvent(); else if(r==='delve') delveStart(); else startRound(false,{route:r}); }
+function goRoute(r){ if(['camp','shop','event'].includes(r)&&M.run&&!(M.detour&&M.detour.t===r)){ M.detour={t:r}; save(); } if(r==='camp') showCampfire(); else if(r==='shop') showMarket(); else if(r==='event') showEvent(); else if(r==='delve') delveStart(); else startRound(false,{route:r}); }
 function boom(x,y,r,d){ G.parts.push({ring:true,x,y,r:0,max:r,life:.35}); SFX.play('boom'); G.packs.slice().forEach(o=>{ if(Math.hypot(o.x-x,o.y-y)<r) dmgPack(o,d,true,'fire'); }); }
 function tearPack(p){ const P=PT[p.t], body=p.t===3?'#17130f':P.b, edge=p.t===3?'#c8a464':P.a; G.tears=G.tears||[];
   [-1,1].forEach(sg=>G.tears.push({x:p.x+sg*2,y:p.y+sg*p.hh/2,oy:0,w:p.hw*2,h:p.hh,top:sg<0,body,edge,vy:sg<0?-150:40,rot:0,vr:sg*rnd(1.5,3)*(Math.random()<.5?-1:1),life:.55}));
@@ -2116,7 +2122,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-10.2';
+const GAME_V='2026-11-10.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2131,8 +2137,8 @@ function newPid(){ const a=new Uint8Array(12); crypto.getRandomValues(a); return
 function hcTick(b){ b.hc=(b.hc||0)+1; if(b.hc>(M.best.hc||0)) M.best.hc=b.hc; }
 const chName=v=>v<=5?`Chapter ${v}`:`Abyss Depth ${v-5}`;
 const LB={
-  progress:{name:'Deepest Expedition',ico:'🏛️',fmt:(v,tb)=>`Danger ${Math.floor(v/4)} · ${v%4>=ACTS?'cleared':`cleared ${v%4} `}`+(tb?` · ${tb} `:''),mine:()=>M.best.depth>0?{value:M.best.depth,tb:M.best.depthRounds||0}:null,how:'Higher Danger ranks first; within a Danger level, more chapters cleared; ties go to fewer rounds'},
-  coins:{name:'Coins in one round',ico:'💰',fmt:v=>'✦ '+f(v),mine:()=>M.best.roundCoins>0?{value:Math.floor(M.best.roundCoins)}:null,how:'Most coins earned in a single round (challenges excluded)'},
+  progress:{name:'Deepest Expedition',ico:'🏛️',fmt:(v,tb)=>LANG==='en'?`Danger ${Math.floor(v/4)} · ${v%4>=ACTS?'cleared':`${v%4} chapter${v%4>1?'s':''}`}`+(tb?` · ${tb} round${tb>1?'s':''}`:''):`Danger ${Math.floor(v/4)} · ${v%4>=ACTS?'cleared':`cleared ${v%4} `}`+(tb?` · ${tb} `:''),mine:()=>M.best.depth>0?{value:M.best.depth,tb:M.best.depthRounds||0}:null,how:'Higher Danger ranks first; within a Danger level, more chapters cleared; ties go to fewer rounds'},
+  coins:{name:'Coins in one round',ico:'💰',fmt:v=>'✦ '+f(v),mine:()=>M.best.roundCoins>0?{value:Math.floor(M.best.roundCoins)}:null,how:'Most coins earned in a single round'},
   streak:{name:'Longest streak',ico:'🔗',fmt:v=>`${v}-round streak`,mine:()=>M.bestStreak>0?{value:M.bestStreak}:null,how:'Most consecutive rounds hitting the goal'},
   chain:{name:'Single-orb chain',ico:'⚡',fmt:v=>`${v} hits`,mine:()=>M.best.hc>0?{value:M.best.hc}:null,how:'Most rivet and pack hits by one orb before it falls'},
 };
@@ -2214,7 +2220,7 @@ const squadOk=q=>!q.ok||q.ok();
 const runSquad=()=>M.run&&M.run.squad;
 // 只在局外保留的字段：其余的（金币、卡牌、升级、星盘、地图、秘符、遗珍……）每局重来
 const META_KEYS=['unlocked','dailyRun','opened','chalDone','soul','legacy','ach','best','bestStreak','foil','eggR','mute','music','calm','vibe','stats','dev','speed','fbSeen','pid','lbName','lbSent','lbSentName','guide','a2hsOff','lbAskOff','autoOn','squads','dangerMax','runs','wins','bestScore','bestAct','seen','saveV','treeV','bkCh','loadAuto','daily','lastRun'];
-function startRun(sq,danger,sch,daily){
+function startRun(sq,danger,sch,daily){ danger=Math.max(0,Math.min(DANGER_MAX,daily?DAILY_RUN_DANGER:Math.min(danger|0,M.dangerMax||0)));
   const keep={}; META_KEYS.forEach(k=>{ if(M[k]!==undefined) keep[k]=M[k]; });
   M=Object.assign(fresh(),keep);
   const hearts=sq==='iron'?4:sq==='gamb'?2:RUN_HEARTS;
@@ -2243,13 +2249,13 @@ function showRunEnd(){ const L=finishRun(); if(!L) return showCamp(); const q=SQ
     <div style="font-family:'Noto Serif SC','Noto Serif CJK SC',serif;line-height:1.9;color:#e9dcbc"> As the last orb fell, the master of the vault opened its eyes——<br> and what it saw was you. <br><span style="color:var(--gold2)"> The seals shattered, and every swallowed card returned to the world.</span></div></div>`:'';
   $('box').innerHTML=`<h2 class="serif goldtxt">${L.win?'🏆 Expedition Complete':'💔 Expedition Over'}</h2>${L.daily?'<div class="sub">📅 Daily Expedition · '+L.daily+'</div>':''}${ending}
     <div class="sub" style="margin-top:6px">${q.ico} ${q.name} · Danger ${L.danger} · ${L.win?`Cleared all ${ACTS} `:`Fell in chapter ${L.act} `}</div>
-    <div class="kv" style="margin-top:14px"><div><b>${L.score}</b><span> Score</span></div><div><b>+${L.souls}</b><span> Gold Souls</span></div><div><b>${L.rounds}</b><span> · ${L.mins} min</span></div></div>
+    <div class="kv" style="margin-top:14px"><div><b>${L.score}</b><span> Score</span></div><div><b>+${L.souls}</b><span> Gold Souls</span></div><div><b>${L.rounds}</b><span>${LANG==='en'?`round${L.rounds===1?'':'s'} · ${L.mins} min`:` · ${L.mins} min`}</span></div></div>
     <div class="sub" style="margin-top:10px"> Goals hit ${L.goals}  · Bosses defeated ${L.bosses} ${L.win?' · Clear bonus +500':''}${L.danger?` · Danger bonus ×${(1+.25*L.danger).toFixed(2)}`:''}</div>
     ${L.dUnl?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔥 Unlock <b> Danger ${L.dUnl}</b>: tougher goals, packs and bosses — and a higher score.</div>`:''}
     ${L.newSq.map(id=>{ const s=SQUADS.find(x=>x.id===id); return `<div class="chap" style="margin-top:12px;border-color:var(--gold)">${s.ico} New squad unlocked: <b>${s.name}</b>: ${s.desc}</div>`; }).join('')}
     <div class="sub" style="margin-top:12px"> Cards, coins, upgrades, Sigils and Relics stay with this run; Gold Souls, Legacy, the Collection and achievements are kept forever.</div>
     <div class="foot"><span></span><button class="btn" id="toCamp"> Back to camp ▶</button></div>`;
-  $('toCamp').onclick=()=>{ M.run=null; save(); showCamp(); }; $('ov').classList.add('show'); $('ov').scrollTop=0; SFX.play(L.win?'ach':'end'); }
+  $('toCamp').onclick=()=>{ M.run=null; M.money=0; M.sigils=[]; M.sigQ=[]; M.relicQ=[]; M.detour=null; M.recruitPicks=null; M.sigPend=null; M.deck=[]; save(); hud(); renderSide(); showCamp(); }; $('ov').classList.add('show'); $('ov').scrollTop=0; SFX.play(L.win?'ach':'end'); }
 let campSel={sq:'std',d:0,sch:'combo'};
 function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
   if(!SQUADS.find(q=>q.id===campSel.sq&&squadOk(q))) campSel.sq='std'; campSel.d=Math.min(campSel.d,M.dangerMax||0);
@@ -2262,13 +2268,13 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
     <div class="h3" style="margin-top:16px"><span>🔥 Danger level</span><span class="sub"> Clear your highest level to unlock the next</span></div>
     <div class="res" style="margin-top:6px">${Array.from({length:(M.dangerMax||0)+1},(_,d)=>`<button class="ghost" data-dg="${d}" style="${campSel.d===d?'border-color:var(--gold);color:var(--gold2)':''}"> Danger ${d}</button>`).join('')}</div>
     <div class="sub" style="margin-top:4px">${campSel.d?`Goal +${Math.round(campSel.d*DANGER.goal*100)}%, pack HP +${Math.round(campSel.d*DANGER.hp*100)}%, boss HP +${Math.round(campSel.d*DANGER.boss*100)}%; score ×${(1+.25*campSel.d).toFixed(2)}`:'Standard difficulty'}</div>
-    <div class="chap" style="margin-top:12px">📅 <b> Daily Expedition</b>: today everyone walks the same map with the same picks (Vault Expedition · Danger  ${DAILY_RUN_DANGER}) — compete on score. ${M.dailyRun&&M.dailyRun.day===dayKey()?`best today <b>${M.dailyRun.best}</b>  pts (played ${M.dailyRun.tries}  left)`:'Not played today'} <button class="ghost" id="campRank"> Today’s board</button></div>
+    <div class="chap" style="margin-top:12px">📅 <b> Daily Expedition</b>: today everyone walks the same map with the same picks (Vault Expedition · Danger  ${DAILY_RUN_DANGER}) — compete on score. ${M.dailyRun&&M.dailyRun.day===dayKey()?`best today <b>${M.dailyRun.best}</b>  pts (played ${M.dailyRun.tries} left)`:'Not played today'} <button class="ghost" id="campRank"> Today’s board</button></div>
     <div class="h3" style="margin-top:16px"><span>🗝️ Treasury</span><span class="sub"> Spend Gold Souls to add new Sigils and Relics to the pool</span></div>
     <div class="dgrid">${VAULT.map(v=>{ const it=v.k==='s'?sigilOf(v.id):relicOf(v.id), own=(M.unlocked||{})[v.k+':'+v.id], col=v.k==='s'?TIER[it.t].c:RARE[it.r].c, nm=v.k==='s'?sigilName(it):it.name, ds=v.k==='s'?sigilDesc(it):it.desc;
       return `<div class="dcard" style="${own?'border-color:'+col:''}"><b style="color:${col}">${v.k==='s'?'🔷':'🏺'} ${nm}</b> <span class="sub">${v.k==='s'?TIER[it.t].name+'Sigil':RARE[it.r].name+'Relics'}</span><div class="sub" style="margin-top:3px">${ds}</div><div style="margin-top:6px">${own?'<span class="sub">✓ In the pool</span>':`<button class="ghost" data-vault="${v.k}:${v.id}" ${M.soul<v.cost?'disabled style="opacity:.45"':''}>🔥 ${v.cost} Unlock</button>`}</div></div>`; }).join('')}</div>
     <div class="h3" style="margin-top:16px"><span>🏛️ Legacy</span><span class="sub"> Bought with Gold Souls, permanent</span></div>
     ${LEGACY.map(legRow).join('')}
-    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan">📖 Manual</button><button class="ghost" id="campDaily">📅 Daily Expedition</button><button class="ghost" id="campMute">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campLang">${LANG==='zh'?'English':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
+    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan">📖 Manual</button><button class="ghost" id="campDaily">📅 Daily Expedition</button><button class="ghost" id="campMute">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campSet">⚙️ Settings</button><button class="ghost" id="campLang">${LANG==='zh'?'English':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
   const box=$('box');
   box.querySelectorAll('[data-sq]').forEach(b=>b.onclick=()=>{ campSel.sq=b.dataset.sq; showCamp(); });
   box.querySelectorAll('[data-csch]').forEach(b=>b.onclick=()=>{ campSel.sch=b.dataset.csch; showCamp(); });
@@ -2278,7 +2284,7 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
   box.querySelectorAll('[data-vault]').forEach(b=>b.onclick=()=>{ const v=VAULT.find(x=>x.k+':'+x.id===b.dataset.vault); if(!v||M.soul<v.cost) return; M.soul-=v.cost; (M.unlocked=M.unlocked||{})[b.dataset.vault]=1; SFX.play('ach'); save(); showCamp(); });
   $('campRank').onclick=()=>{ G={loot:{}}; tab='daily'; showBetween(); };
   $('campMan').onclick=openManual; $('campDaily').onclick=()=>startRun('std',DAILY_RUN_DANGER,null,dayKey());
-  $('campMute').onclick=()=>{ M.mute=!M.mute; save(); syncMute(); showCamp(); }; $('campLang').onclick=()=>setLang(LANG==='zh'?'en':'zh');
+  $('campMute').onclick=()=>{ M.mute=!M.mute; save(); syncMute(); showCamp(); }; $('campSet').onclick=()=>{ G={loot:{}}; tab='sys'; showBetween(); }; $('campLang').onclick=()=>setLang(LANG==='zh'?'en':'zh');
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
 // 营火：回一颗心，或者磨练一张装备中的卡
 function showCampfire(){ const box=$('box'), eq=equipped(), r=M.run;
@@ -2335,9 +2341,12 @@ function rollTier(src){ const o=SIGIL_ODDS[src]||SIGIL_ODDS.start; let r=runRand
 function sigilPicks(t){ const pool=SIGILS.filter(c=>c.t===t&&!M.sigils.includes(c.id)&&!vaultLocked('s',c.id)), picks=[];
   while(picks.length<3&&pool.length) picks.push(pool.splice(Math.floor(runRand()*pool.length),1)[0]); return picks; }
 function offerSigil(src,after){ M.sigils=M.sigils||[];
-  const done=()=>{ M.sigQ.shift(); save(); after&&after(); };
+  const done=()=>{ M.sigQ.shift(); M.sigPend=null; save(); after&&after(); };
   if(M.sigils.length>=sigilMax()||!mapOn()) return done();
-  let t=rollTier(src), picks=sigilPicks(t), rolled=false; if(!picks.length){ t='s'; picks=sigilPicks(t); } if(!picks.length) return done();
+  const P=M.sigPend; let t, picks, rolled=false;
+  if(P&&P.src===src&&TIER[P.t]&&Array.isArray(P.ids)&&P.ids.length&&P.ids.every(id=>sigilOf(id)&&!M.sigils.includes(id))){ t=P.t; picks=P.ids.map(sigilOf); rolled=!!P.rolled; }
+  else { t=rollTier(src); picks=sigilPicks(t); if(!picks.length){ t='s'; picks=sigilPicks(t); } if(!picks.length) return done(); }
+  const keep=()=>{ M.sigPend={src,t,ids:picks.map(c=>c.id),rolled}; save(); }; keep();
   const el=$('boonPop'), T=TIER[t], srcName={start:'Setting out',mid:'Reached stop 3',elite:'Elite reward',gold:'Sigil Scholar'}[src]||'';
   const draw=()=>{ el.innerHTML=`<div class="sub" style="text-align:center;letter-spacing:3px">${srcName} · Sigil</div>
     <div class="bt serif" style="color:${T.c};text-shadow:0 0 18px ${T.c}88">◆ ${T.name} Sigil ◆</div>
@@ -2346,7 +2355,7 @@ function offerSigil(src,after){ M.sigils=M.sigils||[];
     ${rolled?'':`<button class="ghost" id="sigRoll">🎲 Reroll (✦ ${f(sigRerollCost())})</button>`}`;
     setTimeout(()=>el.querySelectorAll('.bc').forEach(b=>b.disabled=false),600);
     el.querySelectorAll('.bc').forEach(b=>b.onclick=()=>{ const c=picks[+b.dataset.i]; M.sigils.push(c.id); SFX.play('ach'); el.classList.remove('show'); toast(`◆ ${T.name} Sigil: ${sigilName(c)}`); recalcTree(); renderSide(); done(); });
-    const r=$('sigRoll'); if(r) r.onclick=()=>{ if(!spend(sigRerollCost(),r)) return; rolled=true; const np=sigilPicks(t); if(np.length) picks=np; SFX.play('buy'); draw(); }; };
+    const r=$('sigRoll'); if(r) r.onclick=()=>{ if(!spend(sigRerollCost(),r)) return; rolled=true; const np=sigilPicks(t); if(np.length) picks=np; keep(); SFX.play('buy'); draw(); }; };
   draw(); el.classList.add('show'); SFX.play('raise'); }
 function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigilOf).filter(Boolean);
   return `<div class="sub" style="margin-top:6px">🔷 Sigil ${cs.length}/${sigilMax()}: ${cs.length?cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join(' · '):'pick one when you set out'}</div>`; }
@@ -2841,7 +2850,8 @@ function showIntro(){
 }
 function showBetween(){
   if(M.run&&M.run.over&&!running) return showRunEnd();
-  if(!M.run&&!(G&&G.daily)&&!['daily','rank','ach','book'].includes(tab)) return showCamp();
+  if(M.run&&M.detour&&!running&&['camp','shop','event'].includes(M.detour.t)) return goRoute(M.detour.t); // 刷新时回到这一站，不白白消耗
+  if(!M.run&&!(G&&G.daily)&&!['daily','rank','ach','book','sys'].includes(tab)) return showCamp();
   syncGoal();
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
   const total=ids.reduce((s,id)=>s+G.loot[id],0); lastLootTotal=total;
@@ -2849,8 +2859,8 @@ function showBetween(){
   const mechHTML=bossMechs(M.ch).map(k=>`${MECH[k].ico} <b>${MECH[k].name}</b>：${typeof MECH[k].desc==='function'?MECH[k].desc():MECH[k].desc}`).join('<br>');
   const nextBoss=ready&&!(G.packs&&G.isBoss)?`<div class="chap" style="margin-top:12px;border-color:#ff6b5b66;display:flex;gap:12px;align-items:flex-start"><img src="${ART.p1[bossIdx(M.ch)]}" alt="" style="width:56px;height:84px;object-fit:contain;flex:none;background:#0d0b09;border-radius:6px;border:1px solid var(--line)"><div>👑 Boss “<b>${chInfo(M.ch).boss}</b>” has appeared <br><span class="sub" style="line-height:1.7">${mechHTML}${p2Mech(M.ch)?`<br> At half HP it enters <b style="color:#e8a090"> Phase II</b>: adds “${MECH[p2Mech(M.ch)].name}”, moves faster and summons packs`:''}</span></div></div>`:'';
   const migHTML=G.migrated?`<div class="chap" style="margin-top:12px;border-color:var(--green)"> The Star Chart was simplified: all your previous nodes were refunded, totaling <b>${f(G.migrated)}</b> coins — head to the Star Chart and plan a new path.</div>`:'';
-  const bossMsg=G.packs&&G.isBoss?(G.bossWin?`<div class="chap" style="border-color:#ffcc55;margin-top:12px">👑 <b>Boss defeated!</b> Chapter ${M.ch} “${chInfo(M.ch).name}” unlocked: ${M.ch<=5?['','','the board now has <b> bumpers</b>','<b> rivets start moving</b>','the board now has <b> portals</b> and <b> double-coin zones</b>','every mechanism is in play'][M.ch]||'':'the abyss grows deeper'}, and <b>new cards</b> appear in packs.${M.ch===4?'<br>🔥 <b> Smelting</b> is unlocked — check the “Legacy” page.':''}</div>`
-      :`<div class="chap" style="margin-top:12px"> The boss has <b>${pct(Math.max(0,G.lastBossHp||0))}</b> HP left. Upgrade your orbs, adjust your skills and try again (losing costs nothing).</div>`):'';
+  const bossMsg=G.packs&&G.isBoss?(G.bossWin?`<div class="chap" style="border-color:#ffcc55;margin-top:12px">👑 <b>Boss defeated!</b> Chapter ${M.ch} “${chInfo(M.ch).name}” unlocked: ${M.ch<=5?['','','the board now has <b> bumpers</b>','<b> rivets start moving</b>','the board now has <b> portals</b> and <b> double-coin zones</b>','every mechanism is in play'][M.ch]||'':'the abyss grows deeper'}, and <b>new cards</b> appear in packs.</div>`
+      :`<div class="chap" style="margin-top:12px"> The boss has <b>${pct(Math.max(0,G.lastBossHp||0))}</b> HP left. Upgrade your orbs, adjust your skills and try again. The boss won’t fully heal: the damage you dealt stays.</div>`):'';
   const chalC=G.packs&&G.chal?CHAL.find(c=>c.id===G.chal):null;
   const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b> Daily Challenge</b>: opened <b style="color:var(--gold2)">${G.opened}</b> packs ${G.dailyPB?' <b style="color:var(--green)"> New best today!</b>':''} · best today ${M.daily.best} packs · try #${M.daily.tries}${G.dailyFirst?` · first clear today, <b style="color:var(--gold2)"> Gold Souls +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · streak ${M.daily.streak} days`:''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 Again</button><button class="ghost" id="dailyRank"> Today’s board</button><span class="sub">${M.lbName?'':'Pick a nickname to join today’s board'}</span></div></div>`:'';
@@ -2883,7 +2893,7 @@ function showBetween(){
   const bkMsg=bkNeed?`<div class="chap" id="bkBox" style="margin-top:12px;border-color:var(--gold3)">💾 <b> Back up your save</b><br><span class="sub"> Your save lives only in this browser — clearing data or switching phones loses it. Download a save file or copy the save code into your notes; restore it any time under “More → Settings → Import”.</span>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="ghost" id="bkDl"> Download save file</button><button class="ghost" id="bkCopy"> Copy save code</button><button class="ghost" id="bkLater"> Not now</button></div></div>`:'';
   const relicMsg=tab==='loot'&&G.relicGot&&G.relicGot.length?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🏺 <b> Relic found</b>: ${G.relicGot.map(id=>{ const r=relicOf(id); return `${relicTag(r)} (${RARE[r.r].name}) <span class="sub">${r.desc}</span>`; }).join('<br>')}</div>`:'';
-  const soulMsg=tab==='loot'&&M.soul>0&&!M.guide.soul?(M.guide.soul=1,save(),`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🔥 <b> Your first Gold Soul</b><br><span class="sub"> Gold Souls come from challenges, myth cards and Rebirth. Spend them under “More → Legacy” on permanent bonuses — they survive Rebirth.</span></div>`):'';
+  const soulMsg=tab==='loot'&&M.soul>0&&!M.guide.soul?(M.guide.soul=1,save(),`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🔥 <b> Your first Gold Soul</b><br><span class="sub"> Every expedition pays Gold Souls based on its score; myth cards and achievements give some too. Back at camp, spend them on Legacy for permanent bonuses that apply to every run.</span></div>`):'';
   const runMsg=G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090"> Run over</b>: you’re out of hearts, so the Chapter ${M.ch} map starts over. <br><span class="sub">${G.runLoss?`You dropped <b style="color:#e8a090">${f(G.runLoss)}</b> coins.`:''} Cards and upgrades are kept; your streak, Sigils and Relics reset.</span></div>`:G.wardSaved?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🛡️ ${G.heartLost} — no heart lost.</div>`:G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}, lost 1 heart. Left: ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}.</div>`:'';
   const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)"> Extracted!</b> Brought out: ${delveBagHTML(G.delveOut)}</div>`
     :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">Trapped on layer ${G.delveLayer}</b>: missed the goal (${G.opened}/${G.goal} packs) and lost the whole bag: ${delveBagHTML(G.delveLost)}</div>`
@@ -2933,7 +2943,7 @@ function showBetween(){
     box.querySelectorAll('.mnode.can[data-mr]').forEach(d=>{ const k=d.dataset.mr+','+d.dataset.mi; d.addEventListener('pointerenter',()=>hl(k,true)); d.addEventListener('pointerleave',()=>hl(k,false)); }); }
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
   if(!M.run){ const ft=$('box').querySelector('.foot'); if(ft){ ft.innerHTML='<span></span><button class="btn" id="toCamp"> Back to camp ▶</button>'; $('toCamp').onclick=()=>{ G={loot:{}}; showCamp(); }; } } // 每日挑战（不在远征里）结束后回营地
-  if(M.run&&M.recruit>0&&!running&&!offerSigil.busy&&!$('boonPop').classList.contains('show')){ const rs=M.run.sch; setTimeout(()=>{ if(running||!(M.recruit>0)||$('boonPop').classList.contains('show')) return; openPick({minRar:'N',sch:rs||undefined,recruit:1,title:`🎴 Opening recruit (${M.recruit}  left)`},()=>{ M.recruit--; save(); showBetween(); }); },300); }
+  if(M.run&&M.recruit>0&&!running&&!offerSigil.busy&&!$('boonPop').classList.contains('show')){ const rs=M.run.sch; setTimeout(()=>{ if(running||!(M.recruit>0)||$('boonPop').classList.contains('show')) return; openPick({minRar:'N',sch:rs||undefined,recruit:1,title:`🎴 Opening recruit (${M.recruit} left)`},()=>{ M.recruit--; save(); showBetween(); }); },300); }
   else if(mapOn()&&M.map&&M.map.ch===M.ch&&!M.map.sig0&&!M.delve){ M.map.sig0=1; M.sigQ.push('start'); save(); }
   if(M.elitePick>0){ M.elitePick=0; M.sigQ.push('elite'); save(); } // 旧版没来得及弹的精英卡牌奖励：改成补一次秘符
   bindRelicSwap();

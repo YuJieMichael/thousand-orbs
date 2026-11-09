@@ -72,6 +72,13 @@ test('nonfinite and prototype-bearing inputs are rejected before live adoption',
   assert.equal(f.state().money, 0);
 });
 
+test('malformed expedition data is dropped on import, valid runs are kept', () => {
+  const f = fixture();
+  for (const r of ['5', '"x"', '{}', '{squad:"zzz",danger:0,hearts:3}', '{squad:"std",danger:99,hearts:3,over:"win",score:1000}'])
+    assert.equal(f.run(`normalizeSave({...fresh(),run:${r}}).run`), null, r);
+  assert.ok(f.run('normalizeSave({...fresh(),run:{squad:"std",danger:0,hearts:3,score:10,over:null}}).run'));
+  assert.ok(f.run('normalizeSave({...fresh(),run:{squad:"std",danger:1,hearts:3,daily:"20261109"}}).run'));
+});
 test('missing older fields get defaults while migration information is retained', () => {
   const f = fixture();
   f.run("adopt({owned:{heavy:4,removed:8},up:{dmg:3},deck:['heavy','removed','heavy'],round:3,treeV:1,treeSpent:100});");
