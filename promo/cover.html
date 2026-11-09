@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}body{margin:0;width:1146px;height:717px;overflow:hidden;background:#090604;font-family:'Noto Sans CJK SC',sans-serif}
+.bg{position:absolute;inset:0;background:radial-gradient(circle at 72% 45%,#5a3a0f 0%,#1a1008 45%,#070504 75%)}
+.rays{position:absolute;left:760px;top:330px;width:1400px;height:1400px;margin:-700px;background:repeating-conic-gradient(#ffd76a14 0 4deg,transparent 4deg 12deg);-webkit-mask:radial-gradient(circle,#000 10%,transparent 60%)}
+.coin{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c8,#ffd76a 35%,#b07a22 75%);box-shadow:0 0 18px #ffcf5a88}
+.ph{position:absolute;top:34px;width:300px;height:533px;border-radius:26px;overflow:hidden;box-shadow:0 0 0 3px #d9b45a,0 0 0 9px #0b0805,0 0 0 10px #d9b45a55,0 30px 60px #000,0 0 80px #ffb84a44}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.p1{left:690px;top:40px;transform:rotate(4deg);z-index:2;width:330px;height:587px}
+.p2{left:560px;top:110px;transform:rotate(-7deg);opacity:.9;filter:brightness(.75)}
+.L{position:absolute;left:58px;top:70px;width:560px;z-index:3}
+.tag{display:inline-block;font:900 22px/1 sans-serif;letter-spacing:4px;color:#1b1206;background:linear-gradient(180deg,#ffe7a3,#d9b45a);border-radius:999px;padding:9px 18px 8px}
+.t{margin-top:22px;font:900 126px/1.02 'Noto Serif CJK SC',serif;letter-spacing:6px;background:linear-gradient(180deg,#fffbe6,#ffd76a 42%,#c8862a 80%);-webkit-background-clip:text;color:transparent;filter:drop-shadow(0 6px 0 #3a2508) drop-shadow(0 0 30px #ffb84a77)}
+.hk{margin-top:26px;font:900 52px/1.15 'Noto Sans CJK SC',sans-serif;color:#fff;text-shadow:0 4px 0 #000,0 0 24px #000}
+.hk b{color:#ffd76a}
+.sb{margin-top:18px;display:flex;gap:10px}
+.sb span{font:700 24px/1 sans-serif;color:#f3dc9a;border:2px solid #d9b45a88;background:#120c06cc;border-radius:12px;padding:10px 14px}
+.boom{position:absolute;right:30px;bottom:34px;z-index:4;font:900 46px/1 'Noto Serif CJK SC',serif;color:#ff5a3a;transform:rotate(-8deg);text-shadow:0 4px 0 #3a0a00,0 0 20px #ff6b3a99;-webkit-text-stroke:2px #ffe0a0}
+</style></head><body><div class="bg"></div><div class="rays"></div>
+<div class="ph p2"><img src="cov_b.png"></div><div class="ph p1"><img src="cov_a.png"></div>
+<div class="L"><span class="tag">独立游戏 · 测试版</span><div class="t">千珠落尽</div>
+<div class="hk">一发宝珠<br>满屏<b>爆金币！</b></div>
+<div class="sb"><span>弹珠</span><span>开卡包</span><span>肉鸽</span><span>浏览器直接玩</span></div></div>
+<div class="boom">免费试玩!</div>
+<script>for(let i=0;i<26;i++){const c=document.createElement('div');c.className='coin';const s=8+Math.random()*26;c.style.cssText+=`width:${s}px;height:${s}px;left:${520+Math.random()*620}px;top:${Math.random()*700}px;opacity:${.5+Math.random()*.5};z-index:${Math.random()<.4?3:1}`;document.body.appendChild(c);}</script>
+</body></html>
