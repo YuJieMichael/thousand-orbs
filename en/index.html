@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:bde4212a0301609511d7b547ec78e588a113a6b6 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:707a219659d6a6f7b83fa4a48b12ec174248933b -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -557,7 +557,7 @@ const KEY='gold-orb-v2';
 const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,cnt:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
   mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0,hc:0,roundCoins:0,chRound:0},tree:{},treeSpent:0,keep:{},treeV:2,
   goal:10,streak:0,bestStreak:0,orbs:{fire:1,heavy:1},routes:null,banned:{},pickRolls:0,unl:{},
-  pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{}});
+  pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{},inRound:null,elitePick:0});
 let M=fresh();
 // Validate a detached copy before replacing live state or writing either save slot.
 const BACKUP_KEY=KEY+'-backup';
@@ -593,6 +593,8 @@ function normalizeSave(data){
   for(const k of ['stats','vibe','dev']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
   if(next.nextCurse!==undefined&&next.nextCurse!==null&&!Object.hasOwn(CURSES,next.nextCurse)) bad();
   if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
+  if(next.inRound!==undefined&&next.inRound!==null&&!['normal','elite','delve','boss'].includes(next.inRound)) bad();
+  if(next.elitePick!==undefined&&![0,1].includes(next.elitePick)) bad();
   for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
   if(next.routes!==null&&(!Array.isArray(next.routes)||!next.routes.every(r=>['normal','elite','shop','event'].includes(r)))) bad();
   for(const s of Object.values(next.lbSent)) if(!saveRecord(s)||typeof s.value!=='number'||s.value<0||!Number.isFinite(s.value)||(s.tb!==undefined&&(typeof s.tb!=='number'||s.tb<0||!Number.isFinite(s.tb)))) bad();
@@ -634,7 +636,7 @@ function writeSave(state,reset=false){
 function clearSaveWarning(){ if(typeof document!=='undefined') document.getElementById('saveWarning')?.remove(); }
 function save(){
   if(saveBlocked) return false;
-  M.lastSeen=Date.now();
+  M.lastSeen=Date.now(); for(const k of ['money','life']) if(typeof M[k]==='number'&&!Number.isFinite(M[k])) M[k]=1e300; // 数字爆表时封顶，免得存档写不进去
   try{ writeSave(M); clearSaveWarning(); return true; }
   catch(e){ showSaveFailure(); return false; }
 }
@@ -756,7 +758,7 @@ function prestige(){
   M.keep={slot:upLv('slot'),auto:upLv('auto'),reson:upLv('reson')};
   M.up=fresh().up; M.tree={}; M.treeSpent=0; recalcTree(); M.money=M.legacy.start?200*Math.pow(6,M.legacy.start-1):0;
   delete M.bossD; delete M.lastBossHp; delete M.dealtAvg;
-  M.delve=null; M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=Math.max(GOAL_MIN,Math.round(M.goal*GOAL_REBORN)); M.streak=0; // 转生保留三成目标：卡牌和传承都还在，实力比新号强得多 delete M.nextBoon;
+  M.delve=null; M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=Math.max(GOAL_MIN,Math.round(M.goal*GOAL_REBORN)); M.streak=0; M.nextBoon=null; M.nextCurse=null; M.inRound=null; // 转生保留三成目标：卡牌和传承都还在，实力比新号强得多
   // 画面也要跟着回到第 1 章：换掉上一轮的结算数据和台面布局，否则要进一轮游戏才看得出变化
   G={loot:{},reborn:g}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo='';
   save(); renderSide(); hud(); tab='legacy'; SFX.play('melt'); toast(`🔥 Smelting complete, gained ${g} Gold Souls`); checkAch(); showBetween();
@@ -1015,6 +1017,10 @@ const mapAtBoss=()=>{ const m=M.map; return !!m&&m.ch===M.ch&&m.r===MAP_ROWS-1; 
 function mapReach(){ const m=ensureMap(); if(!m) return []; if(m.r>=MAP_ROWS-1) return [];
   if(m.r<0) return m.rows[0].map((o,i)=>[0,i]); return m.next[m.r][m.i].map(j=>[m.r+1,j]); }
 function goNode(r,i){ const m=ensureMap(); if(!m||M.delve||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
+function abandonRound(){ const r=M.inRound; if(!r) return; M.inRound=null; // 上次回合打到一半就离开：按没达成处理
+  if(r==='delve'){ G.earned=0; G.loot={}; delveSettle(false); } else if(r==='boss') loseHeart('Left a boss fight midway');
+  else { M.chAge=(M.chAge||0)+1; M.streak=0; M.goal=goalAfterMiss(M.goal,0); loseHeart('Left the last round midway'); }
+  save(); setTimeout(()=>toast('You left the last round midway — counted as a miss'),600); }
 function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return; m.hearts--; G.heartLost=why;
   if(m.hearts<=0){ G.runOver=true; M.map=genMap(); M.map.runs=m.runs+1; M.chAge=0; M.streak=0; } }
 const NODE_INFO={
@@ -1192,6 +1198,7 @@ function startRound(boss,opt={}){
   for(let i=G.bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [G.bag[i],G.bag[j]]=[G.bag[j],G.bag[i]]; }
   G.route=boss||chal||daily?null:(opt.route||'normal');
   if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*ELITE_GOAL):M.goal; if(G.route==='elite'){ G.mut={hpX:ELITE_HP}; G.bo.coin*=ELITE_COIN; } }
+  M.inRound=chal||daily?null:(boss?'boss':G.route); save(); // 刷新/关页面 = 这一轮按失败算
   if(G.route==='delve'){ const L=(M.delve||{layer:1}).layer; G.delveL=L; G.goal=delveGoal(L); G.mut={hpX:Math.pow(DELVE_HP,L)}; G.bo.coin*=1+DELVE_COIN*L; setTimeout(()=>toast(`🕳️ The Deep Vault · Depth ${L}`),300); }
   if(M.nextCurse&&!chal&&!daily){ const cu=CURSES[M.nextCurse]; M.nextCurse=null; if(cu){ cu.go(G); G.curse=cu; setTimeout(()=>toast(`${cu.ico} Curse: ${cu.name} · ${cu.desc}`),700); } }
   if(M.nextBoon&&!chal&&!daily){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} Encounter blessing: ${nb.name}`),400); } }
@@ -1992,7 +1999,7 @@ const tGroupOf=t=>(TGROUPS.find(g=>g.subs.includes(t))||TGROUPS[0]).id;
 const tSubs=(g,canP)=>g.subs.filter(k=>(k!=='legacy'||canP||M.prestiges||M.soul)&&(k!=='bag'||unl('routes'))&&(k!=='daily'||M.round>=DAILY_MIN_ROUND));
 function tName(k,total){ return {loot:`Loot ${total}`,deck:`Skill slots ${equipped().length}/${maxSlots()}`,book:`Codex ${Object.keys(M.owned).length}/${CARDS.length}`,up:unl('tree')?'Upgrades · Star Chart':'Upgrade',goals:unl('chal')?'Challenges · Achievements':'Achievements',rank:'Leaderboard',bag:`Orb Bag ${orbCount()}`,
   chal:`Challenges ${badgeN()}/${CHAL.length}`,ach:`Achievements ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'Legacy',sys:'Settings',fb:'Feedback',daily:'📅 Daily',manual:'📖 Manual'}[k]; }
-function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.ended=true; running=false; $('boonPop').classList.remove('show');
+function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.ended=true; running=false; $('boonPop').classList.remove('show');
   ROUND_EQ=null; if(G.chal) chalEnd(); if(G.daily) dailyEnd();
   M.best.opened=Math.max(M.best.opened,G.opened); if(G.opened>=30&&!G.basketIn) M.best.nobask=true;
   if(!G.isBoss&&!G.chal&&!G.daily&&G.dealt>0) M.dealtAvg=M.dealtAvg?M.dealtAvg*.5+G.dealt*.5:G.dealt; // 最近几轮普通轮的输出
@@ -2002,7 +2009,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-09.7';
+const GAME_V='2026-11-09.8';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2496,7 +2503,7 @@ function playStory(done){
   const finish=()=>{ if(ended) return; ended=true; clear(); try{ voice.pause(); }catch(e){} el.style.transition='opacity .8s'; el.style.opacity=0; M.guide.story=1; save(); setTimeout(()=>{ el.classList.remove('show'); el.style.opacity=''; el.style.transition=''; el.innerHTML=''; done&&done(); },800); };
   const voice=new Audio(); let voOk=true;
   const speak=i=>{ if(M.mute||!VO[LANG]||!VO[LANG][i]) return; try{ voice.pause(); voice.src=VO[LANG][i]; voice.volume=.95; const p=voice.play(); if(p) p.catch(()=>{ voOk=false; }); }catch(e){} };
-  const show=i=>{ clear(); if(i>STORY.length) return finish(); cur=i; speak(i);
+  const show=i=>{ if(ended) return; clear(); if(i>STORY.length) return finish(); cur=i; speak(i);
     el.querySelectorAll('.sp').forEach(p=>p.classList.toggle('on',+p.dataset.i===i));
     el.querySelectorAll('.dots i').forEach((d,k)=>d.classList.toggle('on',k===i));
     const spans=[...el.querySelectorAll(`.sp[data-i="${i}"] .st span`)]; spans.forEach(x=>x.classList.remove('v'));
@@ -2507,7 +2514,7 @@ function playStory(done){
   el.onclick=e=>{ if(e.target.id==='storySkip') return finish(); if(!voOk){ voOk=true; speak(cur); return; } const sp=[...el.querySelectorAll(`.sp[data-i="${cur}"] .st span`)];
     if(sp.some(x=>!x.classList.contains('v'))){ clear(); sp.forEach(x=>x.classList.add('v')); timers.push(setTimeout(()=>show(cur+1),2600)); } else show(cur+1); };
   el.onkeydown=null; try{ SFX.play('melt'); }catch(e){}
-  setTimeout(()=>show(0),250);
+  timers.push(setTimeout(()=>show(0),250));
 }
 function showIntro(){
   if(!langPref()) return showLangPick();
@@ -2532,8 +2539,8 @@ function showBetween(){
   const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b> Daily Challenge</b>: opened <b style="color:var(--gold2)">${G.opened}</b> packs ${G.dailyPB?' <b style="color:var(--green)"> New best today!</b>':''} · best today ${M.daily.best} packs · try #${M.daily.tries}${G.dailyFirst?` · first clear today, <b style="color:var(--gold2)"> Gold Souls +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · streak ${M.daily.streak} days`:''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 Again</button><button class="ghost" id="dailyRank"> Today’s board</button><span class="sub">${M.lbName?'':'Pick a nickname to join today’s board'}</span></div></div>`:'';
   const chalMsg=chalC?`<div class="chap" style="margin-top:12px;border-color:${G.chalWin?'var(--green)':'var(--line)'}">${chalC.ico} Challenge “<b>${chalC.name}</b>” ${G.chalWin?`<b style="color:var(--green)"> complete!</b>${G.chalFirst?` First clear, Gold Souls +${chalC.soul}`:''}`:`not complete (${chalC.prog(G)}). Try a different build.`}</div>`:'';
-  const goalMsg=G.packs&&G.route?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)"> Goal reached</b> ${G.opened}/${G.goal} packs · streak <b>${M.streak}</b> · Reward <b style="color:var(--gold2)">+${f(G.goalBonus)}</b> (${pct(G.goalK)} of this round’s coins — grows with your streak) ${G.route==='elite'?`<br>⚔️ Elite reward: pick 1 of 3 SR+ cards, and your Orb Bag gains a <b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub"> Boss progress +1 · Next goal ${M.goal} packs</span></div>`
-      :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090"> Goal missed</b> ${G.opened}/${G.goal} packs ${G.lostStreak?` · ${G.lostStreak} streak broken`:''}<br><span class="sub"> This round doesn’t count toward the boss. Next goal drops to ${M.goal} packs.</span></div>`):'';
+  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)"> Goal reached</b> ${G.opened}/${G.goal} packs · streak <b>${M.streak}</b> · Reward <b style="color:var(--gold2)">+${f(G.goalBonus)}</b> (${pct(G.goalK)} of this round’s coins — grows with your streak) ${G.route==='elite'?`<br>⚔️ Elite reward: pick 1 of 3 SR+ cards, and your Orb Bag gains a <b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub">${mapOn()?'':'Boss progress +1 · '} Next goal ${M.goal} packs</span></div>`
+      :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090"> Goal missed</b> ${G.opened}/${G.goal} packs ${G.lostStreak?` · ${G.lostStreak} streak broken`:''}<br><span class="sub">${mapOn()?'':'This round doesn’t count toward the boss. '} Next goal drops to ${M.goal} packs.</span></div>`):'';
   if(!M.routes||(!unl('routes')&&M.routes.length>1)) M.routes=genRoutes();
   const mapNodes=mapOn()?mapReach():null; if(mapOn()) ensureMap();
   const newU=UNL.filter(u=>u.ok()&&!(M.unl||(M.unl={}))[u.id]); newU.forEach(u=>M.unl[u.id]=1); if(newU.length) save();
@@ -2589,7 +2596,8 @@ function showBetween(){
   if($('dvOut')) $('dvOut').onclick=delveExtract; if($('dvGo')) $('dvGo').onclick=delveNext;
   document.querySelectorAll('#box [data-node]').forEach(b=>b.onclick=()=>{ const [r,i]=b.dataset.node.split(',').map(Number); goNode(r,i); });
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
-  if(G.pendingPick){ G.pendingPick=0; setTimeout(()=>openPick({minRar:'SR',title:'⚔️ Elite Reward · Pick 1 of 3'},()=>showBetween()),350); }
+  if(!G.pendingPick&&M.elitePick&&!running){ M.elitePick=0; save(); setTimeout(()=>{ if(!running) openPick({minRar:'SR',title:'⚔️ Elite reward · Pick 1 of 3 (delivered late)'},()=>showBetween()); },350); }
+  if(G.pendingPick){ G.pendingPick=0; const g0=G; M.elitePick=1; setTimeout(()=>{ if(G!==g0||running) return; M.elitePick=0; save(); openPick({minRar:'SR',title:'⚔️ Elite Reward · Pick 1 of 3'},()=>showBetween()); },350); }
   if($('autoT')) $('autoT').onchange=e=>{ M.autoOn=e.target.checked; save(); };
   let body=$('tabBody');
   if(tab==='loot'){
@@ -2703,7 +2711,7 @@ function finishLoad(){
   running=false; ROUND_EQ=null; if(!M.pid) M.pid=newPid();
   const migrated=M.round>0?migrateTree():(M.treeV=2,0);
   recalcTree(); syncMute(); syncSpeed(); buildPockets(); save(); renderSide(); hud();
-  if(M.round>0){ G={loot:{},migrated}; tab='up'; showBetween(); } else { G=null; showIntro(); }
+  if(M.round>0){ G={loot:{},migrated}; tab='up'; abandonRound(); showBetween(); } else { G=null; showIntro(); }
 }
 load();
 if(saveBlocked){ recalcTree(); syncMute(); syncSpeed(); buildPockets(); renderSide(); hud(); showSaveRecovery(); } else finishLoad();

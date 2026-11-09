@@ -1155,5 +1155,13 @@
 "，场上每多一颗宝珠卡包补得更快": ", packs restock faster per extra orb in play",
 "场上飞的宝珠越多，卡包补得越快（每多一颗 +50%，最多 ×5；速射系「连发」还会再加快）。卡包都清光时空位会马上补上。所以": "The more orbs in flight, the faster packs restock (+50% per extra orb, up to ×5; Rapid Fire talents speed it up further). When the board is cleared, empty slots refill instantly. So ",
 "一口气多发几颗": "firing a bunch at once",
-"不吃亏，还省时间。": " costs you nothing and saves time."
+"不吃亏，还省时间。": " costs you nothing and saves time.",
+"首领战中途离开": "Left a boss fight midway",
+"上一轮中途离开": "Left the last round midway",
+"上一轮中途离开，按没达成处理": "You left the last round midway — counted as a miss",
+"首领进度": "Boss progress",
+"下一轮目标": "Next goal",
+"这一轮不算首领进度。": "This round doesn’t count toward the boss. ",
+"下一轮目标降到": "Next goal drops to",
+"精英奖励 · 三选一（补发）": "Elite reward · Pick 1 of 3 (delivered late)"
 }
