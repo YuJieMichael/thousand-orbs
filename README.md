@@ -261,3 +261,8 @@ node --test tests/save.test.cjs tests/boss.test.cjs
 - 地图加入暗纹网格和上下光晕；节点改为立体圆点，可走的点悬停放大，首领点带红光。
 - 祝福卡改为渐变底。
 - 手机上的提示条移到屏幕顶部，不再挡住底部的「下一轮」按钮。
+
+## 2026-11-09.4：切换语言改用完整路径
+
+- 切换语言时跳转到 `en/index.html` / `../index.html`，不再依赖目录默认页，方便放到 itch.io 等平台。
+- 新增英文宣传视频 `promo/trailer-en.mp4`。
