@@ -29,7 +29,7 @@ test('卡包补充最快 0.45 秒，补货节点再多也不会更快', () => {
 
 test('固定目标曲线：只看章节和地图第几站，不再追着开包数涨', () => {
   let worth = 1;
-  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, DANGER: {goal: .15}, dangerLv: () => 0, runSquad: () => null, Math});
+  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, DANGER: {goal: .15}, dangerLv: () => 0, runSquad: () => null, hasRelic: () => false, Math});
   vm.runInContext(between('const GOAL_MIN=', 'const ROUTES={') + ';this.g=goalFor;this.s=syncGoal;', ctx);
   assert.equal(ctx.g(1, 0), 10); assert.equal(ctx.g(1, 5), 16);
   assert.equal(ctx.g(2, 0), 35); assert.equal(ctx.g(3, 0), 55); assert.equal(ctx.g(3, 5), 88);
@@ -220,7 +220,7 @@ test('本章轮数只让金币小幅上涨（×1.07/轮，最多 10 轮）；卡
 test('章节地图：5 站，每站 2~3 个点，每个点都走得到，至少一个精英；首站只有普通', () => {
   const src = between('const MAP_ROWS=', 'function ensureMap(');
   for (let k = 0; k < 200; k++) {
-    const ctx = vm.createContext({M: {ch: 2}, Math, unl: () => true});
+    const ctx = vm.createContext({M: {ch: 2}, Math, unl: () => true, runRand: Math.random});
     vm.runInContext(src + ';this.m=genMap();', ctx);
     const m = ctx.m;
     assert.equal(m.rows.length, 5); assert.equal(m.next.length, 4); assert.equal(m.hearts, 3); assert.equal(m.r, -1);
@@ -233,7 +233,7 @@ test('章节地图：5 站，每站 2~3 个点，每个点都走得到，至少�
       const hit = new Set(m.next[r].flat()); assert.equal(hit.size, m.rows[r + 1].length);   // 下一站每个点都有路
     }
   }
-  assert.match(html, /function settleRoute\(\)\{ if\(G\.isBoss&&!G\.bossWin\) loseHeart\('首领战失败'\);/);
+  assert.match(html, /function settleRoute\(\)\{ if\(G\.isBoss&&!G\.bossWin\)\{ if\(M\.run&&G\.boss\) M\.bossWound=/); assert.match(html, /loseHeart\('首领战失败'\);/);
   assert.match(html, /if\(!ok\) loseHeart\('目标没达成'\);/);
 });
 
@@ -244,7 +244,7 @@ test('深入金库：每层血量 ×1.3^层、目标逐层提高；失败背包�
   assert.match(html, /if\(G\.route==='delve'\)\{ M\.chAge=\(M\.chAge\|\|0\)\+1; delveSettle\(ok\); return; \}/);
   const src = between('const MAP_ROWS=', 'function ensureMap(');
   for (let k = 0; k < 300; k++) {
-    const ctx = vm.createContext({M: {ch: 2}, Math, unl: () => true});
+    const ctx = vm.createContext({M: {ch: 2}, Math, unl: () => true, runRand: Math.random});
     vm.runInContext(src + ';this.m=genMap();', ctx);
     const rows = ctx.m.rows;
     assert.ok(rows.flat().filter(o => o.t === 'delve').length <= 1);

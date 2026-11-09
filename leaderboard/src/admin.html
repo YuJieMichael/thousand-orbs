@@ -31,7 +31,7 @@
   <div class="sub">每轮结算时游戏匿名上传一条记录（随机玩家 id，不含昵称）。玩家可以在游戏「设置」里关掉。</div>
   <div class="bar">
     <input id="key" type="password" placeholder="统计密码" autocomplete="current-password" style="width:240px">
-    <select id="days"><option value="7">最近 7 天</option><option value="30" selected>最近 30 天</option><option value="90">最近 90 天</option><option value="3650">全部</option></select> <select id="ver"><option value="">全部版本</option><option value="2026-11-05.1">2026-11-05.1 平衡版及以后</option><option value="2026-11-06" selected>2026-11-06 起（修完开包数 bug）</option></select>
+    <select id="days"><option value="7">最近 7 天</option><option value="30" selected>最近 30 天</option><option value="90">最近 90 天</option><option value="3650">全部</option></select> <select id="ver"><option value="">全部版本</option><option value="2026-11-05.1">2026-11-05.1 平衡版及以后</option><option value="2026-11-10" selected>2026-11-10 起（远征版）</option><option value="2026-11-06">2026-11-06 起（修完开包数 bug）</option></select>
     <button id="go">查看</button><span id="msg" class="sub"></span>
   </div>
   <div id="out"></div>
@@ -68,6 +68,12 @@ function render(d) {
     (d.boss || []).map((r) => '<tr><td>' + chName(r.ch) + '</td><td class="n">' + r.n + '</td><td class="n">' + r.w + '</td><td class="n">' + pct(r.w, r.n) + '</td></tr>').join('') + '</tbody></table></div>';
   h += '<div class="card"><h2>每轮目标达成率</h2><table><thead><tr><th>章节</th><th>类型</th><th class="n">轮数</th><th class="n">达成率</th><th class="n">平均开包</th></tr></thead><tbody>' +
     (d.goal || []).map((r) => '<tr><td>' + chName(r.ch) + '</td><td>' + (r.kind === 'elite' ? '精英' : '普通') + '</td><td class="n">' + r.n + '</td><td class="n">' + pct(r.w, r.n) + '</td><td class="n">' + Math.round(r.opened) + '</td></tr>').join('') + '</tbody></table></div>';
+  // 远征版：整局结果（chal = run:探险队:危险）
+  const SQ = { std: '金库远征队', rich: '寻金商队', iron: '铁卫', sage: '秘符学者', gamb: '赌徒', spec: '流派专精' };
+  const runs = (d.chal || []).filter((r) => String(r.chal).startsWith('run:'));
+  h += '<div class="card"><h2>远征（每局）</h2>' + (runs.length ? '<table><thead><tr><th>探险队 · 危险</th><th class="n">局数</th><th class="n">通关率</th><th class="n">平均到达章</th><th class="n">平均轮数</th><th class="n">平均分</th><th class="n">平均分钟</th><th class="n">人数</th></tr></thead><tbody>' +
+    runs.map((r) => { const [, sq, dg] = String(r.chal).split(':'); return '<tr><td>' + esc((SQ[sq] || sq) + ' · 危险 ' + dg) + '</td><td class="n">' + r.n + '</td><td class="n">' + pct(r.w, r.n) + '</td><td class="n">' + (r.act != null ? Number(r.act).toFixed(1) : '-') + '</td><td class="n">' + (r.rounds != null ? Number(r.rounds).toFixed(1) : '-') + '</td><td class="n">' + (r.score != null ? Math.round(r.score) : '-') + '</td><td class="n">' + (r.dur != null ? (r.dur / 60).toFixed(1) : '-') + '</td><td class="n">' + r.players + '</td></tr>'; }).join('') + '</tbody></table>' : '<div class="sub">还没有远征记录。</div>') + '</div>';
+  d.chal = (d.chal || []).filter((r) => !String(r.chal).startsWith('run:'));
   h += '<div class="card"><h2>挑战关卡</h2>' + ((d.chal || []).length ? '<table><thead><tr><th>关卡</th><th class="n">尝试</th><th class="n">成功率</th><th class="n">人数</th></tr></thead><tbody>' +
     d.chal.map((r) => '<tr><td>' + esc(CHAL[r.chal] || r.chal) + '</td><td class="n">' + r.n + '</td><td class="n">' + pct(r.w, r.n) + '</td><td class="n">' + r.players + '</td></tr>').join('') + '</tbody></table>' : '<div class="sub">还没人打挑战关卡</div>') + '</div>';
   h += '<div class="card" style="grid-column:1/-1"><h2>最常装备的卡（出现在多少轮里）</h2>' + bars((d.cards || []).slice(0, 25), (r) => esc(r.name) + ' <span class="sub">' + esc(r.rar || '') + ' · ' + (SCH[r.sch] || '') + '</span>', (r) => r.rounds) + '<div class="sub">统计了最近 ' + num(d.cardRoundsSampled) + ' 轮</div></div>';

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:33cda34b1a938e619176f91594a94e07b2dddf8e -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:f25e97ee822b1c53e4abb491b7e4aff4deb24277 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -573,7 +573,7 @@ const KEY='thousand-orbs-run-v1'; // 远征版：新存档位（旧版存档不�
 const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,cnt:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
   mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0,hc:0,roundCoins:0,chRound:0},tree:{},treeSpent:0,keep:{},treeV:2,
   goal:10,streak:0,bestStreak:0,orbs:{fire:1,heavy:1},routes:null,banned:{},pickRolls:0,unl:{},
-  pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{},inRound:null,elitePick:0,bkCh:0,sigils:[],sigQ:[],relics:[],relicQ:[],run:null,recruit:0,squads:{},dangerMax:0,runs:0,wins:0,bestScore:0,bestAct:0,seen:{}});
+  pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{},inRound:null,elitePick:0,bkCh:0,sigils:[],sigQ:[],relics:[],relicQ:[],run:null,recruit:0,unlocked:{},dailyRun:null,squads:{},dangerMax:0,runs:0,wins:0,bestScore:0,bestAct:0,seen:{}});
 let M=fresh();
 // Validate a detached copy before replacing live state or writing either save slot.
 const BACKUP_KEY=KEY+'-backup';
@@ -619,6 +619,7 @@ function normalizeSave(data){
   if(next.routes!==null&&(!Array.isArray(next.routes)||!next.routes.every(r=>['normal','elite','shop','event'].includes(r)))) bad();
   for(const s of Object.values(next.lbSent)) if(!saveRecord(s)||typeof s.value!=='number'||s.value<0||!Number.isFinite(s.value)||(s.tb!==undefined&&(typeof s.tb!=='number'||s.tb<0||!Number.isFinite(s.tb)))) bad();
   if(next.bossD!==undefined&&next.bossD!==null){ if(!saveRecord(next.bossD)) bad(); for(const v of Object.values(next.bossD)) if(typeof v!=='number'||!Number.isFinite(v)||v<0) bad(); }
+  if(next.bossWound!==undefined&&next.bossWound!==null&&!(saveRecord(next.bossWound)&&Number.isSafeInteger(next.bossWound.ch)&&typeof next.bossWound.f==='number'&&next.bossWound.f>=0&&next.bossWound.f<=1)) delete next.bossWound;
   if(next.dealtAvg!==undefined&&(typeof next.dealtAvg!=='number'||!Number.isFinite(next.dealtAvg)||next.dealtAvg<0)) bad();
   if(next.lastBossHp!==undefined&&(typeof next.lastBossHp!=='number'||!Number.isFinite(next.lastBossHp)||next.lastBossHp<0)) bad();
   if(next.loadAuto!==undefined&&typeof next.loadAuto!=='boolean') bad();
@@ -916,7 +917,7 @@ const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
 // 本章越打越硬：同一章每打一轮，卡包血量和金币 ×1.15（最多 10 轮，约 ×4），打败首领进下一章后重置。玩家反馈第 5 轮左右就变简单了
 const AGE_G=1.07, AGE_MAX=10;
 const ageMult=()=>DAILY?1:Math.pow(AGE_G,Math.min(AGE_MAX,M.chAge||0));
-const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1)*(1+DANGER.hp*dangerLv()); // 不再按本章轮数变硬（CCGS 测评：变强被抵消）
+const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1)*(1+DANGER.hp*dangerLv())*(hasSigil('sunder')?.75:1); // 不再按本章轮数变硬（CCGS 测评：变强被抵消）
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
 // 秘藏等级：卡包血量 ×1.6^等级，所以开一个卡包也算 round(1.6^等级) 包（血量换数量，目标不会因为升了等级反而完不成）
 // 上限 10：秘藏等级到后期会到几十级，1.6^等级 会把一包算成上亿包（2026-11-05 玩家截图：一轮 1.97 亿包）
@@ -982,7 +983,7 @@ const goalWorth=()=>DAILY?1:Math.sqrt(packWorth()*(1+CNT_STEP*(M.up.cnt||0)));
 // 有地图时 = 第几排（正在打的那一站，或下一站）；没开地图时 = 本章已达成几轮
 const mapStop=(playing=false)=>M.map&&M.map.ch===M.ch&&mapOn()?Math.max(0,Math.min(MAP_ROWS-1,(M.map.r|0)+(playing?0:1))):Math.min(MAP_ROWS,M.chRounds||0);
 const goalBase=ch=>ch<=GOAL_TABLE.length?GOAL_TABLE[Math.max(1,ch)-1]:GOAL_TABLE[GOAL_TABLE.length-1]*Math.pow(GOAL_CH,ch-GOAL_TABLE.length);
-const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)*goalWorth()*(1+DANGER.goal*dangerLv())*(runSquad()==='rich'?1.1:1)));
+const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)*goalWorth()*(1+DANGER.goal*dangerLv())*(runSquad()==='rich'?1.1:1)*(hasRelic('abacus')?.9:1)));
 function syncGoal(playing=false){ if(!DAILY&&M) M.goal=goalFor(M.ch,mapStop(playing)); }
 const ROUTES={
   normal:{name:'Normal',ico:'🎯',desc:g=>`Goal: open ${g} packs`},
@@ -1029,16 +1030,16 @@ const MAP_W={normal:40,elite:20,shop:12,event:11,delve:10,camp:9}; // 奇遇只�
 const mapOn=()=>!!M.run&&!DAILY; // 远征里一开始就有地图
 const sideName=x=>x<.4?'left':x>.6?'right':'middle';
 function genMap(){ const rows=[], next=[];
-  for(let r=0;r<MAP_ROWS;r++){ const n=r===0?2:(Math.random()<.55?3:2), row=[];
+  for(let r=0;r<MAP_ROWS;r++){ const n=r===0?2:(runRand()<.55?3:2), row=[];
     for(let i=0;i<n;i++){ let t='normal';
-      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='camp'&&(r<2||row.some(o=>o.t==='camp')))&&!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))&&!(k==='delve'&&(r<2||rows.some(rw=>rw.some(o=>o.t==='delve'))||row.some(o=>o.t==='delve')))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
+      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='camp'&&(r<2||row.some(o=>o.t==='camp')))&&!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))&&!(k==='delve'&&(r<2||rows.some(rw=>rw.some(o=>o.t==='delve'))||row.some(o=>o.t==='delve')))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=runRand()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
       row.push({t,x:(i+1)/(n+1)}); }
     rows.push(row); }
   const normals=()=>rows.slice(2).flatMap(row=>row.filter(o=>o.t==='normal'));
-  if(!rows.some(row=>row.some(o=>o.t==='elite'))){ const r=2+Math.floor(Math.random()*(MAP_ROWS-2)); rows[r][Math.floor(Math.random()*rows[r].length)].t='elite'; }
-  if(!rows.some(row=>row.some(o=>o.t==='shop'||o.t==='event'))){ const n=normals(); if(n.length) n[Math.floor(Math.random()*n.length)].t=Math.random()<.5?'event':'shop'; } // 每张图至少一个黑市或奇遇
+  if(!rows.some(row=>row.some(o=>o.t==='elite'))){ const r=2+Math.floor(runRand()*(MAP_ROWS-2)); rows[r][Math.floor(runRand()*rows[r].length)].t='elite'; }
+  if(!rows.some(row=>row.some(o=>o.t==='shop'||o.t==='event'))){ const n=normals(); if(n.length) n[Math.floor(runRand()*n.length)].t=runRand()<.5?'event':'shop'; } // 每张图至少一个黑市或奇遇
   for(let r=0;r<MAP_ROWS-1;r++){ const a=rows[r], b=rows[r+1], e=a.map(()=>[]);
-    a.forEach((o,i)=>{ const near=b.map((q,j)=>[Math.abs(q.x-o.x),j]).sort((u,v)=>u[0]-v[0]); e[i].push(near[0][1]); if(near[1]&&near[1][0]<.42&&Math.random()<.6) e[i].push(near[1][1]); });
+    a.forEach((o,i)=>{ const near=b.map((q,j)=>[Math.abs(q.x-o.x),j]).sort((u,v)=>u[0]-v[0]); e[i].push(near[0][1]); if(near[1]&&near[1][0]<.42&&runRand()<.6) e[i].push(near[1][1]); });
     b.forEach((q,j)=>{ if(!e.some(l=>l.includes(j))){ let bi=0,bd=9; a.forEach((o,i)=>{ const d=Math.abs(o.x-q.x); if(d<bd){ bd=d; bi=i; } }); e[bi].push(j); } });
     next.push(e.map(l=>[...new Set(l)].sort())); }
   return {ch:M.ch,rows,next,r:-1,i:-1,hearts:M.run?M.run.hearts:MAP_HEARTS,runs:((M.map&&M.map.runs)||0)}; }
@@ -1057,6 +1058,7 @@ const RUN_LOSS=.15, RUN_LOSS_CH=3; // 命用完：第 3 章起散落 15% 金币�
 function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return;
   if(why==='Goal missed'&&hasSigil('ward')){ M.sigils=M.sigils.filter(x=>x!=='ward'); G.heartLost='Your Ward shattered and took this miss for you'; G.wardSaved=1; return; }
   m.hearts--; G.heartLost=why; if(M.run) M.run.hearts=Math.max(0,m.hearts);
+  if(m.hearts<=0&&hasRelic('feather')){ M.relics=M.relics.filter(x=>x!=='feather'); m.hearts=1; if(M.run) M.run.hearts=1; G.heartLost=why+'—— — the Phoenix Feather burns away and you rise again with 1 heart'; G.wardSaved=0; return; }
   if(m.hearts<=0){ G.runOver=true; if(M.run) M.run.over='lose'; M.streak=0; } }
 const NODE_INFO={
   normal:{ico:'🎯',name:'Normal',tip:g=>`Goal: open ${g} packs. Hit it: earn a streak bonus and move one stop closer to the boss. Miss: lose 1 ❤️.`},
@@ -1150,6 +1152,8 @@ const dayKey=(t=Date.now())=>new Date(t).toISOString().slice(0,10); // UTC 日�
 const hashStr=str=>{ let h=2166136261; for(const ch of str){ h^=ch.codePointAt(0); h=Math.imul(h,16777619); } return h>>>0; };
 const mulberry=a=>()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
 const dailyBoard=day=>'d'+day.replace(/-/g,'');
+// 远征里「会影响路线和选择」的随机数：每日远征时用当天的固定种子，所有人看到同样的地图和三选一
+function runRand(){ const r=M.run; if(!r||!r.seed) return Math.random(); r.rs=(r.rs|0)+0x6D2B79F5|0; let t=Math.imul(r.rs^r.rs>>>15,1|r.rs); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }
 function dailyOf(day){ const r=mulberry(hashStr('Thousand Orbs·'+day)), pick=a=>a[Math.floor(r()*a.length)];
   const pool=CARDS.filter(c=>c.rar!=='UR'&&!c.comps&&c.sch!=='myth'), main=pick([...new Set(pool.map(c=>c.sch))]), deck=[];
   const take=(list,n)=>{ const l=list.filter(c=>!deck.includes(c.id)); for(let i=0;i<n&&l.length;i++) deck.push(l.splice(Math.floor(r()*l.length),1)[0].id); };
@@ -1165,22 +1169,18 @@ function dailySubmit(){ const s=M.daily; if(!s||!M.lbName||!M.pid||M.dev) return
   if((M.dailySent||{})[b]>=s.best) return;
   lbFetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pid:M.pid,name:M.lbName,scores:{[b]:{value:s.best}}})})
     .then(r=>{ if(r&&r.ok&&Array.isArray(r.saved)&&r.saved.includes(b)){ M.dailySent={[b]:s.best}; save(); } }).catch(()=>{}); }
-function renderDaily(body){ const d=dailyOf(dayKey()), ru=DAILY_RULES.find(x=>x.id===d.rule), s=M.daily&&M.daily.day===d.day?M.daily:null;
-  const streak=s?s.streak:(M.daily&&M.daily.day===dayKey(Date.now()-864e5)?M.daily.streak:0);
-  const cards=d.deck.map(id=>{ const c=byId[id]; return `<div class="dcard"><div><span class="tag" style="color:${RCOL[c.rar]}">${RNAME[c.rar]}</span> ${c.ico} <b>${c.name}</b> <span class="sub" style="color:${SCH[c.sch].color}">${SCH[c.sch].name}</span></div><div class="sub" style="margin-top:3px">${c.desc(DAILY_LV,powerOf(DAILY_LV))}</div></div>`; }).join('');
-  body.innerHTML=`<div class="chap" style="margin-top:0;border-color:var(--gold3)">📅 <b style="color:var(--gold2)"> Daily Challenge · ${d.day}</b> <span class="sub"> Resets daily at 0:00 UTC (Beijing 8:00)</span>
-      <div class="sub" style="line-height:1.7;margin-top:4px"> Everyone gets the same deck and rules today: all cards at Lv${DAILY_LV}; your upgrades, Star Chart, Legacy and Orb Bag don’t count. ${DAILY_AMMO+(ru.ammo||0)} orbs — <b> whoever opens the most packs wins</b>. Retry as often as you like; only your best counts.</div>
-      <div style="margin-top:8px"> Today’s rule: ${ru.ico} <b>${ru.name}</b> · ${ru.desc}<br> Board: Chapter ${d.ch} “${chInfo(d.ch).name}” layout</div></div>
-    <div class="dgrid">${cards}</div>
-    <div class="chap"> You today: ${s?`best <b style="color:var(--gold2)">${s.best}</b> packs · tries ${s.tries} `:'not played yet'}${streak?` · streak ${streak} days`:''}${s&&s.paid?'':` · <span style="color:var(--gold2)"> first clear today +${DAILY_SOUL} Gold Souls</span>`}
+function renderDaily(body){ const day=dayKey(), s=M.dailyRun&&M.dailyRun.day===day?M.dailyRun:null;
+  body.innerHTML=`<div class="chap" style="margin-top:0;border-color:var(--gold3)">📅 <b style="color:var(--gold2)"> Daily Expedition · ${day}</b> <span class="sub"> Resets daily at 0:00 UTC (Beijing 8:00)</span>
+      <div class="sub" style="line-height:1.7;margin-top:4px"> Today everyone walks <b> the same map</b> and gets <b> the same 1-of-3 picks</b> (recruits, Sigils, Relics): Vault Expedition · Danger  ${DAILY_RUN_DANGER}. Start from zero and <b> compete on score</b> — replay as often as you like; your best counts.</div></div>
+    <div class="chap"> You today: ${s?`best <b style="color:var(--gold2)">${s.best}</b>  pts · attempts ${s.tries} `:'not played yet'}
       ${M.lbName?'':'<div class="sub" style="margin-top:4px"> Pick a nickname under “Leaderboard” and your score will appear on today’s board.</div>'}
-      <div style="margin-top:10px"><button class="btn" id="dailyGo">📅 Start Daily Challenge</button></div></div>
+      <div style="margin-top:10px"><button class="btn" id="dailyGo">📅 Start Daily Expedition</button></div></div>
     <div class="h3" style="margin-top:14px"><span>🏆 Today’s Board</span></div><div id="dailyTop" class="sub"> Loading……</div>`;
-  $('dailyGo').onclick=()=>startRound(false,{daily:1});
-  if(s) dailySubmit(); // 之前没传上的（比如榜还没开通时打的）补传
-  lbFetch(`/top?board=${dailyBoard(d.day)}&limit=10${M.pid?'&pid='+M.pid:''}`).then(r=>{ const el=$('dailyTop'); if(!el) return;
+  $('dailyGo').onclick=e=>{ const b=e.currentTarget; if(M.run&&!M.run.over&&!b.dataset.c){ b.dataset.c=1; b.textContent='This abandons your current expedition — tap again to confirm'; return; } startRun('std',DAILY_RUN_DANGER,null,day); };
+  if(s) dailySubmit();
+  lbFetch(`/top?board=${dailyBoard(day)}&limit=10${M.pid?'&pid='+M.pid:''}`).then(r=>{ const el=$('dailyTop'); if(!el) return;
     if(!r||!Array.isArray(r.top)) throw 0;
-    el.innerHTML=r.top.length?`<div style="display:grid;gap:6px">${r.top.map((x,i)=>`<div class="tli" style="${x.pid===M.pid?'border-color:var(--gold)':''}"><span>${i<3?`<span style="color:${['#ffd76a','#cfd6e0','#d49a62'][i]}">🥇</span>`:'#'+(i+1)} ${escH(x.name)}</span><b>${x.value} packs</b></div>`).join('')}</div>${r.me&&r.me.rank>10?`<div class="sub" style="margin-top:6px"> You rank # ${r.me.rank} / ${r.total}</div>`:''}`:'No one is on the board yet — first place is yours.';
+    el.innerHTML=r.top.length?`<div style="display:grid;gap:6px">${r.top.map((x,i)=>`<div class="tli" style="${x.pid===M.pid?'border-color:var(--gold)':''}"><span>${i<3?`<span style="color:${['#ffd76a','#cfd6e0','#d49a62'][i]}">🥇</span>`:'#'+(i+1)} ${escH(x.name)}</span><b>${x.value}  pts</b></div>`).join('')}</div>${r.me&&r.me.rank>10?`<div class="sub" style="margin-top:6px"> You rank # ${r.me.rank} / ${r.total}</div>`:''}`:'No one is on the board yet — first place is yours.';
   }).catch(()=>{ const el=$('dailyTop'); if(el) el.textContent='Can’t reach today’s board right now.'; }); }
 function equipped(){ if(ROUND_EQ) return ROUND_EQ; return M.deck.filter(id=>M.owned[id]).slice(0,maxSlots()); }
 // ---- 提前配装：三套技能卡 + 基石开关，开打前按关卡自动换上 ----
@@ -1250,6 +1250,7 @@ function startRound(boss,opt={}){
   if(dRule){ if(dRule.go) dRule.go(G); setTimeout(()=>toast(`📅 Daily Challenge · ${dRule.ico} ${dRule.name}`),300); }
   if(boss){ const hp=bossHp(); G.boss={boss:true,x:W/2,y:335,hw:58,hh:76,t:3,hp,max:hp,hit:0,burn:0,acid:0,grow:1,seed:.37,ballHit:{},slot:null,summon:0,
       mech:bossMechs(M.ch),shield:0,sT:5,mT:0,immune:false,vT:0,pT:0,p2:false,p2T:0,ph:0};
+    if(M.run&&M.bossWound&&M.bossWound.ch===M.ch){ G.boss.hp=G.boss.max*Math.max(.5,Math.min(1,M.bossWound.f+BOSS_HEAL)); G.bossWounded=1; const pc=Math.round(G.boss.hp/G.boss.max*100); setTimeout(()=>toast(`🩸 The boss is still wounded from last time: only ${pc}% HP left`),600); } // 首领保留伤势：上次打掉的血只回 25%（最少还剩一半）
     G.packs.push(G.boss); M.bossTries++; }
   for(let i=0;i<packN(upLv('packs'))-(boss?3:0);i++) addPack(true);
   for(let i=0;i<upLv('volley')*2;i++){ const a=rnd(.35,Math.PI-.35); spawnBall(LAUNCH.x,LAUNCH.y,Math.cos(a)*700,Math.sin(a)*700,{mini:true}); }
@@ -1265,7 +1266,7 @@ function freeSlots(){ return SLOTS.filter(s=>!(G.isBoss&&s.y===335)&&!G.packs.so
 // 前几章首领更弱：第 1~4 章血量 ×0.35 / ×0.5 / ×0.7 / ×0.85，第 5 章起不变
 const BOSS_EASE=[.3,.5,.7,.85];
 // 前三章参考首次挑战的单发伤害；不参考普通轮群伤或过量伤害。
-const BOSS_HITS=[26,70,140,180,220], BOSS_PLAIN=4.5; // 第 6 章起每章再 +20
+const BOSS_HITS=[18,60,120,170,210], BOSS_PLAIN=4.5; // 第 6 章起每章再 +20
 const bossHits=ch=>BOSS_HITS[ch-1]||BOSS_HITS[BOSS_HITS.length-1]+20*(ch-BOSS_HITS.length); // 基准伤害只看打磨等级和传承，不看当时带的卡：故意弱配装先输一次压不了血
 const dPlain=()=>orbDmg(M.up.dmg)*(1+.3*M.legacy.pow)*(1+TS.dmg)*BOSS_PLAIN;
 // 整体血量最多为上一章首领的 12 倍；首章 / 缺少旧记录时用章节基础血量封顶。
@@ -1280,7 +1281,7 @@ function bossHp(){
   const previous=M.ch>1&&M.lastBossHp>0?M.lastBossHp:base;
   const hp=Math.min(Math.max(base,floor)*(M.ch>=2?BOSS_HARD:1),previous*BOSS_STEP); // 第 2 章起 +25%（统计：第 2 章以后胜率 100%）
   // 整体快照写入原存档；同章重试、刷新、换装或升级都不会重新抬高血量。
-  const hpD=hp*(1+DANGER.boss*dangerLv()); M.bossD={ch:M.ch,d,hp:hpD,v:BOSS_HP_V};
+  const hpD=hp*(1+DANGER.boss*dangerLv())*(M.run&&M.ch>=ACTS?FINAL_BOSS:1); M.bossD={ch:M.ch,d,hp:hpD,v:BOSS_HP_V};
   return hpD;
 }
 const shieldCfg=()=>M.ch<=2?{t:11,n:3}:{t:8,n:6};
@@ -1528,7 +1529,8 @@ const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true; G.fx.push({x:W/2,y:H/2+40,t:'Round goal reached',c:'#7fe0a0',life:1.6,sz:20}); SFX.play('ach'); } }
 // 没达成：目标降到这轮实际开包数 ×1.15 附近（一次最多减半），旧版本 bug 抬高的目标几轮就能落回来
 const goalAfterMiss=(goal,opened)=>Math.max(GOAL_MIN,Math.min(goal-2,Math.max(Math.ceil(opened*1.15),Math.round(goal*.5))));
-function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('Boss fight lost'); if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok;
+function settleRoute(){ if(G.isBoss&&!G.bossWin){ if(M.run&&G.boss) M.bossWound={ch:M.ch,f:Math.max(0,G.boss.hp/G.boss.max)}; loseHeart('Boss fight lost'); }
+  if(G.isBoss&&G.bossWin) delete M.bossWound; if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok;
   if(G.route==='delve'){ M.chAge=(M.chAge||0)+1; delveSettle(ok); return; }
   if(mapOn()&&M.map&&M.map.ch===M.ch&&M.map.r===2&&!M.map.sigMid){ M.map.sigMid=1; M.sigQ.push('mid'); }
   M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('Goal missed');
@@ -1540,7 +1542,7 @@ function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('Boss fight lost'); i
 const BAN_MAX=6;
 const notBanned=pool=>{ const p=pool.filter(c=>!(M.banned||{})[c.id]); return p.length?p:pool; };
 function rollPick(o){ const minI=RO.indexOf(o.minRar||'N'); const pool=notBanned(CARDS.filter(c=>c.rar!=='UR'&&RO.indexOf(c.rar)>=minI&&(c.ch||1)<=M.maxCh&&(!o.sch||c.sch===o.sch))).slice(), out=[];
-  const w=c=>({N:6,R:5,SR:3,SSR:1.2}[c.rar]||1); while(out.length<3&&pool.length){ const tot=pool.reduce((a,c)=>a+w(c),0); let r=Math.random()*tot; let i=pool.findIndex(c=>(r-=w(c))<0); if(i<0) i=0; out.push(pool.splice(i,1)[0].id); } return out; }
+  const w=c=>({N:6,R:5,SR:3,SSR:1.2}[c.rar]||1); while(out.length<3&&pool.length){ const tot=pool.reduce((a,c)=>a+w(c),0); let r=runRand()*tot; let i=pool.findIndex(c=>(r-=w(c))<0); if(i<0) i=0; out.push(pool.splice(i,1)[0].id); } return out; }
 const rerollCost=()=>Math.ceil(packValue(1)*6*Math.pow(1.5,M.pickRolls||0));
 function openPick(o,done){ let ids=rollPick(o); const el=$('boonPop');
   const close=()=>{ el.classList.remove('show'); checkAch(); if(done) done(); };
@@ -2114,12 +2116,16 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-10.0';
+const GAME_V='2026-11-10.2';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
   const kind=G.chal||G.daily?'chal':G.isBoss?'boss':G.route==='elite'?'elite':'normal', win=G.daily?true:G.chal?G.chalWin:G.isBoss?G.bossWin:G.goalOk;
   const body={pid:M.pid,kind,ch:G.ch0||M.ch,maxCh:M.maxCh,round:M.round,win:!!win,opened:G.opened,coins:G.earned,dur:Math.round(G.time*10)/10,cards:G.eq||[],chal:G.chal||(G.daily?'daily':null),mobile:MOBILE.matches,v:GAME_V};
+  try{ fetch(LB_URL+'/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true}).catch(()=>{}); }catch(e){} }
+// 一整局的结果：借用现有统计接口（kind=chal），统计页「挑战关卡」表里按 run:探险队:危险 分组，能看到每种组合的通关率
+function runStatSend(L){ if(M.stats===false||M.dev||!M.pid||!L) return;
+  const body={pid:M.pid,kind:'chal',ch:Math.min(ACTS+1,L.act),maxCh:(L.danger||0)+1,round:L.rounds,win:!!L.win,opened:Math.min(1e6,L.score),coins:L.souls,dur:Math.min(3600,L.mins*60),cards:M.deck||[],chal:`run:${L.squad}:${L.danger}`,mobile:MOBILE.matches,v:GAME_V};
   try{ fetch(LB_URL+'/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:true}).catch(()=>{}); }catch(e){} }
 function newPid(){ const a=new Uint8Array(12); crypto.getRandomValues(a); return [...a].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function hcTick(b){ b.hc=(b.hc||0)+1; if(b.hc>(M.best.hc||0)) M.best.hc=b.hc; }
@@ -2191,7 +2197,9 @@ function spendFx(txt,el,big){ if(!el) return; const r=el.getBoundingClientRect()
 
 
 // ================= 🧭 远征：一局一局的冒险（设计见 docs/expedition-design.md） =================
-const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, DANGER_MAX=5;
+const DAILY_RUN_DANGER=1;
+const BOSS_HEAL=.25;
+const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, DANGER_MAX=5, FINAL_BOSS=1.15; // 第 3 章首领是终章首领：血量 ×1.15
 const DANGER={goal:.15,hp:.1,boss:.25};
 const dangerLv=()=>DAILY||!M.run?0:(M.run.danger||0);
 const SQUADS=[
@@ -2205,12 +2213,13 @@ const SQUADS=[
 const squadOk=q=>!q.ok||q.ok();
 const runSquad=()=>M.run&&M.run.squad;
 // 只在局外保留的字段：其余的（金币、卡牌、升级、星盘、地图、秘符、遗珍……）每局重来
-const META_KEYS=['opened','chalDone','soul','legacy','ach','best','bestStreak','foil','eggR','mute','music','calm','vibe','stats','dev','speed','fbSeen','pid','lbName','lbSent','lbSentName','guide','a2hsOff','lbAskOff','autoOn','squads','dangerMax','runs','wins','bestScore','bestAct','seen','saveV','treeV','bkCh','loadAuto','daily','lastRun'];
-function startRun(sq,danger,sch){
+const META_KEYS=['unlocked','dailyRun','opened','chalDone','soul','legacy','ach','best','bestStreak','foil','eggR','mute','music','calm','vibe','stats','dev','speed','fbSeen','pid','lbName','lbSent','lbSentName','guide','a2hsOff','lbAskOff','autoOn','squads','dangerMax','runs','wins','bestScore','bestAct','seen','saveV','treeV','bkCh','loadAuto','daily','lastRun'];
+function startRun(sq,danger,sch,daily){
   const keep={}; META_KEYS.forEach(k=>{ if(M[k]!==undefined) keep[k]=M[k]; });
   M=Object.assign(fresh(),keep);
   const hearts=sq==='iron'?4:sq==='gamb'?2:RUN_HEARTS;
   M.run={squad:sq,danger:danger||0,sch:sq==='spec'?sch:null,hearts,score:0,goals:0,bosses:0,t0:Date.now(),over:null};
+  if(daily){ M.run.daily=daily; M.run.seed=hashStr(/*i18n-keep*/'千珠落尽·远征·'+daily); M.run.rs=M.run.seed; }
   M.money=(M.legacy.start?200*Math.pow(6,M.legacy.start-1):0)+(sq==='rich'?300:0);
   if(sq==='sage') M.sigQ.push('gold');
   if(sq==='gamb') for(let k=0;k<2;k++){ const id=rollRelic('elite'); if(id) M.relics.push(id); }
@@ -2226,10 +2235,13 @@ function finishRun(){ const r=M.run; if(!r||r.awarded) return M.lastRun;
   let dUnl=0; if(win&&(r.danger||0)>=(M.dangerMax||0)&&(M.dangerMax||0)<DANGER_MAX){ M.dangerMax=(r.danger||0)+1; dUnl=M.dangerMax; }
   if(depth>(M.best.depth||0)||(depth===(M.best.depth||0)&&M.round<(M.best.depthRounds||1e9))){ M.best.depth=depth; M.best.depthRounds=M.round; }
   const newSq=SQUADS.filter(q=>squadOk(q)&&!before.includes(q.id)).map(q=>q.id);
-  r.awarded=1; M.lastRun={win,score,souls,act:M.ch,danger:r.danger||0,squad:r.squad,rounds:M.round,mins:Math.round((Date.now()-r.t0)/60000),goals:r.goals,bosses:r.bosses,newSq,dUnl};
-  save(); lbSubmit(); return M.lastRun; }
+  r.awarded=1; if(r.daily){ const db=M.dailyRun&&M.dailyRun.day===r.daily?M.dailyRun:{day:r.daily,best:0,tries:0}; db.tries++; db.best=Math.max(db.best,score); M.dailyRun=db; M.daily={day:r.daily,best:db.best,streak:(M.daily&&M.daily.streak)||1}; dailySubmit(); }
+  M.lastRun={daily:r.daily||null,win,score,souls,act:M.ch,danger:r.danger||0,squad:r.squad,rounds:M.round,mins:Math.round((Date.now()-r.t0)/60000),goals:r.goals,bosses:r.bosses,newSq,dUnl};
+  save(); lbSubmit(); runStatSend(M.lastRun); return M.lastRun; }
 function showRunEnd(){ const L=finishRun(); if(!L) return showCamp(); const q=SQUADS.find(x=>x.id===L.squad)||SQUADS[0];
-  $('box').innerHTML=`<h2 class="serif goldtxt">${L.win?'🏆 Expedition Complete':'💔 Expedition Over'}</h2>
+  const ending=L.win?`<div class="chap" style="margin-top:12px;border-color:var(--gold);display:flex;gap:12px;align-items:center"><img src="${ART.hero}" alt="" style="width:72px;height:72px;object-fit:contain;flex:none">
+    <div style="font-family:'Noto Serif SC','Noto Serif CJK SC',serif;line-height:1.9;color:#e9dcbc"> As the last orb fell, the master of the vault opened its eyes——<br> and what it saw was you. <br><span style="color:var(--gold2)"> The seals shattered, and every swallowed card returned to the world.</span></div></div>`:'';
+  $('box').innerHTML=`<h2 class="serif goldtxt">${L.win?'🏆 Expedition Complete':'💔 Expedition Over'}</h2>${L.daily?'<div class="sub">📅 Daily Expedition · '+L.daily+'</div>':''}${ending}
     <div class="sub" style="margin-top:6px">${q.ico} ${q.name} · Danger ${L.danger} · ${L.win?`Cleared all ${ACTS} `:`Fell in chapter ${L.act} `}</div>
     <div class="kv" style="margin-top:14px"><div><b>${L.score}</b><span> Score</span></div><div><b>+${L.souls}</b><span> Gold Souls</span></div><div><b>${L.rounds}</b><span> · ${L.mins} min</span></div></div>
     <div class="sub" style="margin-top:10px"> Goals hit ${L.goals}  · Bosses defeated ${L.bosses} ${L.win?' · Clear bonus +500':''}${L.danger?` · Danger bonus ×${(1+.25*L.danger).toFixed(2)}`:''}</div>
@@ -2250,16 +2262,22 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
     <div class="h3" style="margin-top:16px"><span>🔥 Danger level</span><span class="sub"> Clear your highest level to unlock the next</span></div>
     <div class="res" style="margin-top:6px">${Array.from({length:(M.dangerMax||0)+1},(_,d)=>`<button class="ghost" data-dg="${d}" style="${campSel.d===d?'border-color:var(--gold);color:var(--gold2)':''}"> Danger ${d}</button>`).join('')}</div>
     <div class="sub" style="margin-top:4px">${campSel.d?`Goal +${Math.round(campSel.d*DANGER.goal*100)}%, pack HP +${Math.round(campSel.d*DANGER.hp*100)}%, boss HP +${Math.round(campSel.d*DANGER.boss*100)}%; score ×${(1+.25*campSel.d).toFixed(2)}`:'Standard difficulty'}</div>
+    <div class="chap" style="margin-top:12px">📅 <b> Daily Expedition</b>: today everyone walks the same map with the same picks (Vault Expedition · Danger  ${DAILY_RUN_DANGER}) — compete on score. ${M.dailyRun&&M.dailyRun.day===dayKey()?`best today <b>${M.dailyRun.best}</b>  pts (played ${M.dailyRun.tries}  left)`:'Not played today'} <button class="ghost" id="campRank"> Today’s board</button></div>
+    <div class="h3" style="margin-top:16px"><span>🗝️ Treasury</span><span class="sub"> Spend Gold Souls to add new Sigils and Relics to the pool</span></div>
+    <div class="dgrid">${VAULT.map(v=>{ const it=v.k==='s'?sigilOf(v.id):relicOf(v.id), own=(M.unlocked||{})[v.k+':'+v.id], col=v.k==='s'?TIER[it.t].c:RARE[it.r].c, nm=v.k==='s'?sigilName(it):it.name, ds=v.k==='s'?sigilDesc(it):it.desc;
+      return `<div class="dcard" style="${own?'border-color:'+col:''}"><b style="color:${col}">${v.k==='s'?'🔷':'🏺'} ${nm}</b> <span class="sub">${v.k==='s'?TIER[it.t].name+'Sigil':RARE[it.r].name+'Relics'}</span><div class="sub" style="margin-top:3px">${ds}</div><div style="margin-top:6px">${own?'<span class="sub">✓ In the pool</span>':`<button class="ghost" data-vault="${v.k}:${v.id}" ${M.soul<v.cost?'disabled style="opacity:.45"':''}>🔥 ${v.cost} Unlock</button>`}</div></div>`; }).join('')}</div>
     <div class="h3" style="margin-top:16px"><span>🏛️ Legacy</span><span class="sub"> Bought with Gold Souls, permanent</span></div>
     ${LEGACY.map(legRow).join('')}
-    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan">📖 Manual</button><button class="ghost" id="campDaily">📅 Daily Challenge</button><button class="ghost" id="campMute">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campLang">${LANG==='zh'?'English':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
+    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan">📖 Manual</button><button class="ghost" id="campDaily">📅 Daily Expedition</button><button class="ghost" id="campMute">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campLang">${LANG==='zh'?'English':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
   const box=$('box');
   box.querySelectorAll('[data-sq]').forEach(b=>b.onclick=()=>{ campSel.sq=b.dataset.sq; showCamp(); });
   box.querySelectorAll('[data-csch]').forEach(b=>b.onclick=()=>{ campSel.sch=b.dataset.csch; showCamp(); });
   box.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{ campSel.d=+b.dataset.dg; showCamp(); });
   box.querySelectorAll('[data-leg]').forEach(b=>b.onclick=()=>{ const x=LEGACY.find(y=>y.id===b.dataset.leg), l=M.legacy[x.id]||0, c=x.cost(l); if(M.soul<c||(x.max&&l>=x.max)) return; M.soul-=c; M.legacy[x.id]=l+1; SFX.play('buy'); save(); showCamp(); });
   $('campGo').onclick=()=>startRun(campSel.sq,campSel.d,campSel.sch);
-  $('campMan').onclick=openManual; $('campDaily').onclick=()=>startRound(false,{daily:1});
+  box.querySelectorAll('[data-vault]').forEach(b=>b.onclick=()=>{ const v=VAULT.find(x=>x.k+':'+x.id===b.dataset.vault); if(!v||M.soul<v.cost) return; M.soul-=v.cost; (M.unlocked=M.unlocked||{})[b.dataset.vault]=1; SFX.play('ach'); save(); showCamp(); });
+  $('campRank').onclick=()=>{ G={loot:{}}; tab='daily'; showBetween(); };
+  $('campMan').onclick=openManual; $('campDaily').onclick=()=>startRun('std',DAILY_RUN_DANGER,null,dayKey());
   $('campMute').onclick=()=>{ M.mute=!M.mute; save(); syncMute(); showCamp(); }; $('campLang').onclick=()=>setLang(LANG==='zh'?'en':'zh');
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
 // 营火：回一颗心，或者磨练一张装备中的卡
@@ -2297,8 +2315,12 @@ const SIGILS=[
   {id:'storm',t:'p',ico:'🌩️',name:'Thunderstorm',desc:'During Fever, damage every pack on the board once per second'},
   {id:'midas',t:'p',ico:'💰',name:'Midas Touch',desc:'Coins ×2, but 2 fewer orbs per round'},
   {id:'overload',t:'p',ico:'💥',name:'Overload',desc:'Orb damage ×1.6'},
+  {id:'sunder',t:'p',ico:'🪓',name:'Armor Break',desc:'All pack HP -25%'},
 ];
 const sigilOf=id=>SIGILS.find(c=>c.id===id);
+// 宝库：这些秘符 / 遗珍一开始不在奖池里，要在营地用金魂解锁
+const VAULT=[{k:'s',id:'rebirth',cost:12},{k:'s',id:'midas',cost:10},{k:'s',id:'sunder',cost:10},{k:'r',id:'abacus',cost:8},{k:'r',id:'crown',cost:14},{k:'r',id:'gemini',cost:14},{k:'r',id:'feather',cost:16}];
+const vaultLocked=(k,id)=>VAULT.some(v=>v.k===k&&v.id===id)&&!(M.unlocked||{})[k+':'+id];
 const sigilName=c=>c.sch?`${SCH[c.sch].name} Seal`:c.name;
 const sigilDesc=c=>c.sch?`${SCH[c.sch].name} resonance counts one extra card (even a single card resonates)`:c.desc;
 const hasSigil=id=>!DAILY&&(M.sigils||[]).includes(id);
@@ -2309,9 +2331,9 @@ function sigilsRound(G){ if(G.chal||G.daily) return; // 每轮开局生效
   if(hasSigil('thread')) G.bo.coin*=1.25; if(hasSigil('spring')) G.bo.refill/=1.5; if(hasSigil('wide')) G.bo.basketW+=40; if(hasSigil('sharp')) G.bo.crit+=.15;
   if(hasSigil('split')) G.bo.split++; if(hasSigil('tally')) G.bo.cnt=(G.bo.cnt||0)+.25; if(hasSigil('echo')) G.bo.echo+=.2; if(hasSigil('chain')) G.bo.chain++;
   if(hasSigil('rebirth')) G.R.reborn=Math.max(G.R.reborn||0,1); if(hasSigil('overload')) G.bo.dmg*=1.6; }
-function rollTier(src){ const o=SIGIL_ODDS[src]||SIGIL_ODDS.start; let r=Math.random()*(o[0]+o[1]+o[2]); return r<o[0]?'s':r<o[0]+o[1]?'g':'p'; }
-function sigilPicks(t){ const pool=SIGILS.filter(c=>c.t===t&&!M.sigils.includes(c.id)), picks=[];
-  while(picks.length<3&&pool.length) picks.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); return picks; }
+function rollTier(src){ const o=SIGIL_ODDS[src]||SIGIL_ODDS.start; let r=runRand()*(o[0]+o[1]+o[2]); return r<o[0]?'s':r<o[0]+o[1]?'g':'p'; }
+function sigilPicks(t){ const pool=SIGILS.filter(c=>c.t===t&&!M.sigils.includes(c.id)&&!vaultLocked('s',c.id)), picks=[];
+  while(picks.length<3&&pool.length) picks.push(pool.splice(Math.floor(runRand()*pool.length),1)[0]); return picks; }
 function offerSigil(src,after){ M.sigils=M.sigils||[];
   const done=()=>{ M.sigQ.shift(); save(); after&&after(); };
   if(M.sigils.length>=sigilMax()||!mapOn()) return done();
@@ -2344,11 +2366,13 @@ const RELICS=[
   {id:'compass',r:'r',ico:'🧭',name:'Black-Gold Compass',desc:'Black-Gold Vault spawn rate ×2'},
   {id:'crown',r:'l',ico:'👑',name:'Starlight Crown',desc:'Pulling an SSR deals 2× damage to every pack'},
   {id:'gemini',r:'l',ico:'🪞',name:'Gemini Mirror',desc:'Each shot has a 25% chance to launch an extra full orb'},
+  {id:'feather',r:'l',ico:'🪶',name:'Phoenix Feather',desc:'When you run out of hearts, revive once with 1 heart (then it’s gone)'},
+  {id:'abacus',r:'r',ico:'🧮',name:'Golden Abacus',desc:'pack goal -10%'},
 ];
 const relicOf=id=>RELICS.find(r=>r.id===id);
 const hasRelic=id=>!DAILY&&!(G&&G.chal)&&(M.relics||[]).includes(id);
-function rollRelic(src){ const have=new Set([...(M.relics||[]),...(M.relicQ||[])]); const pool=RELICS.filter(r=>!have.has(r.id)); if(!pool.length) return null;
-  const w=r=>RARE[r.r].w[src]||1; const tot=pool.reduce((a,r)=>a+w(r),0); let x=Math.random()*tot; return (pool.find(r=>(x-=w(r))<0)||pool[0]).id; }
+function rollRelic(src){ const have=new Set([...(M.relics||[]),...(M.relicQ||[])]); const pool=RELICS.filter(r=>!have.has(r.id)&&!vaultLocked('r',r.id)); if(!pool.length) return null;
+  const w=r=>RARE[r.r].w[src]||1; const tot=pool.reduce((a,r)=>a+w(r),0); let x=runRand()*tot; return (pool.find(r=>(x-=w(r))<0)||pool[0]).id; }
 function dropRelic(src,x,y){ if(DAILY||(G&&G.chal)||!mapOn()) return null; const id=rollRelic(src); if(!id) return null; const r=relicOf(id);
   if(M.relics.length<RELIC_MAX) M.relics.push(id); else M.relicQ.push(id);
   (G.relicGot=G.relicGot||[]).push(id); toast(`🏺 Relic: ${r.name} (${RARE[r.r].name})`);
@@ -2817,7 +2841,7 @@ function showIntro(){
 }
 function showBetween(){
   if(M.run&&M.run.over&&!running) return showRunEnd();
-  if(!M.run&&!(G&&G.daily)) return showCamp();
+  if(!M.run&&!(G&&G.daily)&&!['daily','rank','ach','book'].includes(tab)) return showCamp();
   syncGoal();
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
   const total=ids.reduce((s,id)=>s+G.loot[id],0); lastLootTotal=total;

@@ -152,7 +152,7 @@ async function stats(req, env, url) {
     q('SELECT mc AS ch, COUNT(*) AS players FROM (SELECT pid, MAX(max_ch) AS mc FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?) GROUP BY pid) GROUP BY mc ORDER BY mc', since, vmin, vmin),
     q("SELECT ch, COUNT(*) AS n, SUM(win) AS w FROM rounds WHERE kind = 'boss' AND ts >= ? AND (? IS NULL OR v >= ?) GROUP BY ch ORDER BY ch", since, vmin, vmin),
     q("SELECT ch, kind, COUNT(*) AS n, SUM(win) AS w, AVG(opened) AS opened FROM rounds WHERE kind IN ('normal','elite') AND ts >= ? AND (? IS NULL OR v >= ?) GROUP BY ch, kind ORDER BY ch, kind", since, vmin, vmin),
-    q("SELECT chal, COUNT(*) AS n, SUM(win) AS w, COUNT(DISTINCT pid) AS players FROM rounds WHERE kind = 'chal' AND ts >= ? AND (? IS NULL OR v >= ?) GROUP BY chal ORDER BY n DESC", since, vmin, vmin),
+    q("SELECT chal, COUNT(*) AS n, SUM(win) AS w, COUNT(DISTINCT pid) AS players, AVG(ch) AS act, AVG(round) AS rounds, AVG(opened) AS score, AVG(dur) AS dur FROM rounds WHERE kind = 'chal' AND ts >= ? AND (? IS NULL OR v >= ?) GROUP BY chal ORDER BY n DESC", since, vmin, vmin),
     q('SELECT mobile, COUNT(DISTINCT pid) AS players FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?) GROUP BY mobile', since, vmin, vmin),
     q('SELECT COUNT(DISTINCT pid) AS n FROM scores'),
     q('SELECT cards FROM rounds WHERE ts >= ? AND (? IS NULL OR v >= ?) AND cards <> \'\' ORDER BY id DESC LIMIT 20000', since, vmin, vmin),
