@@ -6,8 +6,8 @@ const vm = require('node:vm');
 
 // Exercise the production single-file save boundary, not a duplicate implementation.
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-const source = html.slice(html.indexOf("const KEY='gold-orb-v2';"), html.indexOf('// ================= 升级 ================='));
-const key = 'gold-orb-v2', backup = key + '-backup';
+const source = html.slice(html.indexOf("const KEY='thousand-orbs-run-v1';"), html.indexOf('// ================= 升级 ================='));
+const key = 'thousand-orbs-run-v1', backup = key + '-backup';
 function fixture() {
   const values = new Map();
   const failures = { read: false, write: null, notices: 0 };

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:93c952484e510771d9fe52a80701256050af0cc4 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:33cda34b1a938e619176f91594a94e07b2dddf8e -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -569,11 +569,11 @@ const PT=[
 const CARD_COIN_CAP=6;
 
 // ================= 存档 =================
-const KEY='gold-orb-v2';
+const KEY='thousand-orbs-run-v1'; // 远征版：新存档位（旧版存档不迁移）
 const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,cnt:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
   mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0,hc:0,roundCoins:0,chRound:0},tree:{},treeSpent:0,keep:{},treeV:2,
   goal:10,streak:0,bestStreak:0,orbs:{fire:1,heavy:1},routes:null,banned:{},pickRolls:0,unl:{},
-  pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{},inRound:null,elitePick:0,bkCh:0,sigils:[],sigQ:[],relics:[],relicQ:[]});
+  pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{},inRound:null,elitePick:0,bkCh:0,sigils:[],sigQ:[],relics:[],relicQ:[],run:null,recruit:0,squads:{},dangerMax:0,runs:0,wins:0,bestScore:0,bestAct:0,seen:{}});
 let M=fresh();
 // Validate a detached copy before replacing live state or writing either save slot.
 const BACKUP_KEY=KEY+'-backup';
@@ -610,8 +610,8 @@ function normalizeSave(data){
   if(next.nextCurse!==undefined&&next.nextCurse!==null&&!Object.hasOwn(CURSES,next.nextCurse)) bad();
   if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
   if(Array.isArray(next.charms)&&!next.sigils.length) next.sigils=next.charms; delete next.charms; // 旧版「护符」→「秘符」（id 相同的直接沿用）
-  if(typeof SIGILS!=='undefined'){ next.sigils=next.sigils.filter(id=>typeof id==='string'&&SIGILS.some(c=>c.id===id)).slice(0,SIGIL_MAX);
-    next.sigQ=next.sigQ.filter(x=>['start','mid','elite'].includes(x)).slice(0,6);
+  if(typeof SIGILS!=='undefined'){ next.sigils=next.sigils.filter(id=>typeof id==='string'&&SIGILS.some(c=>c.id===id));
+    next.sigQ=next.sigQ.filter(x=>['start','mid','elite','gold'].includes(x)).slice(0,6); next.sigils=next.sigils.slice(0,SIGIL_MAX+1);
     next.relics=next.relics.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,RELIC_MAX); next.relicQ=next.relicQ.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,6); }
   if(next.inRound!==undefined&&next.inRound!==null&&!['normal','elite','delve','boss'].includes(next.inRound)) bad();
   if(next.elitePick!==undefined&&!(Number.isSafeInteger(next.elitePick)&&next.elitePick>=0&&next.elitePick<=5)) bad();
@@ -770,7 +770,7 @@ const LEGACY=[
   {id:'rich',ico:'💰',name:'Soul Wealth',desc:l=>`All coins +${l*40}%`,cost:l=>Math.ceil(2*Math.pow(1.6,l))},
   {id:'orb',ico:'🔮',name:'Orb Hoard',desc:l=>`+${l} orbs every round`,cost:l=>2+2*l,max:5},
   {id:'shine',ico:'✨',name:'Shine',desc:l=>`Foil chance ${(.5+.25*l).toFixed(2)}%`,cost:l=>2+l,max:7},
-  {id:'start',ico:'🏁',name:'Pioneer',desc:l=>`Starting coins after Smelting ${l?f(200*Math.pow(6,l-1)):0}`,cost:l=>1+l,max:6},
+  {id:'start',ico:'🏁',name:'Pioneer',desc:l=>`Starting coins each run ${l?f(200*Math.pow(6,l-1)):0}`,cost:l=>1+l,max:6},
 ];
 function soulGain(){ return Math.floor(Math.sqrt(M.life/2e4))+Math.max(0,M.ch-3)*2; }
 function prestige(){
@@ -789,9 +789,9 @@ const ACH=[
   {id:'o100',ico:'📦',name:'First Vault',desc:'Open 100 packs in total',soul:1,ok:()=>M.opened>=100},
   {id:'o1k',ico:'🗃️',name:'Pack Maniac',desc:'Open 1,000 packs in total',soul:2,ok:()=>M.opened>=1000},
   {id:'o10k',ico:'🏦',name:'Lord of Packs',desc:'Open 10,000 packs in total',soul:4,ok:()=>M.opened>=1e4},
-  {id:'b1',ico:'👑',name:'The Guard Falls',desc:'Defeat your first boss',soul:1,ok:()=>M.maxCh>=2},
-  {id:'b5',ico:'👁️',name:'The Throne Changes Hands',desc:'Defeat the Lord of the Void',soul:3,ok:()=>M.maxCh>=6},
-  {id:'b10',ico:'🌀',name:'Abyss Walker',desc:'Reach Endless Abyss depth 5',soul:5,ok:()=>M.maxCh>=10},
+  {id:'b1',ico:'👑',name:'The Guard Falls',desc:'Defeat your first boss',soul:1,ok:()=>M.maxCh>=2||(M.bestAct||0)>=2},
+  {id:'b5',ico:'👁️',name:'Triumphant Return',desc:'Clear an expedition',soul:3,ok:()=>(M.wins||0)>=1},
+  {id:'b10',ico:'🌀',name:'Abyss Walker',desc:'Clear an expedition at Danger 3 or higher',soul:5,ok:()=>(M.dangerMax||0)>=4},
   {id:'chain30',ico:'🔗',name:'Thirty in a Row',desc:'One orb lands 30 hits before falling',soul:1,ok:()=>M.best.chain>=30},
   {id:'combo50',ico:'🎼',name:'Lingering Echo',desc:'Combo reaches 50',soul:1,ok:()=>M.best.combo>=50},
   {id:'mx5',ico:'💥',name:'Fivefold Orb',desc:'Raise one orb’s multiplier to ×5',soul:1,ok:()=>M.best.mx>=5},
@@ -804,7 +804,7 @@ const ACH=[
   {id:'setAll',ico:'📚',name:'The Complete Vault',desc:'Collect every card of all five schools',soul:5,ok:allSets},
   {id:'nobask',ico:'🙈',name:'Basket? No Thanks',desc:'Open 30 packs in a round without a single orb entering the basket',soul:2,ok:()=>M.best.nobask},
   {id:'quick',ico:'⚔️',name:'Swift Kill',desc:'Defeat a boss using less than half your orbs',soul:3,ok:()=>M.best.quick},
-  {id:'melt',ico:'🔥',name:'Trial by Fire',desc:'Complete your first Smelting',soul:1,ok:()=>M.prestiges>=1},
+  {id:'melt',ico:'🔥',name:'Setting Out',desc:'Finish your first expedition',soul:1,ok:()=>(M.runs||0)>=1},
   {id:'myth1',ico:'✦',name:'A Glimpse of the Vault',desc:'Discover your first Myth card',soul:3,ok:()=>CARDS.some(c=>c.rar==='UR'&&M.owned[c.id])},
   {id:'mythAll',ico:'🗝️',name:'Vault Laid Bare',desc:'Collect all 6 Myth cards',soul:10,ok:()=>CARDS.filter(c=>c.rar==='UR').every(c=>M.owned[c.id])},
 ];
@@ -916,7 +916,7 @@ const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
 // 本章越打越硬：同一章每打一轮，卡包血量和金币 ×1.15（最多 10 轮，约 ×4），打败首领进下一章后重置。玩家反馈第 5 轮左右就变简单了
 const AGE_G=1.07, AGE_MAX=10;
 const ageMult=()=>DAILY?1:Math.pow(AGE_G,Math.min(AGE_MAX,M.chAge||0));
-const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1); // 不再按本章轮数变硬（CCGS 测评：变强被抵消）
+const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1)*(1+DANGER.hp*dangerLv()); // 不再按本章轮数变硬（CCGS 测评：变强被抵消）
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
 // 秘藏等级：卡包血量 ×1.6^等级，所以开一个卡包也算 round(1.6^等级) 包（血量换数量，目标不会因为升了等级反而完不成）
 // 上限 10：秘藏等级到后期会到几十级，1.6^等级 会把一包算成上亿包（2026-11-05 玩家截图：一轮 1.97 亿包）
@@ -959,10 +959,10 @@ const ORB_SPECIAL=Object.keys(ORBS).filter(k=>k!=='normal');
 const orbCount=()=>Object.values(M.orbs||{}).reduce((a,b)=>a+b,0);
 // ================= 逐步解锁：新玩家一开始只有弹珠和每轮目标 =================
 const UNL=[
-  {id:'tree',name:'Star Chart',txt:'“Build → Upgrades · Star Chart” is open: more orbs, more packs, more skill slots…',ok:()=>M.round>=3||M.maxCh>=2},
-  {id:'routes',name:'Routes · Orb Bag',txt:'After each round you pick the next one: Normal, Elite or Encounter. Orbs now come in types — the next three are shown beside the launcher.',ok:()=>M.maxCh>=2},
-  {id:'market',name:'Black Market',txt:'The Black Market appears in routes: buy packs, pick cards by school, seal cards.',ok:()=>M.maxCh>=3},
-  {id:'chal',name:'Challenges',txt:'Challenges are open on the “Goals” page — first clears reward Gold Souls.',ok:()=>M.maxCh>=3},
+  {id:'tree',name:'Star Chart',txt:'“Build → Upgrades · Star Chart” is open: more orbs, more packs, more skill slots…',ok:()=>M.round>=2},
+  {id:'routes',name:'Routes · Orb Bag',txt:'After each round you pick the next one: Normal, Elite or Encounter. Orbs now come in types — the next three are shown beside the launcher.',ok:()=>!!M.run},
+  {id:'market',name:'Black Market',txt:'The Black Market appears in routes: buy packs, pick cards by school, seal cards.',ok:()=>!!M.run&&M.round>=3},
+  {id:'chal',name:'Challenges',txt:'',ok:()=>false}, // 远征版：由危险等级取代
 ];
 const unl=id=>UNL.find(u=>u.id===id).ok();
 // ================= 每轮目标 & 路线 =================
@@ -982,7 +982,7 @@ const goalWorth=()=>DAILY?1:Math.sqrt(packWorth()*(1+CNT_STEP*(M.up.cnt||0)));
 // 有地图时 = 第几排（正在打的那一站，或下一站）；没开地图时 = 本章已达成几轮
 const mapStop=(playing=false)=>M.map&&M.map.ch===M.ch&&mapOn()?Math.max(0,Math.min(MAP_ROWS-1,(M.map.r|0)+(playing?0:1))):Math.min(MAP_ROWS,M.chRounds||0);
 const goalBase=ch=>ch<=GOAL_TABLE.length?GOAL_TABLE[Math.max(1,ch)-1]:GOAL_TABLE[GOAL_TABLE.length-1]*Math.pow(GOAL_CH,ch-GOAL_TABLE.length);
-const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)*goalWorth()));
+const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)*goalWorth()*(1+DANGER.goal*dangerLv())*(runSquad()==='rich'?1.1:1)));
 function syncGoal(playing=false){ if(!DAILY&&M) M.goal=goalFor(M.ch,mapStop(playing)); }
 const ROUTES={
   normal:{name:'Normal',ico:'🎯',desc:g=>`Goal: open ${g} packs`},
@@ -1024,14 +1024,14 @@ function delveBagHTML(d){ const nCards=Object.values(d.cards).reduce((a,b)=>a+b,
 
 // ================= 🗺️ 章节地图：每章一张分岔路线图 + 命数（打败第 1 章首领、开放路线后启用） =================
 // 6 站 + 首领。每站可以选连着的一个节点；普通 / 精英没达成目标、首领战失败都会掉 1 颗心，心用完「本局结束」：本章地图重来
-const MAP_ROWS=6, MAP_HEARTS=3, NODE_TYPES_OK={normal:1,elite:1,shop:1,event:1,delve:1};
-const MAP_W={normal:40,elite:20,shop:12,event:11,delve:10}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
-const mapOn=()=>unl('routes');
+const MAP_ROWS=5, MAP_HEARTS=3, NODE_TYPES_OK={normal:1,elite:1,shop:1,event:1,delve:1,camp:1};
+const MAP_W={normal:40,elite:20,shop:12,event:11,delve:10,camp:9}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
+const mapOn=()=>!!M.run&&!DAILY; // 远征里一开始就有地图
 const sideName=x=>x<.4?'left':x>.6?'right':'middle';
 function genMap(){ const rows=[], next=[];
   for(let r=0;r<MAP_ROWS;r++){ const n=r===0?2:(Math.random()<.55?3:2), row=[];
     for(let i=0;i<n;i++){ let t='normal';
-      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))&&!(k==='delve'&&(r<2||rows.some(rw=>rw.some(o=>o.t==='delve'))||row.some(o=>o.t==='delve')))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
+      if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='camp'&&(r<2||row.some(o=>o.t==='camp')))&&!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))&&!(k==='delve'&&(r<2||rows.some(rw=>rw.some(o=>o.t==='delve'))||row.some(o=>o.t==='delve')))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
       row.push({t,x:(i+1)/(n+1)}); }
     rows.push(row); }
   const normals=()=>rows.slice(2).flatMap(row=>row.filter(o=>o.t==='normal'));
@@ -1041,7 +1041,7 @@ function genMap(){ const rows=[], next=[];
     a.forEach((o,i)=>{ const near=b.map((q,j)=>[Math.abs(q.x-o.x),j]).sort((u,v)=>u[0]-v[0]); e[i].push(near[0][1]); if(near[1]&&near[1][0]<.42&&Math.random()<.6) e[i].push(near[1][1]); });
     b.forEach((q,j)=>{ if(!e.some(l=>l.includes(j))){ let bi=0,bd=9; a.forEach((o,i)=>{ const d=Math.abs(o.x-q.x); if(d<bd){ bd=d; bi=i; } }); e[bi].push(j); } });
     next.push(e.map(l=>[...new Set(l)].sort())); }
-  return {ch:M.ch,rows,next,r:-1,i:-1,hearts:MAP_HEARTS,runs:((M.map&&M.map.runs)||0)}; }
+  return {ch:M.ch,rows,next,r:-1,i:-1,hearts:M.run?M.run.hearts:MAP_HEARTS,runs:((M.map&&M.map.runs)||0)}; }
 function ensureMap(){ if(!mapOn()) return null; if(!M.map||M.map.ch!==M.ch){ const first=!M.map; M.map=genMap();
     if(first&&M.chRounds>0){ M.map.r=M.chRounds>=3?MAP_ROWS-1:Math.min(MAP_ROWS-2,M.chRounds*2-1); M.map.i=0; } } // 老存档：按已达成的轮数放到地图上，首领已就绪的直接站在首领前
   return M.map; }
@@ -1056,11 +1056,12 @@ function abandonRound(){ const r=M.inRound; if(!r) return; M.inRound=null; // �
 const RUN_LOSS=.15, RUN_LOSS_CH=3; // 命用完：第 3 章起散落 15% 金币（最多上一轮金币的 3 倍），新手章节不罚
 function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return;
   if(why==='Goal missed'&&hasSigil('ward')){ M.sigils=M.sigils.filter(x=>x!=='ward'); G.heartLost='Your Ward shattered and took this miss for you'; G.wardSaved=1; return; }
-  m.hearts--; G.heartLost=why;
-  if(m.hearts<=0){ G.runOver=true; const lost=M.ch<RUN_LOSS_CH?0:Math.floor(Math.min(M.money*RUN_LOSS,(G.earned||M.lastEarned||0)*3)); M.money-=lost; G.runLoss=lost; M.map=genMap(); M.map.runs=m.runs+1; M.streak=0; M.sigils=[]; M.sigQ=[]; M.relics=[]; M.relicQ=[]; } }
+  m.hearts--; G.heartLost=why; if(M.run) M.run.hearts=Math.max(0,m.hearts);
+  if(m.hearts<=0){ G.runOver=true; if(M.run) M.run.over='lose'; M.streak=0; } }
 const NODE_INFO={
   normal:{ico:'🎯',name:'Normal',tip:g=>`Goal: open ${g} packs. Hit it: earn a streak bonus and move one stop closer to the boss. Miss: lose 1 ❤️.`},
   elite:{ico:'⚔️',name:'Elite',tip:g=>`Pack HP ×${ELITE_HP}, coins ×${ELITE_COIN}, goal: open ${Math.ceil(g*ELITE_GOAL)} packs. Win: a guaranteed Relic + a Sigil pick + a special orb. Miss: lose 1 ❤️.`},
+  camp:{ico:'🔥',name:'Campfire',tip:()=>'No fight this stop: recover 1 heart, or train your equipped cards (+2 copies each).'},
   shop:{ico:'🏮',name:'Black Market',tip:()=>'No round here: spend coins on packs, pick 1 of 3 from a school, or seal unwanted cards for free. You can’t lose hearts.'},
   event:{ico:'❓',name:'Encounter',tip:()=>'No round here: something random happens. Some events are good, others — pickpockets, cave-ins, cursed chests — are bad, so weigh your choices.'},
   delve:{ico:'🕳️',name:'The Deep Vault',tip:g=>`Loot-and-extract: fight down layer after layer. Layer 1’s goal is ${delveGoal(1)} packs; each layer deeper gives packs ×${DELVE_HP} HP, +${pct(DELVE_COIN)} coins and a higher goal. Coins and cards from each layer go into your bag. After clearing a layer, Extract to take it all home, or Push On: every 2 layers adds a special orb, and from layer 3 each layer adds Gold Souls. Miss a goal and you’re trapped: you lose the whole bag and 1 ❤️.`},
@@ -1075,7 +1076,7 @@ function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(
   const nodes=m.rows.map((row,r)=>row.map((o,i)=>node(r,i,o)).join('')).join('')+`<button class="mnode boss${mapAtBoss()?' can':''}" data-mboss="1" style="left:50%;top:${yOf(MAP_ROWS)}px" title="boss">👑</button>`;
   const hearts='❤️'.repeat(Math.max(0,m.hearts))+'<span style="opacity:.25">'+'❤️'.repeat(Math.max(0,MAP_HEARTS-m.hearts))+'</span>';
   return `<div class="chap" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>🗺️ Chapter ${M.ch} Route</b><span>${hearts} <span class="sub">stop ${Math.max(0,m.r+1)}/${MAP_ROWS}</span></span></div>${sigilsHTML()}${relicsHTML()}
-    <div class="sub" style="margin-top:4px"> Climb from the bottom up, picking a node connected to where you are (glowing nodes are reachable). Missing a goal or losing a boss fight costs 1 ❤️. Run out of hearts and the run ends — the map restarts (cards and upgrades are kept; you drop some coins; Sigils and Relics are cleared).</div>
+    <div class="sub" style="margin-top:4px"> Climb from the bottom up, picking a node connected to where you are (glowing nodes are reachable). Missing a goal or losing a boss fight costs 1 ❤️. Run out of hearts and the expedition ends (${M.run?M.run.hearts:MAP_HEARTS}  in total, shared across the whole expedition; campfires restore them).</div>
     <div class="map" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
     <div id="mapInfo" class="sub" style="min-height:2.4em;margin-top:6px"> Tap a node on the map to see what it is.</div>
     <details style="margin-top:6px"><summary class="sub" style="cursor:pointer"> What is each node?</summary><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>: ${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
@@ -1203,6 +1204,7 @@ function bindLoadBar(body){
   const a=body.querySelector('#lAuto'); if(a) a.onchange=()=>{ M.loadAuto=a.checked; save(); toast(a.checked?'Loadouts will switch automatically':'Auto-switch turned off'); }; }
 function schoolCount(raw){ const eq=equipped(),n={}; eq.forEach(id=>{ const c=byId[id]; n[c.sch]=(n[c.sch]||0)+1; if(c.sch2) n[c.sch2]=(n[c.sch2]||0)+1; });
   if(eq.includes('lord')){ const k=levelOf(M.owned.lord)>=6?2:1; Object.keys(n).forEach(s=>{ if(s!=='myth') n[s]+=k; }); }
+  if(!raw&&!DAILY&&M.run&&M.run.sch&&n[M.run.sch]) n[M.run.sch]+=1;
   if(!raw&&!DAILY&&!(G&&G.chal)) for(const id of (M.sigils||[])){ const c=sigilOf(id); if(c&&c.sch&&n[c.sch]) n[c.sch]+=1; } return n; }
 const cardLv=id=>{ const c=byId[id]; return c.comps?Math.min(...c.comps.map(x=>levelOf(M.owned[x]||0))):levelOf(M.owned[id]||0); };
 const starOf=id=>(M.asc&&M.asc[id])||0;
@@ -1278,8 +1280,8 @@ function bossHp(){
   const previous=M.ch>1&&M.lastBossHp>0?M.lastBossHp:base;
   const hp=Math.min(Math.max(base,floor)*(M.ch>=2?BOSS_HARD:1),previous*BOSS_STEP); // 第 2 章起 +25%（统计：第 2 章以后胜率 100%）
   // 整体快照写入原存档；同章重试、刷新、换装或升级都不会重新抬高血量。
-  M.bossD={ch:M.ch,d,hp,v:BOSS_HP_V};
-  return hp;
+  const hpD=hp*(1+DANGER.boss*dangerLv()); M.bossD={ch:M.ch,d,hp:hpD,v:BOSS_HP_V};
+  return hpD;
 }
 const shieldCfg=()=>M.ch<=2?{t:11,n:3}:{t:8,n:6};
 const mirrorCfg=()=>M.ch<=2?{cyc:11,dur:1.8}:{cyc:9,dur:2.5};
@@ -1427,6 +1429,7 @@ function giveCard(p,k){
   if(rar==='UR') SFX.play('myth'); else if(rar!=='N') SFX.play(rar);
   const before=levelOf(M.owned[c.id]||0),isNew=!M.owned[c.id];
   M.owned[c.id]=(M.owned[c.id]||0)+1;
+  if(M.seen) M.seen[c.id]=1;
   if(isNew){ G.newIds[c.id]=1; if(equipped().length<maxSlots()){ M.deck.push(c.id); G.R=G.R; renderSide(); } }
   else if(levelOf(M.owned[c.id])>before) G.upIds[c.id]=1;
   G.loot[c.id]=(G.loot[c.id]||0)+1;
@@ -1455,7 +1458,7 @@ function bossDown(p){
   const coins=packValue(2)*12*(1+.4*M.legacy.rich); // packValue 已经按章节涨了
   earn(coins,p.x,p.y);
   G.death={x:p.x,y:p.y,h:p.hh*2,t:0,img:'p2_'+bossIdx(M.ch)}; shake(6);
-  giveCard(p,'SSR'); giveCard(p,0); giveCard(p,2); dropRelic('boss',p.x,p.y); if(urUnlocked().length&&Math.random()<UR_BOSS) giveCard(p,'UR');
+  giveCard(p,'SSR'); giveCard(p,0); giveCard(p,2); if(M.run){ M.run.bosses++; M.run.score+=150*M.ch; if(M.ch>=ACTS) M.run.over='win'; } if(!(M.run&&M.run.over)) dropRelic('boss',p.x,p.y); if(urUnlocked().length&&Math.random()<UR_BOSS) giveCard(p,'UR');
   const old=M.ch; M.ch++; if(M.ch>M.maxCh) M.best.chRound=M.round; M.maxCh=Math.max(M.maxCh,M.ch); M.chRounds=0; M.chAge=0; M.sigils=[]; M.sigQ=[]; syncGoal();
   G.fx.push({x:W/2,y:H/2,t:`${chInfo(old).boss} defeated!`,c:'#ffcc55',life:2.5});
   toast(`👑 Boss defeated! Chapter ${M.ch} “${chInfo(M.ch).name}” unlocked`);
@@ -1529,7 +1532,7 @@ function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('Boss fight lost'); i
   if(G.route==='delve'){ M.chAge=(M.chAge||0)+1; delveSettle(ok); return; }
   if(mapOn()&&M.map&&M.map.ch===M.ch&&M.map.r===2&&!M.map.sigMid){ M.map.sigMid=1; M.sigQ.push('mid'); }
   M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('Goal missed');
-  if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
+  if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++; if(M.run){ M.run.goals++; M.run.score+=20*M.ch; }
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
     if(G.route==='elite'){ dropRelic('elite'); M.sigQ.push('elite'); const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
   else { G.lostStreak=M.streak; M.streak=0; } syncGoal(); }
@@ -1543,11 +1546,11 @@ function openPick(o,done){ let ids=rollPick(o); const el=$('boonPop');
   const close=()=>{ el.classList.remove('show'); checkAch(); if(done) done(); };
   const render=()=>{ el.innerHTML=`<div class="bt serif goldtxt">${o.title||'Pick 1 of 3'}</div><div class="sub" style="text-align:center"> New cards are added; owned ones get +2 copies and level up faster</div>
     <div class="bcs pkrow lock">${ids.map(id=>`<div class="pk" data-id="${id}" style="width:150px">${cardHTML(id,{isNew:!M.owned[id]})}</div>`).join('')}</div>
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn alt" id="pkRe" style="padding:8px 16px;font-size:14px"> Reroll ✦ ${f(rerollCost())}</button><button class="ghost" id="pkSkip"> Skip</button></div>`;
+    ${o.recruit?'':`<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn alt" id="pkRe" style="padding:8px 16px;font-size:14px"> Reroll ✦ ${f(rerollCost())}</button><button class="ghost" id="pkSkip"> Skip</button></div>`}`;
     el.querySelectorAll('.pk').forEach(x=>x.onclick=()=>{ const id=x.dataset.id, isNew=!M.owned[id]; M.owned[id]=(M.owned[id]||0)+(isNew?1:2);
       if(isNew&&equipped().length<maxSlots()) M.deck.push(id); save(); renderSide(); SFX.play(byId[id].rar==='N'?'R':byId[id].rar); toast(`${isNew?'New':'Upgraded'}: ${byId[id].name}`); close(); });
-    $('pkRe').onclick=e=>{ if(!spend(rerollCost(),e.target)) return; M.pickRolls=(M.pickRolls||0)+1; ids=rollPick(o); render(); };
-    $('pkSkip').onclick=close; clearTimeout(openPick.t); openPick.t=setTimeout(()=>{ const r=el.querySelector('.pkrow'); if(r) r.classList.remove('lock'); },700); };
+    if($('pkRe')) $('pkRe').onclick=e=>{ if(!spend(rerollCost(),e.target)) return; M.pickRolls=(M.pickRolls||0)+1; ids=rollPick(o); render(); };
+    if($('pkSkip')) $('pkSkip').onclick=close; clearTimeout(openPick.t); openPick.t=setTimeout(()=>{ const r=el.querySelector('.pkrow'); if(r) r.classList.remove('lock'); },700); };
   render(); el.classList.add('show'); }
 // ---- 路线：黑市 / 奇遇 ----
 const schPickCost=()=>Math.ceil(packValue(1)*10*(hasSigil('patron')?.8:1));
@@ -1608,7 +1611,7 @@ function showEvent(){ const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)], 
     const fin=msg=>{ save(); hud(); box.innerHTML=`<h2 class="serif goldtxt">${ev.ico} Encounter · ${ev.name}</h2><p style="line-height:1.9;font-size:15px;margin-top:14px">${msg}</p><div class="foot"><span></span><button class="btn" id="evGo"> Continue ▶</button></div>`; $('evGo').onclick=leaveDetour; };
     if(o.pick) openPick({title:'📜 Torn Codex · Pick 1 of 3'},()=>fin('You close the codex.')); else { const r=o.go(); if(r&&r.pick) openPick(r.pick,()=>fin(r.msg)); else fin(r); } });
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
-function goRoute(r){ if(r==='shop') showMarket(); else if(r==='event') showEvent(); else if(r==='delve') delveStart(); else startRound(false,{route:r}); }
+function goRoute(r){ if(r==='camp') showCampfire(); else if(r==='shop') showMarket(); else if(r==='event') showEvent(); else if(r==='delve') delveStart(); else startRound(false,{route:r}); }
 function boom(x,y,r,d){ G.parts.push({ring:true,x,y,r:0,max:r,life:.35}); SFX.play('boom'); G.packs.slice().forEach(o=>{ if(Math.hypot(o.x-x,o.y-y)<r) dmgPack(o,d,true,'fire'); }); }
 function tearPack(p){ const P=PT[p.t], body=p.t===3?'#17130f':P.b, edge=p.t===3?'#c8a464':P.a; G.tears=G.tears||[];
   [-1,1].forEach(sg=>G.tears.push({x:p.x+sg*2,y:p.y+sg*p.hh/2,oy:0,w:p.hw*2,h:p.hh,top:sg<0,body,edge,vy:sg<0?-150:40,rot:0,vr:sg*rnd(1.5,3)*(Math.random()<.5?-1:1),life:.55}));
@@ -2098,7 +2101,7 @@ const trigOf=c=>c.launch?'launch':c.hit?'hit':c.open?'open':c.wall?'wall':c.peg?
 const TGROUPS=[{id:'loot',name:'Results',subs:['loot']},{id:'build',name:'Build',subs:['up','deck','book','bag']},{id:'goal',name:'Goal',subs:['daily','goals','rank']},{id:'more',name:'More',subs:['manual','legacy','sys','fb']}];
 const TLAST={};
 const tGroupOf=t=>(TGROUPS.find(g=>g.subs.includes(t))||TGROUPS[0]).id;
-const tSubs=(g,canP)=>g.subs.filter(k=>(k!=='legacy'||canP||M.prestiges||M.soul)&&(k!=='bag'||unl('routes'))&&(k!=='daily'||M.round>=DAILY_MIN_ROUND));
+const tSubs=(g,canP)=>g.subs.filter(k=>k!=='legacy'&&(k!=='bag'||unl('routes'))&&(k!=='daily'||M.round>=DAILY_MIN_ROUND));
 function tName(k,total){ return {loot:`Loot ${total}`,deck:`Skill slots ${equipped().length}/${maxSlots()}`,book:`Codex ${Object.keys(M.owned).length}/${CARDS.length}`,up:unl('tree')?'Upgrades · Star Chart':'Upgrade',goals:unl('chal')?'Challenges · Achievements':'Achievements',rank:'Leaderboard',bag:`Orb Bag ${orbCount()}`,
   chal:`Challenges ${badgeN()}/${CHAL.length}`,ach:`Achievements ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'Legacy',sys:'Settings',fb:'Feedback',daily:'📅 Daily',manual:'📖 Manual'}[k]; }
 function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.ended=true; running=false; $('boonPop').classList.remove('show');
@@ -2111,7 +2114,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-09.9h';
+const GAME_V='2026-11-10.0';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2122,7 +2125,7 @@ function newPid(){ const a=new Uint8Array(12); crypto.getRandomValues(a); return
 function hcTick(b){ b.hc=(b.hc||0)+1; if(b.hc>(M.best.hc||0)) M.best.hc=b.hc; }
 const chName=v=>v<=5?`Chapter ${v}`:`Abyss Depth ${v-5}`;
 const LB={
-  progress:{name:'Furthest progress',ico:'🏛️',fmt:(v,tb)=>chName(v)+(tb?` · Round ${tb} reached`:''),mine:()=>M.round>=1?{value:M.maxCh,tb:M.maxCh<=1?0:(M.best.chRound||M.round)}:null,how:'Highest chapter / abyss depth; ties go to fewer rounds'},
+  progress:{name:'Deepest Expedition',ico:'🏛️',fmt:(v,tb)=>`Danger ${Math.floor(v/4)} · ${v%4>=ACTS?'cleared':`cleared ${v%4} `}`+(tb?` · ${tb} `:''),mine:()=>M.best.depth>0?{value:M.best.depth,tb:M.best.depthRounds||0}:null,how:'Higher Danger ranks first; within a Danger level, more chapters cleared; ties go to fewer rounds'},
   coins:{name:'Coins in one round',ico:'💰',fmt:v=>'✦ '+f(v),mine:()=>M.best.roundCoins>0?{value:Math.floor(M.best.roundCoins)}:null,how:'Most coins earned in a single round (challenges excluded)'},
   streak:{name:'Longest streak',ico:'🔗',fmt:v=>`${v}-round streak`,mine:()=>M.bestStreak>0?{value:M.bestStreak}:null,how:'Most consecutive rounds hitting the goal'},
   chain:{name:'Single-orb chain',ico:'⚡',fmt:v=>`${v} hits`,mine:()=>M.best.hc>0?{value:M.best.hc}:null,how:'Most rivet and pack hits by one orb before it falls'},
@@ -2186,12 +2189,95 @@ function spendFx(txt,el,big){ if(!el) return; const r=el.getBoundingClientRect()
   d.style.left=(r.left+r.width/2)+'px'; d.style.top=(big?r.top:r.bottom)+'px'; document.body.appendChild(d); setTimeout(()=>d.remove(),1300); }
 
 
+
+// ================= 🧭 远征：一局一局的冒险（设计见 docs/expedition-design.md） =================
+const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, DANGER_MAX=5;
+const DANGER={goal:.15,hp:.1,boss:.25};
+const dangerLv=()=>DAILY||!M.run?0:(M.run.danger||0);
+const SQUADS=[
+  {id:'std',ico:'🏛️',name:'Vault Expedition',desc:'Standard: 3 hearts.'},
+  {id:'rich',ico:'🪙',name:'Gold Caravan',desc:'+300 starting coins and 20% off at the Black Market; goals +10%.'},
+  {id:'iron',ico:'🛡️',name:'Iron Guard',desc:'4  hearts; but 1 fewer orb every round.',need:'Clear an expedition',ok:()=>M.wins>=1},
+  {id:'sage',ico:'🔷',name:'Sigil Scholar',desc:'Start with a Gold Sigil pick; Sigil limit 5.',need:'Reach Chapter 2',ok:()=>M.bestAct>=2},
+  {id:'gamb',ico:'🎲',name:'The Gambler',desc:'Start with 2 random Relics; but only 2 hearts.',need:'Reach Chapter 3',ok:()=>M.bestAct>=3},
+  {id:'spec',ico:'🔔',name:'School Specialist',desc:'Opening recruits come only from your chosen school, and that school's resonance counts one extra card.',need:'Clear an expedition at Danger 1+',ok:()=>M.dangerMax>=2},
+];
+const squadOk=q=>!q.ok||q.ok();
+const runSquad=()=>M.run&&M.run.squad;
+// 只在局外保留的字段：其余的（金币、卡牌、升级、星盘、地图、秘符、遗珍……）每局重来
+const META_KEYS=['opened','chalDone','soul','legacy','ach','best','bestStreak','foil','eggR','mute','music','calm','vibe','stats','dev','speed','fbSeen','pid','lbName','lbSent','lbSentName','guide','a2hsOff','lbAskOff','autoOn','squads','dangerMax','runs','wins','bestScore','bestAct','seen','saveV','treeV','bkCh','loadAuto','daily','lastRun'];
+function startRun(sq,danger,sch){
+  const keep={}; META_KEYS.forEach(k=>{ if(M[k]!==undefined) keep[k]=M[k]; });
+  M=Object.assign(fresh(),keep);
+  const hearts=sq==='iron'?4:sq==='gamb'?2:RUN_HEARTS;
+  M.run={squad:sq,danger:danger||0,sch:sq==='spec'?sch:null,hearts,score:0,goals:0,bosses:0,t0:Date.now(),over:null};
+  M.money=(M.legacy.start?200*Math.pow(6,M.legacy.start-1):0)+(sq==='rich'?300:0);
+  if(sq==='sage') M.sigQ.push('gold');
+  if(sq==='gamb') for(let k=0;k<2;k++){ const id=rollRelic('elite'); if(id) M.relics.push(id); }
+  M.recruit=3; recalcTree(); M.map=null; ensureMap(); syncGoal();
+  G={loot:{}}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo=''; tab='loot';
+  save(); renderSide(); hud(); SFX.play('raise'); showBetween(); }
+function runScore(){ const r=M.run; if(!r) return 0; return Math.round((r.score+(r.over==='win'?500:0))*(1+.25*(r.danger||0))); }
+function finishRun(){ const r=M.run; if(!r||r.awarded) return M.lastRun;
+  const win=r.over==='win', score=runScore(), souls=Math.max(1,Math.floor(score/60)), before=SQUADS.filter(squadOk).map(q=>q.id);
+  const cleared=win?ACTS:M.ch-1, depth=(r.danger||0)*4+cleared;
+  M.soul+=souls; M.runs=(M.runs||0)+1; if(win) M.wins=(M.wins||0)+1;
+  M.bestScore=Math.max(M.bestScore||0,score); M.bestAct=Math.max(M.bestAct||0,Math.min(ACTS,M.ch));
+  let dUnl=0; if(win&&(r.danger||0)>=(M.dangerMax||0)&&(M.dangerMax||0)<DANGER_MAX){ M.dangerMax=(r.danger||0)+1; dUnl=M.dangerMax; }
+  if(depth>(M.best.depth||0)||(depth===(M.best.depth||0)&&M.round<(M.best.depthRounds||1e9))){ M.best.depth=depth; M.best.depthRounds=M.round; }
+  const newSq=SQUADS.filter(q=>squadOk(q)&&!before.includes(q.id)).map(q=>q.id);
+  r.awarded=1; M.lastRun={win,score,souls,act:M.ch,danger:r.danger||0,squad:r.squad,rounds:M.round,mins:Math.round((Date.now()-r.t0)/60000),goals:r.goals,bosses:r.bosses,newSq,dUnl};
+  save(); lbSubmit(); return M.lastRun; }
+function showRunEnd(){ const L=finishRun(); if(!L) return showCamp(); const q=SQUADS.find(x=>x.id===L.squad)||SQUADS[0];
+  $('box').innerHTML=`<h2 class="serif goldtxt">${L.win?'🏆 Expedition Complete':'💔 Expedition Over'}</h2>
+    <div class="sub" style="margin-top:6px">${q.ico} ${q.name} · Danger ${L.danger} · ${L.win?`Cleared all ${ACTS} `:`Fell in chapter ${L.act} `}</div>
+    <div class="kv" style="margin-top:14px"><div><b>${L.score}</b><span> Score</span></div><div><b>+${L.souls}</b><span> Gold Souls</span></div><div><b>${L.rounds}</b><span> · ${L.mins} min</span></div></div>
+    <div class="sub" style="margin-top:10px"> Goals hit ${L.goals}  · Bosses defeated ${L.bosses} ${L.win?' · Clear bonus +500':''}${L.danger?` · Danger bonus ×${(1+.25*L.danger).toFixed(2)}`:''}</div>
+    ${L.dUnl?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔥 Unlock <b> Danger ${L.dUnl}</b>: tougher goals, packs and bosses — and a higher score.</div>`:''}
+    ${L.newSq.map(id=>{ const s=SQUADS.find(x=>x.id===id); return `<div class="chap" style="margin-top:12px;border-color:var(--gold)">${s.ico} New squad unlocked: <b>${s.name}</b>: ${s.desc}</div>`; }).join('')}
+    <div class="sub" style="margin-top:12px"> Cards, coins, upgrades, Sigils and Relics stay with this run; Gold Souls, Legacy, the Collection and achievements are kept forever.</div>
+    <div class="foot"><span></span><button class="btn" id="toCamp"> Back to camp ▶</button></div>`;
+  $('toCamp').onclick=()=>{ M.run=null; save(); showCamp(); }; $('ov').classList.add('show'); $('ov').scrollTop=0; SFX.play(L.win?'ach':'end'); }
+let campSel={sq:'std',d:0,sch:'combo'};
+function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
+  if(!SQUADS.find(q=>q.id===campSel.sq&&squadOk(q))) campSel.sq='std'; campSel.d=Math.min(campSel.d,M.dangerMax||0);
+  const legRow=x=>{ const l=M.legacy[x.id]||0, mx=x.max&&l>=x.max, c=x.cost(l); return `<div class="row" style="cursor:default">${x.ico} <div style="flex:1"><b>${x.name}</b> <span class="sub">Lv${l}</span><div class="sub">${x.desc(l)}</div></div><button class="ghost" data-leg="${x.id}" ${mx||M.soul<c?'disabled style="opacity:.45"':''}>${mx?'Maxed':`🔥 ${c}`}</button></div>`; };
+  $('box').innerHTML=`<h2 class="serif goldtxt">⛺ Camp</h2>
+    <div class="sub" style="margin-top:6px">🔥 Gold Souls <b style="color:var(--gold2)">${M.soul}</b> · Expeditions ${M.runs||0}  · Cleared ${M.wins||0}  · Best score ${M.bestScore||0} · Codex ${Object.keys(M.seen||{}).length}/${CARDS.length}</div>
+    <div class="h3" style="margin-top:16px"><span>🧭 Choose a squad</span></div>
+    <div class="dgrid">${SQUADS.map(q=>{ const ok=squadOk(q), on=campSel.sq===q.id; return `<button class="dcard" data-sq="${q.id}" ${ok?'':'disabled'} style="text-align:left;font:inherit;color:inherit;cursor:${ok?'pointer':'default'};${on?'border-color:var(--gold);background:#d9b45a14':''}${ok?'':'opacity:.45'}"><b>${q.ico} ${q.name}</b>${on?' ✓':''}<br><span class="sub">${ok?q.desc:`🔒 ${q.need}`}</span></button>`; }).join('')}</div>
+    ${campSel.sq==='spec'?`<div class="res" style="margin-top:8px">${SCH5.map(k=>`<button class="ghost" data-csch="${k}" style="${campSel.sch===k?'border-color:var(--gold)':''};color:${SCH[k].color}">${SCH[k].ico} ${SCH[k].name}</button>`).join('')}</div>`:''}
+    <div class="h3" style="margin-top:16px"><span>🔥 Danger level</span><span class="sub"> Clear your highest level to unlock the next</span></div>
+    <div class="res" style="margin-top:6px">${Array.from({length:(M.dangerMax||0)+1},(_,d)=>`<button class="ghost" data-dg="${d}" style="${campSel.d===d?'border-color:var(--gold);color:var(--gold2)':''}"> Danger ${d}</button>`).join('')}</div>
+    <div class="sub" style="margin-top:4px">${campSel.d?`Goal +${Math.round(campSel.d*DANGER.goal*100)}%, pack HP +${Math.round(campSel.d*DANGER.hp*100)}%, boss HP +${Math.round(campSel.d*DANGER.boss*100)}%; score ×${(1+.25*campSel.d).toFixed(2)}`:'Standard difficulty'}</div>
+    <div class="h3" style="margin-top:16px"><span>🏛️ Legacy</span><span class="sub"> Bought with Gold Souls, permanent</span></div>
+    ${LEGACY.map(legRow).join('')}
+    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan">📖 Manual</button><button class="ghost" id="campDaily">📅 Daily Challenge</button><button class="ghost" id="campMute">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campLang">${LANG==='zh'?'English':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
+  const box=$('box');
+  box.querySelectorAll('[data-sq]').forEach(b=>b.onclick=()=>{ campSel.sq=b.dataset.sq; showCamp(); });
+  box.querySelectorAll('[data-csch]').forEach(b=>b.onclick=()=>{ campSel.sch=b.dataset.csch; showCamp(); });
+  box.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{ campSel.d=+b.dataset.dg; showCamp(); });
+  box.querySelectorAll('[data-leg]').forEach(b=>b.onclick=()=>{ const x=LEGACY.find(y=>y.id===b.dataset.leg), l=M.legacy[x.id]||0, c=x.cost(l); if(M.soul<c||(x.max&&l>=x.max)) return; M.soul-=c; M.legacy[x.id]=l+1; SFX.play('buy'); save(); showCamp(); });
+  $('campGo').onclick=()=>startRun(campSel.sq,campSel.d,campSel.sch);
+  $('campMan').onclick=openManual; $('campDaily').onclick=()=>startRound(false,{daily:1});
+  $('campMute').onclick=()=>{ M.mute=!M.mute; save(); syncMute(); showCamp(); }; $('campLang').onclick=()=>setLang(LANG==='zh'?'en':'zh');
+  $('ov').classList.add('show'); $('ov').scrollTop=0; }
+// 营火：回一颗心，或者磨练一张装备中的卡
+function showCampfire(){ const box=$('box'), eq=equipped(), r=M.run;
+  box.innerHTML=`<h2 class="serif goldtxt">🔥 Campfire</h2><div class="sub" style="margin-top:6px"> The fire is warm. No fight here — choose one thing to do.</div>
+    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=HEART_MAX?'disabled':''}><b>❤️ Rest</b><br><span class="sub"> Recover 1 heart (now ${r.hearts}/${HEART_MAX})</span></button>
+    <button class="dcard" id="cfTrain" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${eq.length?'':'disabled'}><b>🔨 Train</b><br><span class="sub">+2 copies of every equipped card (levels up faster)</span></button></div>`;
+  $('cfRest').onclick=()=>{ r.hearts=Math.min(HEART_MAX,r.hearts+1); if(M.map) M.map.hearts=r.hearts; SFX.play('ach'); toast('❤️ Recovered 1 heart'); leaveDetour(); };
+  $('cfTrain').onclick=()=>{ eq.forEach(id=>M.owned[id]=(M.owned[id]||0)+2); SFX.play('buy'); toast('🔨 Equipped cards +2 each'); recalcTree(); leaveDetour(); };
+  $('ov').classList.add('show'); $('ov').scrollTop=0; }
+
 // ================= 🔷 秘符：一张地图里的临时构筑（白银 / 黄金 / 棱彩） =================
 // 地图出发时、走到第 3 站后、打赢精英后各给一次三选一：先揭晓品级，再从同品级里挑一个，可以花钱重抽一次。
 // 一张地图最多 SIGIL_MAX 个；命用完、打过首领进下一章、转生时全部清空。
 const SIGIL_MAX=4;
 const TIER={s:{name:'Silver',c:'#c9d2dc'},g:{name:'Gold',c:'#ffd76a'},p:{name:'Prismatic',c:'#e9a6ff'}};
-const SIGIL_ODDS={start:[60,35,5],mid:[40,45,15],elite:[20,55,25]}; // 白银 / 黄金 / 棱彩
+const SIGIL_ODDS={start:[60,35,5],mid:[40,45,15],elite:[20,55,25],gold:[0,100,0]};
+const sigilMax=()=>SIGIL_MAX+(runSquad()==='sage'?1:0); // 白银 / 黄金 / 棱彩
 const SIGILS=[
   {id:'pouch',t:'s',ico:'🔮',name:'Deep Pouch',desc:'+2 orbs at the start of every round'},
   {id:'thread',t:'s',ico:'🪙',name:'Gold Thread',desc:'Coins every round ×1.25'},
@@ -2218,6 +2304,7 @@ const sigilDesc=c=>c.sch?`${SCH[c.sch].name} resonance counts one extra card (ev
 const hasSigil=id=>!DAILY&&(M.sigils||[]).includes(id);
 const sigRerollCost=()=>Math.ceil(packValue(1)*8);
 function sigilsRound(G){ if(G.chal||G.daily) return; // 每轮开局生效
+  if(runSquad()==='iron'){ G.ammo=Math.max(3,G.ammo-1); G.maxAmmo=Math.max(3,G.maxAmmo-1); }
   if(hasSigil('pouch')){ G.ammo+=2; G.maxAmmo+=2; } if(hasSigil('midas')){ G.bo.coin*=2; G.ammo=Math.max(3,G.ammo-2); G.maxAmmo=Math.max(3,G.maxAmmo-2); }
   if(hasSigil('thread')) G.bo.coin*=1.25; if(hasSigil('spring')) G.bo.refill/=1.5; if(hasSigil('wide')) G.bo.basketW+=40; if(hasSigil('sharp')) G.bo.crit+=.15;
   if(hasSigil('split')) G.bo.split++; if(hasSigil('tally')) G.bo.cnt=(G.bo.cnt||0)+.25; if(hasSigil('echo')) G.bo.echo+=.2; if(hasSigil('chain')) G.bo.chain++;
@@ -2227,12 +2314,12 @@ function sigilPicks(t){ const pool=SIGILS.filter(c=>c.t===t&&!M.sigils.includes(
   while(picks.length<3&&pool.length) picks.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); return picks; }
 function offerSigil(src,after){ M.sigils=M.sigils||[];
   const done=()=>{ M.sigQ.shift(); save(); after&&after(); };
-  if(M.sigils.length>=SIGIL_MAX||!mapOn()) return done();
+  if(M.sigils.length>=sigilMax()||!mapOn()) return done();
   let t=rollTier(src), picks=sigilPicks(t), rolled=false; if(!picks.length){ t='s'; picks=sigilPicks(t); } if(!picks.length) return done();
-  const el=$('boonPop'), T=TIER[t], srcName={start:'Setting out',mid:'Reached stop 3',elite:'Elite reward'}[src]||'';
+  const el=$('boonPop'), T=TIER[t], srcName={start:'Setting out',mid:'Reached stop 3',elite:'Elite reward',gold:'Sigil Scholar'}[src]||'';
   const draw=()=>{ el.innerHTML=`<div class="sub" style="text-align:center;letter-spacing:3px">${srcName} · Sigil</div>
     <div class="bt serif" style="color:${T.c};text-shadow:0 0 18px ${T.c}88">◆ ${T.name} Sigil ◆</div>
-    <div class="sub" style="text-align:center"> Lasts this whole map · You have ${M.sigils.length}/${SIGIL_MAX} <br> Cleared when you run out of hearts, beat the boss, or Rebirth</div>
+    <div class="sub" style="text-align:center"> Lasts this whole map · You have ${M.sigils.length}/${sigilMax()} <br> Cleared when you beat the boss and move on</div>
     <div class="bcs">${picks.map((c,i)=>`<button class="bc sig sig-${t}" data-i="${i}" disabled><div class="bi">${c.sch?badge(c.sch):c.ico}</div><b>${sigilName(c)}</b><div class="sub">${sigilDesc(c)}</div></button>`).join('')}</div>
     ${rolled?'':`<button class="ghost" id="sigRoll">🎲 Reroll (✦ ${f(sigRerollCost())})</button>`}`;
     setTimeout(()=>el.querySelectorAll('.bc').forEach(b=>b.disabled=false),600);
@@ -2240,7 +2327,7 @@ function offerSigil(src,after){ M.sigils=M.sigils||[];
     const r=$('sigRoll'); if(r) r.onclick=()=>{ if(!spend(sigRerollCost(),r)) return; rolled=true; const np=sigilPicks(t); if(np.length) picks=np; SFX.play('buy'); draw(); }; };
   draw(); el.classList.add('show'); SFX.play('raise'); }
 function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigilOf).filter(Boolean);
-  return `<div class="sub" style="margin-top:6px">🔷 Sigil ${cs.length}/${SIGIL_MAX}: ${cs.length?cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join(' · '):'pick one when you set out'}</div>`; }
+  return `<div class="sub" style="margin-top:6px">🔷 Sigil ${cs.length}/${sigilMax()}: ${cs.length?cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join(' · '):'pick one when you set out'}</div>`; }
 
 // ================= 🏺 遗珍：精英、首领、黑金秘藏掉落的整局宝物 =================
 // 3 个栏位，满了可以换掉旧的。整局有效：进下一章也保留，命用完或转生时清空。
@@ -2346,7 +2433,7 @@ function renderChal(body){
 
 // ================= 🛒 卡包商店：长期的金币去处 =================
 const SHOPX={1:25,2:30,3:40}; // 价格 = 该卡包金币价值 × 倍数 × 1.06^最近购买数
-const shopPrice=(t,k=0)=>Math.ceil(packValue(t)*SHOPX[t]*Math.pow(1.06,(M.shopN[t]||0)+k)*(hasSigil('patron')?.8:1));
+const shopPrice=(t,k=0)=>Math.ceil(packValue(t)*SHOPX[t]*Math.pow(1.06,(M.shopN[t]||0)+k)*(hasSigil('patron')||runSquad()==='rich'?.8:1));
 let shopLast=null;
 function renderShop(body){
   const packs=[1,2,3].map(t=>{ const P=PT[t],p1=shopPrice(t); let p10=0; for(let k=0;k<10;k++) p10+=shopPrice(t,k);
@@ -2606,15 +2693,21 @@ function manualHTML(){
   const li=a=>`<ul>${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
   const schs=[['combo','Lightning and chains: the more hits one orb lands in a row, the harder it strikes. Lightning clears the board easily.'],['fire','Sets packs on fire for damage over time, spreading to neighbors.'],['acid','Stacks Corrode on packs; more stacks means more damage taken.'],['gold','Extra coins and orb refunds on pack open — the money school.'],['grav','Bigger, bouncier orbs that recycle or copy — more orbs on the board for longer.']];
   return `<div class="sub" style="margin:0 0 10px"> New here? Read from top to bottom. Tap a heading to expand or collapse it.</div>
+  ${sec('🧭','What is an expedition?',li([
+    'Every <b> Expeditions</b> starts from zero: at <b> Camp</b>, pick a squad and Danger level; after setting out, first <b> recruit</b> 3  times (pick 1 of 3), then fight up the map chapter by chapter —  <b>3 </b> in total; beat the Chapter 3 boss to <b> cleared</b>.',
+    'The whole expedition shares a few  <b>❤️</b>: a missed goal, a lost boss fight or getting trapped in the Vault each cost 1; run out and the expedition ends. <b>🔥 Campfire</b> on the map restore hearts.',
+    'Coins, cards, upgrades, the Star Chart, Sigils and Relics <b> belong to this expedition only</b>. When it ends you earn <b>🔥 Gold Souls</b> based on your score — spend them at camp on permanent Legacy bonuses, and unlock new squads and higher Danger levels.',
+    'You can close the game between rounds and pick up later; refreshing mid-round counts that round as a miss.',
+  ]),1)}
   ${sec('🎯','The Basics',li([
     '<b> Aim and tap the board to fire an orb</b> (Space works on desktop). Orbs damage packs; at zero HP the pack <b> opens</b>: you get coins and a card.',
     'Every hit raises the orb’s bounty a little. When it reaches the bottom, the pocket pays it out at <b>×1 / ×2 / ×5</b> ; landing in the moving <b> Gold Basket</b> refunds an orb.',
     'When you’re out of orbs and all orbs have landed, the round goes to <b> Results</b>. Spend coins on upgrades there, then start the next round.',
-    'Each round has a <b> pack goal</b> (bottom left of the board). Hit it 3 rounds in a row to challenge the <b> boss</b>. Missing it costs nothing — the next goal gets lower.',
-    '<b>🔷 Sigil</b> (once the map opens): pick 1 of 3 when you set out on a map, after stop 3, and after winning an elite. The tier (Silver / Gold / Prismatic) is revealed first, and you can pay to reroll once. Lasts the whole map, up to 4; cleared when you run out of hearts, beat the boss, or Rebirth.',
-    '<b>🏺 Relics</b>: guaranteed from elites and bosses, with a chance from Black-Gold Vaults. 3 slots — replace an old one when full. Lasts the whole run (kept into the next chapter); cleared when you run out of hearts or Rebirth.',
+    'Each round has a <b> pack goal</b> (bottom-left of the board), rising as you near the boss. Hit it for a streak bonus; miss it and lose 1 ❤️.',
+    '<b>🔷 Sigil</b>: pick 1 of 3 when you set out on a map, after stop 3, and after winning an elite. The tier (Silver / Gold / Prismatic) is revealed first; you can pay to reroll once. Lasts the whole map, up to 4; cleared when you beat the boss and move on.',
+    '<b>🏺 Relics</b>: guaranteed from elites and bosses, with a chance from Black-Gold Vaults. 3 slots — replace an old one when full. Lasts the whole expedition (kept into the next chapter).',
     'An orb that chains 20 hits triggers <b> Frenzy</b>: double damage for a short time.',
-  ]),1)}
+  ]))}
   ${sec('🎛️','Buttons',li([
     '<b>⏩ ×1 / ×2 / ×3</b>: game speed (hotkey F). Same results, just faster.',
     '<b> End</b>: end the round early (tap twice). You keep everything opened; orbs still in flight don’t pay out.',
@@ -2639,17 +2732,17 @@ function manualHTML(){
     '<b> Vault Level</b> (opens at Polish Lv3): packs get tougher but coins ×2, and <b> each pack counts as several</b>, so goals get easier. Beat bosses to raise the cap.',
     `<b> Tally</b> (opens at Polish Lv3): each level adds pack count +${Math.round(CNT_STEP*100)}%, with no cap.`,
     '<b> Star Chart</b> (opens at Round 3): start from the center ✦ and light connected nodes one by one; each costs more. Red <b> Keystone</b> are big changes you can toggle any time. Respec any time for an 80% refund.',
-    '<b> Smelting</b> (opens after the Chapter 4 boss): reset progress for <b> Gold Souls</b>, spent on permanent bonuses in “Legacy”. Cards and Codex are kept.',
+    '<b> Legacy</b> (at camp): permanent bonuses bought with Gold Souls — damage, coins, extra orbs, foil chance, starting coins.',
   ]))}
   ${sec('🗺️','Rounds and Modes',li([
     `<b>🕳️ The Deep Vault</b> (appears now and then on the map): a loot-and-extract mode. Fight down layer by layer — each one is tougher and pays more — with your coins and cards held in a bag. After each cleared layer, extract with everything or push deeper; layers 2, 4… add a special orb and layer 3+ adds Gold Souls. Miss a goal and you’re trapped, losing the whole bag.`,
-    `<b>🗺️ Chapter Map</b> (opens after the Chapter 1 boss): each chapter is a branching route map —${MAP_ROWS} stops, then the boss. Each time, pick one of the connected nodes. Missing a goal or losing a boss fight costs 1 ❤️(${MAP_HEARTS}  per chapter). Run out and the run ends; the map restarts: cards and upgrades are kept, you drop some coins (from Chapter 3), and Sigils and Relics are cleared.`,
+    `<b>🗺️ Chapter Map</b>: each chapter is a branching map, ${MAP_ROWS}  stops then the boss. Each time pick a connected stop: Normal, Elite, Black Market, Event, the Deep Vault, or Campfire.`,
     '<b> Normal rounds</b>: hit the pack goal. The goal depends only on the chapter and how far along the map you are — it rises toward the boss; the longer you stay in a chapter, the more coins you earn.',
     '<b> Elite rounds</b>: higher goal, better rewards, plus a special rule.',
     '<b> Encounters / Black Market</b>: random events, or spend coins on packs, school picks and sealing cards.',
-    '<b> Boss fights</b>: one per chapter, each with its own mechanics; at half HP it enters <b> Phase II</b>. Losing costs nothing — upgrade and come back.',
-    '<b> Challenges</b> (“Goals” page): stages with special rules; first clears give Gold Souls.',
-    `<b>📅 Daily Challenge</b> (Round ${DAILY_MIN_ROUND}): everyone gets the same deck and rules each day, no personal upgrades, most packs wins, with a daily board.`,
+    '<b> Boss fights</b>: one per chapter, each with its own mechanics; at half HP it enters <b> Phase II</b>. Lose and you drop 1 ❤️; upgrade and try again.',
+    '<b>🔥 Danger level</b> (chosen at camp): clear your highest level to unlock the next. Each level: goals +15%, pack HP +10%, boss HP +25% — and a higher score.',
+    '<b>📅 Daily Challenge</b> (from camp): one round a day with the same deck and rules for everyone — most packs opened wins; there's a daily board.',
     '<b> Orb Bag</b>: later, orbs come in types like Fire, Heavy and Split; the next three are shown by the launcher.',
   ]))}
   ${sec('🔮','Myth Cards (✦ Myth)',li([
@@ -2720,9 +2813,11 @@ function showIntro(){
     <p class="sub">${matchMedia('(pointer:coarse)').matches?'':'You can also press Space to fire. '} Everything else is explained when you meet it.</p>
     <div class="foot"><span class="sub schrow">${SCH5.map(k=>`<span>${badge(k)}${SCH[k].name}</span>`).join('')}</span><span style="display:flex;gap:8px"><button class="ghost" id="goStory">▶ Prologue</button><button class="ghost" id="goMan">📖 Game Manual</button><button class="btn" id="go"> Open the Vault</button></span></div>`;
   $('box').insertAdjacentHTML('afterbegin',`<button class="ghost" id="langB" style="position:absolute;top:14px;right:14px;padding:4px 10px;font-size:12px">${LANG==='zh'?'English':'中文'}</button>`); $('langB').onclick=()=>setLang(LANG==='zh'?'en':'zh');
-  $('go').onclick=()=>startRound(false); $('goMan').onclick=openManual; $('goStory').onclick=()=>playStory(); $('ov').classList.add('show');
+  $('go').onclick=()=>{ if(M.run){ G={loot:{}}; tab='loot'; showBetween(); } else showCamp(); }; $('goMan').onclick=openManual; $('goStory').onclick=()=>playStory(); $('ov').classList.add('show');
 }
 function showBetween(){
+  if(M.run&&M.run.over&&!running) return showRunEnd();
+  if(!M.run&&!(G&&G.daily)) return showCamp();
   syncGoal();
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
   const total=ids.reduce((s,id)=>s+G.loot[id],0); lastLootTotal=total;
@@ -2771,7 +2866,7 @@ function showBetween(){
     :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>The Deep Vault · Layer ${G.delveLayer} cleared</b> (${G.opened}/${G.goal} packs)<br>Bag: ${delveBagHTML(M.delve)}<br><span class="sub">Extract: take everything home. Push on: layer ${G.delveLayer+1}, goal ${delveGoal(G.delveLayer+1)} packs, pack HP ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}; miss it and you lose it all. ${(G.delveLayer+1)%2===0?'Clearing the next layer adds a special orb. ':''}${G.delveLayer+1>=3?`Clearing it also adds ${G.delveLayer-1} Gold Souls.`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ This round ended early; orbs still in flight didn’t pay out.</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ Blessings: ${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+soulMsg+bkMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${stageHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':M.run&&M.round===0?'🧭 Expedition begins':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+soulMsg+bkMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${stageHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span> Coins this round</span></div><div class="stat"><b>${G.opened}</b><span> Packs opened</span></div><div class="stat"><b>${G.hits}</b><span> Hits</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span> New</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2813,10 +2908,12 @@ function showBetween(){
     box.querySelectorAll('[data-node]').forEach(b=>{ const k=b.dataset.node; ['pointerenter','focus'].forEach(e=>b.addEventListener(e,()=>hl(k,true))); ['pointerleave','blur'].forEach(e=>b.addEventListener(e,()=>hl(k,false))); });
     box.querySelectorAll('.mnode.can[data-mr]').forEach(d=>{ const k=d.dataset.mr+','+d.dataset.mi; d.addEventListener('pointerenter',()=>hl(k,true)); d.addEventListener('pointerleave',()=>hl(k,false)); }); }
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
-  if(mapOn()&&M.map&&M.map.ch===M.ch&&!M.map.sig0&&!M.delve){ M.map.sig0=1; M.sigQ.push('start'); save(); }
+  if(!M.run){ const ft=$('box').querySelector('.foot'); if(ft){ ft.innerHTML='<span></span><button class="btn" id="toCamp"> Back to camp ▶</button>'; $('toCamp').onclick=()=>{ G={loot:{}}; showCamp(); }; } } // 每日挑战（不在远征里）结束后回营地
+  if(M.run&&M.recruit>0&&!running&&!offerSigil.busy&&!$('boonPop').classList.contains('show')){ const rs=M.run.sch; setTimeout(()=>{ if(running||!(M.recruit>0)||$('boonPop').classList.contains('show')) return; openPick({minRar:'N',sch:rs||undefined,recruit:1,title:`🎴 Opening recruit (${M.recruit}  left)`},()=>{ M.recruit--; save(); showBetween(); }); },300); }
+  else if(mapOn()&&M.map&&M.map.ch===M.ch&&!M.map.sig0&&!M.delve){ M.map.sig0=1; M.sigQ.push('start'); save(); }
   if(M.elitePick>0){ M.elitePick=0; M.sigQ.push('elite'); save(); } // 旧版没来得及弹的精英卡牌奖励：改成补一次秘符
   bindRelicSwap();
-  if(M.sigQ.length&&!running&&!offerSigil.busy){ offerSigil.busy=1; // 有别的弹窗（比如狂热说明）开着就等它关掉再弹
+  if(M.sigQ.length&&!running&&!offerSigil.busy&&!(M.recruit>0)){ offerSigil.busy=1; // 有别的弹窗（比如狂热说明）开着就等它关掉再弹
     const tryOffer=()=>{ if(running||!M.sigQ.length){ offerSigil.busy=0; return; } if($('boonPop').classList.contains('show')) return setTimeout(tryOffer,600); offerSigil.busy=0; offerSigil(M.sigQ[0],()=>showBetween()); };
     setTimeout(tryOffer,450); }
   if($('autoT')) $('autoT').onchange=e=>{ M.autoOn=e.target.checked; save(); };
@@ -2872,8 +2969,8 @@ function showBetween(){
   } else if(tab==='rank'){
     renderRank(body);
   } else if(tab==='ach'||tab==='goals'){
-    if(tab==='goals'){ body.innerHTML='<div id="gChal"></div><div class="h3" style="margin-top:16px"><span>🏆 Achievements</span></div><div id="gAch"></div>'; if(unl('chal')) renderChal($('gChal')); else $('gChal').innerHTML='<p class="sub">🔒 Challenges open after beating the Chapter 2 boss.</p>'; body=$('gAch'); }
-    body.innerHTML=`<p class="sub"> Achievements reward 🔥 Gold Souls (spend them in “Legacy”).</p>`+ACH.map(a=>{ const ok=M.ach[a.id];
+    if(tab==='goals'){ body.innerHTML='<div id="gChal"></div><div class="h3" style="margin-top:16px"><span>🏆 Achievements</span></div><div id="gAch"></div>'; if(unl('chal')) renderChal($('gChal')); else $('gChal').innerHTML=''; body=$('gAch'); }
+    body.innerHTML=`<p class="sub"> Achievements reward 🔥 Gold Souls (spend them on Legacy back at camp).</p>`+ACH.map(a=>{ const ok=M.ach[a.id];
       return `<div class="ach ${ok?'yes':'no'}"><div class="ico">${a.ico}</div><div><div style="font-weight:800">${a.name}</div><div class="sub">${a.desc}</div></div><div class="rw">${ok?'✓ ':''}🔥 ${a.soul}</div></div>`; }).join('');
   } else if(tab==='fb'){
     renderFB(body);
@@ -2936,7 +3033,7 @@ function finishLoad(){
   running=false; ROUND_EQ=null; if(!M.pid) M.pid=newPid();
   const migrated=M.round>0?migrateTree():(M.treeV=2,0);
   recalcTree(); syncMute(); syncSpeed(); syncCalm(); try{ RM.addEventListener&&RM.addEventListener('change',syncCalm); }catch(e){} buildPockets(); save(); renderSide(); hud();
-  if(M.round>0){ G={loot:{},migrated}; tab='up'; abandonRound(); showBetween(); } else { G=null; showIntro(); }
+  if(M.run){ G={loot:{},migrated}; tab='loot'; abandonRound(); showBetween(); } else { G=null; showIntro(); }
 }
 load();
 if(saveBlocked){ recalcTree(); syncMute(); syncSpeed(); buildPockets(); renderSide(); hud(); showSaveRecovery(); } else finishLoad();

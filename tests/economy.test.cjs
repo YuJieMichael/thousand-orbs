@@ -29,7 +29,7 @@ test('卡包补充最快 0.45 秒，补货节点再多也不会更快', () => {
 
 test('固定目标曲线：只看章节和地图第几站，不再追着开包数涨', () => {
   let worth = 1;
-  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, Math});
+  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, DANGER: {goal: .15}, dangerLv: () => 0, runSquad: () => null, Math});
   vm.runInContext(between('const GOAL_MIN=', 'const ROUTES={') + ';this.g=goalFor;this.s=syncGoal;', ctx);
   assert.equal(ctx.g(1, 0), 10); assert.equal(ctx.g(1, 5), 16);
   assert.equal(ctx.g(2, 0), 35); assert.equal(ctx.g(3, 0), 55); assert.equal(ctx.g(3, 5), 88);
@@ -217,18 +217,18 @@ test('本章轮数只让金币小幅上涨（×1.07/轮，最多 10 轮）；卡
   assert.match(html, /M\.chRounds=0; M\.chAge=0; M\.sigils=\[\]; M\.sigQ=\[\]; syncGoal\(\);/);
 });
 
-test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少一个精英；首站只有普通', () => {
+test('章节地图：5 站，每站 2~3 个点，每个点都走得到，至少一个精英；首站只有普通', () => {
   const src = between('const MAP_ROWS=', 'function ensureMap(');
   for (let k = 0; k < 200; k++) {
     const ctx = vm.createContext({M: {ch: 2}, Math, unl: () => true});
     vm.runInContext(src + ';this.m=genMap();', ctx);
     const m = ctx.m;
-    assert.equal(m.rows.length, 6); assert.equal(m.next.length, 5); assert.equal(m.hearts, 3); assert.equal(m.r, -1);
+    assert.equal(m.rows.length, 5); assert.equal(m.next.length, 4); assert.equal(m.hearts, 3); assert.equal(m.r, -1);
     assert.ok(m.rows[0].every(o => o.t === 'normal'));
     assert.ok(m.rows.flat().some(o => o.t === 'elite'));
     assert.ok(m.rows.flat().some(o => o.t === 'shop' || o.t === 'event'));   // 每张图至少一个黑市或奇遇
     assert.ok(!m.rows[1].some(o => o.t === 'shop'));
-    for (let r = 0; r < 5; r++) {
+    for (let r = 0; r < 4; r++) {
       assert.ok(m.next[r].every(l => l.length >= 1));
       const hit = new Set(m.next[r].flat()); assert.equal(hit.size, m.rows[r + 1].length);   // 下一站每个点都有路
     }
@@ -276,6 +276,6 @@ test('秘符：三个品级都至少有 3 个可选；遗珍三种稀有度都�
   const rc = vm.createContext({}); vm.runInContext(rsrc + ';this.R=RELICS;this.RA=RARE;', rc);
   for (const r of ['c', 'r', 'l']) assert.ok(rc.R.some(x => x.r === r));
   assert.match(html, /if\(G\.route==='elite'\)\{ dropRelic\('elite'\); M\.sigQ\.push\('elite'\);/);
-  assert.match(html, /giveCard\(p,2\); dropRelic\('boss',p\.x,p\.y\);/);
+  assert.match(html, /if\(!\(M\.run&&M\.run\.over\)\) dropRelic\('boss',p\.x,p\.y\);/);
   assert.match(html, /if\(false&&G\.boonNext/);   // 局内祝福已取消
 });
