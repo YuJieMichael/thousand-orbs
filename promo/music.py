@@ -1,5 +1,5 @@
 import numpy as np, scipy.io.wavfile as wf
-SR=44100; T=38.5; N=int(SR*T); BPM=128; B=60/BPM
+SR=44100; T=40.2; N=int(SR*T); BPM=128; B=60/BPM
 L=np.zeros(N); R=np.zeros(N)
 rng=np.random.default_rng(7)
 def add(sig,t,pan=0.0,g=1.0):
@@ -51,7 +51,7 @@ for k in range(nb):
     for q in range(8):
         tq=t0+q*B/2
         add(bass(root-12 if q%2==0 else root,B/2*.9),tq,0,1)
-    ending = t0>=34.5
+    ending = t0>=36.0
     for q in range(4):
         tb=t0+q*B
         if not ending or q==0: add(kick(),tb,0,.9)
@@ -79,10 +79,10 @@ def coins():
     for j in range(6):
         b=bell(96+rng.integers(-3,4),.5)[:len(s)-int(j*.05*SR)]; i=int(j*.05*SR); s[i:i+len(b)]+=b*.5
     return s
-for tx in (13.8,15.9,26.5,31.1,34.7):
+for tx in (13.8,15.4,19.0,22.1,25.2,31.8,36.4):
     add(whoosh(),tx-.25,0,1); add(coins(),tx,0,.7)
 # end chord
-add(bell(81,3),34.7,0,.8); add(bell(76,3),34.75,-.2,.6); add(bell(84,3),34.8,.2,.6)
+add(bell(81,3),36.4,0,.8); add(bell(76,3),36.45,-.2,.6); add(bell(84,3),36.5,.2,.6)
 x=np.stack([L,R],1)
 # master fade + soft clip
 x[:int(.02*SR)]*=np.linspace(0,1,int(.02*SR))[:,None]
