@@ -331,6 +331,27 @@
     .deckgrid .schhead{font-size:15px}.card .cr,.card .lv{font-size:12px}.card-detail{width:100%;padding:8px}
   }
 
+  /* —— 界面美化 2026-11-10 —— */
+  .btn{background:linear-gradient(180deg,#f1d68e,#d9b45a 55%,#bf9640);box-shadow:inset 0 1px 0 #fff6d6aa,0 2px 10px #d9b45a22;text-shadow:0 1px 0 #fff3c466}
+  .btn:hover{background:linear-gradient(180deg,#f8e2a4,#e2c06a 55%,#c9a04a);box-shadow:inset 0 1px 0 #fff6d6,0 4px 16px #d9b45a44}
+  .btn.alt{background:#d9b45a0d;box-shadow:inset 0 1px 0 #d9b45a22;text-shadow:none}
+  .btn.boss{background:linear-gradient(180deg,#c06656,#9e4a3e 60%,#7e3a30);box-shadow:inset 0 1px 0 #ffd6cc66,0 2px 12px #ff6b5b33;text-shadow:none}
+  .btn small{opacity:.8}
+  .box{background:linear-gradient(180deg,#16130f,#0f0d0b 160px);box-shadow:0 0 0 1px #d9b45a14 inset,0 24px 70px #000c}
+  .box h2{position:relative;padding-bottom:10px;margin-bottom:4px}
+  .box h2::after{content:'';position:absolute;left:0;bottom:0;width:72px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--gold),transparent)}
+  .row,.lrow,.dcard,.eqbar{background:linear-gradient(180deg,#14110e,#0d0b09);transition:border-color .15s,transform .15s}
+  .row:hover{border-color:#d9b45a77}
+  .tabs .tab.on,.subtabs button.on{color:var(--gold2)}
+  .subtabs button.on{border-bottom-color:var(--gold)}
+  .map{background:radial-gradient(circle at 50% 0%,#ff6b5b1c,transparent 55%),radial-gradient(circle at 50% 100%,#d9b45a14,transparent 60%),repeating-linear-gradient(0deg,#ffffff03 0 1px,transparent 1px 26px),#0b0907}
+  .mnode{background:radial-gradient(circle at 50% 35%,#211a12,#0f0c09);transition:transform .15s}
+  .mnode.can{background:radial-gradient(circle at 50% 35%,#3b2d16,#17110a)}
+  .mnode.can:hover{transform:scale(1.12)!important}
+  .mnode.boss{background:radial-gradient(circle at 50% 35%,#3a1914,#120807);box-shadow:0 0 18px #ff6b5b33}
+  #boonPop .bc{background:linear-gradient(180deg,#1a1611,#100e0b);box-shadow:inset 0 1px 0 #d9b45a22}
+  #toast{border-radius:999px;padding:9px 20px;transition:opacity .3s,transform .3s}
+  @media (max-width:640px){ #toast{bottom:auto;top:52px;transform:translate(-50%,-6px)} #toast.show{transform:translate(-50%,0)} }
 </style>
 </head>
 <body>
@@ -1951,7 +1972,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-09.2';
+const GAME_V='2026-11-09.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
