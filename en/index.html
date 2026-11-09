@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:55b9701a377a47a39b20a9385459db5a8b51b5db -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:f7afa9451d14c234786cfd8b684ca8cd58a52cc7 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -729,7 +729,7 @@ function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFas
     if(e.up) for(const k in e.up) s.up[k]=(s.up[k]||0)+e.up[k];
     ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks&&!(M.ksOff||{})[e.ks]) s.ks[e.ks]=true; });
   TS=s; }
-function effText(e){ const o=[]; const UPN={crit:n=>`Crit +${8*n}%`,critx:n=>`Crit damage +${f(.5*n)}`,breaker:n=>`Seal Break: first-hit multiplier +${n}`,cleave:n=>`Shatter: pack-open splash +${50*n}%`,ammo:n=>`Orbs per round +${n}`,basket:n=>`Basket width +${14*n}`,basket2:()=>'A second basket moving the other way',volley:n=>`Opening volley +${2*n} mini orbs`,packs:n=>`Packs on board +${n}`,luck:n=>`Rare pack rate +${30*n}%`,pityup:n=>`Black-Gold pity -${10*n} cards (if ${PITY_BASE-10*n} cards in a row give no SSR, you get a Black-Gold Vault)`,slot:n=>`Skill slots +${n}`,reson:n=>`Resonance multiplier +${f(.1*n)}`,auto:()=>'Unlocks auto fire (aims for you when idle; only in chapters you have cleared)',rapid:n=>`Fire interval -${15*n}%`};
+function effText(e){ const o=[]; const UPN={crit:n=>`Crit +${8*n}%`,critx:n=>`Crit damage +${f(.5*n)}`,breaker:n=>`Seal Break: first-hit multiplier +${n}`,cleave:n=>`Shatter: pack-open splash +${50*n}%`,ammo:n=>`Orbs per round +${n}`,basket:n=>`Basket width +${14*n}`,basket2:()=>'A second basket moving the other way',volley:n=>`Opening volley +${2*n} mini orbs`,packs:n=>`Packs on board +${n}`,luck:n=>`Rare pack rate +${30*n}%`,pityup:n=>`Black-Gold pity -${10*n} cards (if ${PITY_BASE-10*n} cards in a row give no SSR, you get a Black-Gold Vault)`,slot:n=>`Skill slots +${n}`,reson:n=>`Resonance multiplier +${f(.1*n)}`,auto:()=>'Unlocks auto fire (aims for you when idle; only in chapters you have cleared)',rapid:n=>`Fire interval -${15*n}%, packs restock faster per extra orb in play +${15*n}%`};
   if(e.up) for(const k in e.up) o.push(UPN[k]?UPN[k](e.up[k]):k); // 直接写合计效果（例如「每轮宝珠 +3」），不再写「+1 ×3」
   if(e.dmg) o.push(`Damage +${pct(e.dmg)}`); if(e.coin) o.push(`Coins +${pct(e.coin)}`); if(e.card) o.push(`Card effects +${pct(e.card)}`);
   if(e.burst) o.push('Each shot fires 1 extra orb'); if(e.hold) o.push('Hold mouse / Space to keep firing'); if(e.autoFast) o.push('Auto fire wait -0.6s'); if(e.autoFree) o.push('Auto fire no longer waits for orbs to land, and is faster'); if(e.refill) o.push(`Packs restock faster after opening (restock time -${Math.round((1-Math.pow(.7,e.refill))*100)}%)`);
@@ -946,6 +946,9 @@ const unl=id=>UNL.find(u=>u.id===id).ok();
 // ================= 每轮目标 & 路线 =================
 // 统计显示后期一轮能开 5000 包、金币滚雪球：补货最快 0.45 秒；一轮开到 200 包以后，每包金币按 √(200/已开) 递减
 const REFILL_MIN=.45, PACK_SOFT=200, CLEAR_CD=1, CLEAR_REFILL=.15;
+const FIRE_REFILL=.5, FIRE_REFILL_MAX=5; // 火力补货：场上每多一颗宝珠，卡包补充 +50%（最多 ×5），一次打出很多球也有包可打
+const FIRE_REFILL_UP=.15; // 速射系「连发」每级再 +15%
+const fireRefill=n=>Math.min(FIRE_REFILL_MAX,1+(FIRE_REFILL+FIRE_REFILL_UP*upLv('rapid'))*Math.max(0,n-1));
 const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
 // GOAL_GROW：远超目标时每轮最多翻倍（原来 +50%；统计里转生后的老玩家开两千多包、目标才几十）
 const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6, GOAL_GROW=1, GOAL_REBORN=.3; // 达成目标后，下一轮目标往这一轮实际开包数靠近 80%，一次最多 +6
@@ -1659,7 +1662,7 @@ function update(dt){
   // 清场速补：台面上一个卡包都不剩、还有宝珠在飞时，空位 0.15 秒内一起补上（每秒最多一次）——多球齐射不再浪费
   G.clrCd=Math.max(0,(G.clrCd||0)-dt);
   if(!G.isBoss&&G.packs.length===0&&G.refill.length&&G.balls.length&&G.clrCd<=0){ G.clrCd=CLEAR_CD; G.refill.forEach(r=>{ if(r.slot) r.t=Math.min(r.t,CLEAR_REFILL); }); G.clears=(G.clears||0)+1; G.fx.push({x:W/2,y:H*.5,t:'Board cleared! Quick restock',c:'#ffd76a',life:.9,sz:22,slow:1}); }
-  G.refill.forEach(r=>r.t-=dt); G.refill.filter(r=>r.t<=0).forEach(r=>{ G.refill.splice(G.refill.indexOf(r),1); if(r.slot) addPack(false,r.slot); });
+  const fr=fireRefill(G.balls.reduce((n,b)=>n+(b.mini?.5:1),0)); G.fireRefill=fr; G.refill.forEach(r=>r.t-=dt*fr); G.refill.filter(r=>r.t<=0).forEach(r=>{ G.refill.splice(G.refill.indexOf(r),1); if(r.slot) addPack(false,r.slot); });
   // 特效
   G.fx.forEach(o=>{ if(o.L===undefined) o.L=o.life; o.life-=dt; o.y-=(o.slow?14:o.sz>=30?8:40)*dt;
     if(o.count&&(o.L-o.life)<o.dur){ o.tk=(o.tk||0)+dt; if(o.tk>=.05){ o.tk=0; o.n=(o.n||0)+1; SFX.play('tick',o.n); } } }); G.fx=G.fx.filter(o=>o.life>0);
@@ -1999,7 +2002,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-09.5';
+const GAME_V='2026-11-09.6';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2455,7 +2458,7 @@ function manualHTML(){
   ${sec('💡','Beginner Tips',li([
     'In the first rounds, spend coins on <b> Orb Polish</b>.',
     'Pick a school and <b> equip cards from it</b>— resonance is a big bonus.',
-    'When the board is cleared, empty slots refill right away (quick restock), so lightning builds can fire several orbs at once.',
+    'The more orbs in flight, the faster packs restock (+50% per extra orb, up to ×5; Rapid Fire talents speed it up further). When the board is cleared, empty slots refill instantly. So <b> firing a bunch at once</b> costs you nothing and saves time.',
     'If a round drags, turn on <b>⏩ speed-up</b>.',
     'Can’t beat a boss? Play a few normal rounds, upgrade, then try again.',
     'To climb the leaderboard, pick a nickname under “Goals → Leaderboard”.',

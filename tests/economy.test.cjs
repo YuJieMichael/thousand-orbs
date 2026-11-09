@@ -252,3 +252,17 @@ test('深入金库：每层血量 ×1.3^层、目标逐层提高；失败背包�
     assert.ok(!rows[0].concat(rows[1]).some(o => o.t === 'delve'));
   }
 });
+
+test('火力补货：场上宝珠越多卡包补得越快，最多 ×5；连发每级再加快', () => {
+  const lv = { rapid: 0 };
+  const ctx = vm.createContext({ upLv: id => lv[id] || 0 });
+  vm.runInContext(between('const REFILL_MIN=', 'const GOAL_MIN=') + ';this.fr=fireRefill;', ctx);
+  assert.equal(ctx.fr(0), 1);
+  assert.equal(ctx.fr(1), 1);
+  assert.equal(ctx.fr(3), 2);
+  assert.equal(ctx.fr(40), 5);
+  lv.rapid = 4;
+  assert.ok(Math.abs(ctx.fr(3) - 3.2) < 1e-9);
+  const body = between('G.clrCd=Math.max(0,', 'function ');
+  assert.match(body, /G\.refill\.forEach\(r=>r\.t-=dt\*fr\)/);
+});

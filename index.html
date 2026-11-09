@@ -728,7 +728,7 @@ function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFas
     if(e.up) for(const k in e.up) s.up[k]=(s.up[k]||0)+e.up[k];
     ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks&&!(M.ksOff||{})[e.ks]) s.ks[e.ks]=true; });
   TS=s; }
-function effText(e){ const o=[]; const UPN={crit:n=>`会心 +${8*n}%`,critx:n=>`会心伤害 +${f(.5*n)}`,breaker:n=>`破封：首击倍率 +${n}`,cleave:n=>`碎裂：开包溅射 +${50*n}%`,ammo:n=>`每轮宝珠 +${n}`,basket:n=>`金篮宽度 +${14*n}`,basket2:()=>'第二只反向金篮',volley:n=>`开局齐射 +${2*n} 颗小宝珠`,packs:n=>`台面卡包 +${n}`,luck:n=>`稀有卡包出现率 +${30*n}%`,pityup:n=>`黑金保底 -${10*n} 张（每开 ${PITY_BASE-10*n} 张卡还没出 SSR，就送一个黑金秘藏）`,slot:n=>`技能槽 +${n}`,reson:n=>`共鸣倍率 +${f(.1*n)}`,auto:()=>'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:n=>`发射间隔 -${15*n}%`};
+function effText(e){ const o=[]; const UPN={crit:n=>`会心 +${8*n}%`,critx:n=>`会心伤害 +${f(.5*n)}`,breaker:n=>`破封：首击倍率 +${n}`,cleave:n=>`碎裂：开包溅射 +${50*n}%`,ammo:n=>`每轮宝珠 +${n}`,basket:n=>`金篮宽度 +${14*n}`,basket2:()=>'第二只反向金篮',volley:n=>`开局齐射 +${2*n} 颗小宝珠`,packs:n=>`台面卡包 +${n}`,luck:n=>`稀有卡包出现率 +${30*n}%`,pityup:n=>`黑金保底 -${10*n} 张（每开 ${PITY_BASE-10*n} 张卡还没出 SSR，就送一个黑金秘藏）`,slot:n=>`技能槽 +${n}`,reson:n=>`共鸣倍率 +${f(.1*n)}`,auto:()=>'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:n=>`发射间隔 -${15*n}%，场上每多一颗宝珠卡包补得更快 +${15*n}%`};
   if(e.up) for(const k in e.up) o.push(UPN[k]?UPN[k](e.up[k]):k); // 直接写合计效果（例如「每轮宝珠 +3」），不再写「+1 ×3」
   if(e.dmg) o.push(`伤害 +${pct(e.dmg)}`); if(e.coin) o.push(`金币 +${pct(e.coin)}`); if(e.card) o.push(`卡牌效果 +${pct(e.card)}`);
   if(e.burst) o.push('每次发射多连射 1 颗宝珠'); if(e.hold) o.push('按住鼠标 / 空格持续发射'); if(e.autoFast) o.push('自动发射等待 -0.6 秒'); if(e.autoFree) o.push('自动发射不再等场上宝珠落下，并且更快'); if(e.refill) o.push(`卡包打开后补充得更快（补充时间 -${Math.round((1-Math.pow(.7,e.refill))*100)}%）`);
@@ -945,6 +945,9 @@ const unl=id=>UNL.find(u=>u.id===id).ok();
 // ================= 每轮目标 & 路线 =================
 // 统计显示后期一轮能开 5000 包、金币滚雪球：补货最快 0.45 秒；一轮开到 200 包以后，每包金币按 √(200/已开) 递减
 const REFILL_MIN=.45, PACK_SOFT=200, CLEAR_CD=1, CLEAR_REFILL=.15;
+const FIRE_REFILL=.5, FIRE_REFILL_MAX=5; // 火力补货：场上每多一颗宝珠，卡包补充 +50%（最多 ×5），一次打出很多球也有包可打
+const FIRE_REFILL_UP=.15; // 速射系「连发」每级再 +15%
+const fireRefill=n=>Math.min(FIRE_REFILL_MAX,1+(FIRE_REFILL+FIRE_REFILL_UP*upLv('rapid'))*Math.max(0,n-1));
 const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
 // GOAL_GROW：远超目标时每轮最多翻倍（原来 +50%；统计里转生后的老玩家开两千多包、目标才几十）
 const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6, GOAL_GROW=1, GOAL_REBORN=.3; // 达成目标后，下一轮目标往这一轮实际开包数靠近 80%，一次最多 +6
@@ -1658,7 +1661,7 @@ function update(dt){
   // 清场速补：台面上一个卡包都不剩、还有宝珠在飞时，空位 0.15 秒内一起补上（每秒最多一次）——多球齐射不再浪费
   G.clrCd=Math.max(0,(G.clrCd||0)-dt);
   if(!G.isBoss&&G.packs.length===0&&G.refill.length&&G.balls.length&&G.clrCd<=0){ G.clrCd=CLEAR_CD; G.refill.forEach(r=>{ if(r.slot) r.t=Math.min(r.t,CLEAR_REFILL); }); G.clears=(G.clears||0)+1; G.fx.push({x:W/2,y:H*.5,t:'清场！卡包速补',c:'#ffd76a',life:.9,sz:22,slow:1}); }
-  G.refill.forEach(r=>r.t-=dt); G.refill.filter(r=>r.t<=0).forEach(r=>{ G.refill.splice(G.refill.indexOf(r),1); if(r.slot) addPack(false,r.slot); });
+  const fr=fireRefill(G.balls.reduce((n,b)=>n+(b.mini?.5:1),0)); G.fireRefill=fr; G.refill.forEach(r=>r.t-=dt*fr); G.refill.filter(r=>r.t<=0).forEach(r=>{ G.refill.splice(G.refill.indexOf(r),1); if(r.slot) addPack(false,r.slot); });
   // 特效
   G.fx.forEach(o=>{ if(o.L===undefined) o.L=o.life; o.life-=dt; o.y-=(o.slow?14:o.sz>=30?8:40)*dt;
     if(o.count&&(o.L-o.life)<o.dur){ o.tk=(o.tk||0)+dt; if(o.tk>=.05){ o.tk=0; o.n=(o.n||0)+1; SFX.play('tick',o.n); } } }); G.fx=G.fx.filter(o=>o.life>0);
@@ -1998,7 +2001,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-09.5';
+const GAME_V='2026-11-09.6';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2454,7 +2457,7 @@ function manualHTML(){
   ${sec('💡','新手小技巧',li([
     '前几轮先把金币花在<b>宝珠打磨</b>上。',
     '挑一个流派，<b>尽量装同流派的卡</b>，共鸣的加成很大。',
-    '卡包都清光以后，空位会马上补上（清场速补），所以闪电流也可以放心多发几颗。',
+    '场上飞的宝珠越多，卡包补得越快（每多一颗 +50%，最多 ×5；速射系「连发」还会再加快）。卡包都清光时空位会马上补上。所以<b>一口气多发几颗</b>不吃亏，还省时间。',
     '一轮太长就开 <b>⏩ 加速</b>。',
     '打不过首领就回去刷几轮普通轮，升级后再来。',
     '想冲排行榜，在「目标 → 排行榜」起个昵称。',
