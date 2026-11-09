@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:3eb45e31e2ce8414bd535bd7d94bc1f13eed818a -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:b8b4b0704a29e8069907ddbcac8f72e0e624b49b -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1952,7 +1952,7 @@ function endRound(){ if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.e
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-09.1';
+const GAME_V='2026-11-09.2';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2006,7 +2006,7 @@ function renderRank(body){
 // ================= 💬 反馈：单独的反馈页（游戏本身不需要登录） =================
 const FB_URL='https://claude.ai/artifact/HEr4fWnrFfuqkhqYxPp1UF';
 // 公开渠道（B 站等）。填上 url 才会显示
-const FB_LINKS=[{ico:'📺',name:'B stop',url:'',txt:'Comment on the video or message the creator'}];
+const FB_LINKS=[{ico:'📺',name:'B stop',url:'https://space.bilibili.com/227376027',txt:'Comment on the video or message the creator'}];
 function renderFB(body){
   const url=`${FB_URL}#ch=${Math.min(6,M.maxCh)}&r=${M.round}&c=${Object.keys(M.owned).length}`;
   body.innerHTML=`<div class="chap" style="margin-top:0;text-align:center;padding:20px 14px">
