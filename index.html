@@ -32,6 +32,7 @@
     box-shadow:0 0 0 1px #d9b45a55, 0 20px 60px #000, inset 0 0 0 1px #000}
   .frame::before{content:"";position:absolute;inset:4px;border-radius:15px;border:1px solid #d9b45a66;pointer-events:none}
   canvas{display:block;width:100%;height:auto;border-radius:10px;touch-action:none;cursor:crosshair}
+  @media (min-width:861px){ canvas{width:auto;max-width:100%;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);margin:0 auto} }
   .corner{position:absolute;width:22px;height:22px;border:2px solid var(--gold);pointer-events:none}
   .c1{top:2px;left:2px;border-right:none;border-bottom:none;border-radius:10px 0 0 0}
   .c2{top:2px;right:2px;border-left:none;border-bottom:none;border-radius:0 10px 0 0}
@@ -43,6 +44,7 @@
   .plate::after{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,#d9b45a,transparent)}
   .title{font-size:30px;font-weight:900;letter-spacing:4px;line-height:1.1}
   .tagline{color:var(--dim);font-size:12px;letter-spacing:3px;margin-top:4px}
+  html[lang=en] .tagline{letter-spacing:.5px}
   .money{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums}
   .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
   .kv div{background:#0c0907;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
@@ -257,7 +259,7 @@
   .tlx{display:flex;gap:8px;align-items:center;flex:1;min-width:0;cursor:pointer} .tlx b{font-size:13px}
 
   /* ===================== 精致风格：扁平、克制、一种点缀色 ===================== */
-  :root{--ink:#ece6da;--dim:#8f877a;--gold:#c8a464;--gold2:#e6cf9c;--gold3:#5e4d31;--panel:#141210;--panel2:#181512;--line:#2a251f;
+  :root{--ink:#ece6da;--dim:#a39b8c;--gold:#c8a464;--gold2:#e6cf9c;--gold3:#5e4d31;--panel:#141210;--panel2:#181512;--line:#2a251f;
     --N:#9a9184;--R:#7fa6d6;--SR:#a993d8;--SSR:#d8b36a;--red:#d06a5a;--green:#79c29a}
   body{background:#0b0a09;background-image:radial-gradient(ellipse at 50% -20%,#1a1612 0%,transparent 60%)}
   .goldtxt{background:none!important;color:var(--gold2);-webkit-text-fill-color:currentColor}
@@ -293,7 +295,7 @@
   .row .ico,.ach .ico{color:var(--gold2)}
   #mythPop{background:radial-gradient(circle at 50% 45%,#e08cc022,#000d 62%)}
   #mythPop .mt{color:var(--gold2)}
-  #boonPop{background:#000c} #boonPop .bc{background:#13110e;border:1px solid var(--line)} #boonPop .bc:hover{border-color:var(--gold);box-shadow:none;transform:translateY(-2px)}
+  #boonPop{background:#000000eb;z-index:60;padding:20px;overflow:auto} /* 不透明遮罩：说明文字不再和台面大字叠在一起 */ #boonPop .bc{background:#13110e;border:1px solid var(--line)} #boonPop .bc:hover{border-color:var(--gold);box-shadow:none;transform:translateY(-2px)}
   #boonPop .bi{color:var(--gold2);height:40px;display:flex;align-items:center;justify-content:center} #boonPop .bi svg.ic{width:34px;height:34px;stroke-width:1.6}
   #toast{background:#171410;border-color:var(--gold3);color:var(--ink);font-weight:600;box-shadow:0 8px 24px #0008}
   #wallet{background:#171410f0;border-color:var(--gold3);box-shadow:0 6px 18px #0009}
@@ -331,6 +333,18 @@
     .deckgrid .schhead{font-size:15px}.card .cr,.card .lv{font-size:12px}.card-detail{width:100%;padding:8px}
   }
 
+  body.calm #flash{display:none!important}
+  body.calm *{scroll-behavior:auto!important}
+  @media (pointer:coarse){ /* 手指好点：点击区域至少约 44px（不改变外观） */
+    .tools .ghost,.foot .btn,.tab{position:relative}
+    .tools .ghost::after{content:'';position:absolute;left:-3px;right:-3px;top:-10px;bottom:-10px}
+    .tab{min-height:44px} .subtabs button{min-height:44px}
+    .mnode::after{content:'';position:absolute;inset:-7px;border-radius:50%}
+    #box .btn,#box .ghost{min-height:40px} }
+  .tabs{position:sticky;top:0;z-index:4;background:#110f0d}
+  @media (max-width:600px){ .tabs{top:calc(env(safe-area-inset-top) + 38px)} }
+  .mnode.past::after{content:'✓';position:absolute;right:-4px;top:-6px;font-size:11px;color:var(--gold2);opacity:1;filter:none}
+  .box.learning .foot .btn:not(.boss){background:transparent;color:var(--gold2);border-color:var(--gold3);box-shadow:none;text-shadow:none}
   /* —— 界面美化 2026-11-10 —— */
   .btn{background:linear-gradient(180deg,#f1d68e,#d9b45a 55%,#bf9640);box-shadow:inset 0 1px 0 #fff6d6aa,0 2px 10px #d9b45a22;text-shadow:0 1px 0 #fff3c466}
   .btn:hover{background:linear-gradient(180deg,#f8e2a4,#e2c06a 55%,#c9a04a);box-shadow:inset 0 1px 0 #fff6d6,0 4px 16px #d9b45a44}
@@ -548,7 +562,6 @@ const PT=[
   {name:'黄金包',a:'#d8b36a',b:'#7d5e2a',hp:8,val:15,odds:[0,0,82,18]},
   {name:'黑金秘藏',a:'#2a2118',b:'#d9b45a',hp:20,val:60,odds:[0,0,0,100]},
 ];
-const PITY=40;
 const CARD_COIN_CAP=6;
 
 // ================= 存档 =================
@@ -589,7 +602,7 @@ function normalizeSave(data){
     if(!Number.isSafeInteger(next[k])||next[k]<0) bad();
   if(next.chAge!==undefined&&(!Number.isSafeInteger(next.chAge)||next.chAge<0)) bad();
   if(next.ch<1||next.maxCh<1||next.goal<1||!next.deck.every(id=>typeof id==='string')) bad();
-  for(const k of ['stats','vibe','dev']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
+  for(const k of ['stats','vibe','dev','calm']) if(Object.hasOwn(next,k)&&typeof next[k]!=='boolean') bad();
   if(next.nextCurse!==undefined&&next.nextCurse!==null&&!Object.hasOwn(CURSES,next.nextCurse)) bad();
   if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
   if(next.inRound!==undefined&&next.inRound!==null&&!['normal','elite','delve','boss'].includes(next.inRound)) bad();
@@ -667,7 +680,7 @@ const STAGE_G=3.4; // 秘藏等级价格增长：原来 ×5 会在 Lv5 左右卡
 // col 0~3 为四个分支，row 0 为根节点
 // ---- 可无限升级的两项（不在星盘上） ----
 const REP=[
-  {id:'dmg',ico:'💎',name:'宝珠打磨',desc:l=>`宝珠基础伤害 ${f(orbDmg(l))}`,cost:l=>12*Math.pow(1.5,l)},
+  {id:'dmg',ico:'💎',name:'宝珠打磨',desc:l=>`宝珠基础伤害 ${f(orbDmg(l))}`,cost:l=>12*Math.pow(1.6,l)},
   {id:'stage',ico:'🏛️',name:'秘藏等级',desc:l=>`卡包血量 ×${f(Math.pow(1.6,l))}，金币 ×${f(Math.pow(VAL_G,l))}，每个卡包算 ${packWorth(l)} 包${packWorth(l)>=PACK_WORTH_MAX?'（已到上限）':''}`,cost:l=>250*Math.pow(STAGE_G,l),
     need:()=>M.up.dmg>=3&&M.up.stage<stageCap(),needTxt:()=>M.up.dmg<3?'宝珠打磨 Lv3 后开放':`上限 Lv${stageCap()}：击败第 ${M.maxCh} 章首领解锁`},
   {id:'cnt',ico:'🧾',name:'清点术',desc:l=>`开包计数 ×${(1+CNT_STEP*l).toFixed(2)}`,cost:l=>150*Math.pow(1.75,l),need:()=>M.up.dmg>=3,needTxt:'宝珠打磨 Lv3 后开放'},
@@ -730,7 +743,7 @@ function recalcTree(){ const s={up:{},dmg:0,coin:0,card:0,burst:0,hold:0,autoFas
     if(e.up) for(const k in e.up) s.up[k]=(s.up[k]||0)+e.up[k];
     ['dmg','coin','card','burst','hold','autoFast','autoFree','refill'].forEach(k=>{ if(e[k]) s[k]+=e[k]; }); if(e.ks&&!(M.ksOff||{})[e.ks]) s.ks[e.ks]=true; });
   TS=s; }
-function effText(e){ const o=[]; const UPN={crit:n=>`会心 +${8*n}%`,critx:n=>`会心伤害 +${f(.5*n)}`,breaker:n=>`破封：首击倍率 +${n}`,cleave:n=>`碎裂：开包溅射 +${50*n}%`,ammo:n=>`每轮宝珠 +${n}`,basket:n=>`金篮宽度 +${14*n}`,basket2:()=>'第二只反向金篮',volley:n=>`开局齐射 +${2*n} 颗小宝珠`,packs:n=>`台面卡包 +${n}`,luck:n=>`稀有卡包出现率 +${30*n}%`,pityup:n=>`黑金保底 -${10*n} 张（每开 ${PITY_BASE-10*n} 张卡还没出 SSR，就送一个黑金秘藏）`,slot:n=>`技能槽 +${n}`,reson:n=>`共鸣倍率 +${f(.1*n)}`,auto:()=>'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:n=>`发射间隔 -${15*n}%，场上每多一颗宝珠卡包补得更快 +${15*n}%`};
+function effText(e){ const o=[]; const UPN={crit:n=>`会心 +${8*n}%`,critx:n=>`会心伤害 +${f(.5*n)}`,breaker:n=>`破封：首击倍率 +${n}`,cleave:n=>`碎裂：开包溅射 +${50*n}%`,ammo:n=>`每轮宝珠 +${n}`,basket:n=>`金篮宽度 +${14*n}`,basket2:()=>'第二只反向金篮',volley:n=>`开局齐射 +${2*n} 颗小宝珠`,packs:n=>`台面卡包 +${n}`,luck:n=>`稀有卡包出现率 +${30*n}%`,pityup:n=>`黑金保底 -${10*n} 张（每开 ${PITY_BASE-10*n} 张卡还没出 SSR，就送一个黑金秘藏），黑金秘藏出现率 +${25*n}%`,slot:n=>`技能槽 +${n}`,reson:n=>`共鸣倍率 +${f(.1*n)}`,auto:()=>'解锁自动发射（停手后自动瞄准；只在已通关的章节生效）',rapid:n=>`发射间隔 -${15*n}%，场上每多一颗宝珠卡包补得更快 +${15*n}%`};
   if(e.up) for(const k in e.up) o.push(UPN[k]?UPN[k](e.up[k]):k); // 直接写合计效果（例如「每轮宝珠 +3」），不再写「+1 ×3」
   if(e.dmg) o.push(`伤害 +${pct(e.dmg)}`); if(e.coin) o.push(`金币 +${pct(e.coin)}`); if(e.card) o.push(`卡牌效果 +${pct(e.card)}`);
   if(e.burst) o.push('每次发射多连射 1 颗宝珠'); if(e.hold) o.push('按住鼠标 / 空格持续发射'); if(e.autoFast) o.push('自动发射等待 -0.6 秒'); if(e.autoFree) o.push('自动发射不再等场上宝珠落下，并且更快'); if(e.refill) o.push(`卡包打开后补充得更快（补充时间 -${Math.round((1-Math.pow(.7,e.refill))*100)}%）`);
@@ -757,9 +770,9 @@ function prestige(){
   M.keep={slot:upLv('slot'),auto:upLv('auto'),reson:upLv('reson')};
   M.up=fresh().up; M.tree={}; M.treeSpent=0; recalcTree(); M.money=M.legacy.start?200*Math.pow(6,M.legacy.start-1):0;
   delete M.bossD; delete M.lastBossHp; delete M.dealtAvg;
-  M.delve=null; M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.goal=Math.max(GOAL_MIN,Math.round(M.goal*GOAL_REBORN)); M.streak=0; M.nextBoon=null; M.nextCurse=null; M.inRound=null; // 转生保留三成目标：卡牌和传承都还在，实力比新号强得多
+  M.delve=null; M.ch=1; M.chRounds=0; M.chAge=0; M.life=0; M.rate=0; M.streak=0; M.nextBoon=null; M.nextCurse=null; M.inRound=null; // 转生保留三成目标：卡牌和传承都还在，实力比新号强得多
   // 画面也要跟着回到第 1 章：换掉上一轮的结算数据和台面布局，否则要进一轮游戏才看得出变化
-  G={loot:{},reborn:g}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo='';
+  G={loot:{},reborn:g}; running=false; ROUND_EQ=null; DAILY=null; M.map=null; ensureMap(); syncGoal(); buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo='';
   save(); renderSide(); hud(); tab='legacy'; SFX.play('melt'); toast(`🔥 熔金完成，获得 ${g} 金魂`); checkAch(); showBetween();
 }
 
@@ -893,9 +906,9 @@ const ODDS_STEP=[[-8.925,5.375,2.725,.825],[0,-7.5,5.5,2],[0,0,-4.75,4.75],[0,0,
 const packOdds=t=>{ const k=DAILY?0:Math.min(4,Math.max(0,(M.ch||1)-1)), o=PT[t].odds.map((v,i)=>Math.max(0,Math.round((v+ODDS_STEP[t][i]*k)*10)/10)), j=o.findIndex(v=>v>0); o[j]=Math.round((100-o.reduce((a,v,i)=>i===j?a:a+v,0))*10)/10; return o; };
 const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
 // 本章越打越硬：同一章每打一轮，卡包血量和金币 ×1.15（最多 10 轮，约 ×4），打败首领进下一章后重置。玩家反馈第 5 轮左右就变简单了
-const AGE_G=1.15, AGE_MAX=10;
+const AGE_G=1.07, AGE_MAX=10;
 const ageMult=()=>DAILY?1:Math.pow(AGE_G,Math.min(AGE_MAX,M.chAge||0));
-const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1)*ageMult();
+const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1); // 不再按本章轮数变硬（CCGS 测评：变强被抵消）
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
 // 秘藏等级：卡包血量 ×1.6^等级，所以开一个卡包也算 round(1.6^等级) 包（血量换数量，目标不会因为升了等级反而完不成）
 // 上限 10：秘藏等级到后期会到几十级，1.6^等级 会把一包算成上亿包（2026-11-05 玩家截图：一轮 1.97 亿包）
@@ -952,7 +965,15 @@ const FIRE_REFILL_UP=.15; // 速射系「连发」每级再 +15%
 const fireRefill=n=>Math.min(FIRE_REFILL_MAX,1+(FIRE_REFILL+FIRE_REFILL_UP*upLv('rapid'))*Math.max(0,n-1));
 const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
 // GOAL_GROW：远超目标时每轮最多翻倍（原来 +50%；统计里转生后的老玩家开两千多包、目标才几十）
-const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6, GOAL_GROW=1, GOAL_REBORN=.3; // 达成目标后，下一轮目标往这一轮实际开包数靠近 80%，一次最多 +6
+const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6, GOAL_GROW=1, GOAL_REBORN=.3; // 旧的「目标追实力」参数，只留给旧测试和说明
+// 固定目标曲线（CCGS 测评 P0）：目标只看章节和地图上走到第几站，不再追着你的开包数涨——变强就是真的变强
+// 按模拟（新号贪心升级）各章常见开包数定的表：首站约为常见开包的 1/3～1/2，越往后的站越高；第 6 章以后每章 ×1.12
+const GOAL_TABLE=[10,60,170,300,360,400], GOAL_CH=1.12, GOAL_STOP=.08;
+// 有地图时 = 第几排（正在打的那一站，或下一站）；没开地图时 = 本章已达成几轮
+const mapStop=(playing=false)=>M.map&&M.map.ch===M.ch&&mapOn()?Math.max(0,Math.min(MAP_ROWS-1,(M.map.r|0)+(playing?0:1))):Math.min(MAP_ROWS,M.chRounds||0);
+const goalBase=ch=>ch<=GOAL_TABLE.length?GOAL_TABLE[Math.max(1,ch)-1]:GOAL_TABLE[GOAL_TABLE.length-1]*Math.pow(GOAL_CH,ch-GOAL_TABLE.length);
+const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)));
+function syncGoal(playing=false){ if(!DAILY&&M) M.goal=goalFor(M.ch,mapStop(playing)); }
 const ROUTES={
   normal:{name:'普通',ico:'🎯',desc:g=>`目标：开 ${g} 包`},
   elite:{name:'精英',ico:'⚔️',desc:g=>`卡包血量 ×${ELITE_HP}、金币 ×${ELITE_COIN}<br>目标：开 ${Math.ceil(g*ELITE_GOAL)} 包<br>达成后：SR 以上卡牌三选一 + 一颗随机特殊宝珠`},
@@ -960,7 +981,7 @@ const ROUTES={
   event:{name:'奇遇',ico:'❔',desc:()=>'不打这一轮：遇到一件随机的事'},
 };
 // 精英轮（玩家反馈太简单）：血量 ×2.2、目标 ×1.4，金币 ×1.8
-const ELITE_HP=2.2, ELITE_GOAL=1.4, ELITE_COIN=1.8;
+const ELITE_HP=2.2, ELITE_GOAL=1.25, ELITE_COIN=1.8;
 function genRoutes(noShop){ if(!unl('routes')) return ['normal']; const pool=['elite','shop','event'].filter(k=>!(noShop&&(k==='shop'||k==='event'))&&(k!=='shop'||unl('market'))); const out=['normal'];
   while(out.length<3&&pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); return out; } // 刚逛完黑市 / 奇遇：只给普通和精英
 
@@ -968,7 +989,7 @@ function genRoutes(noShop){ if(!unl('routes')) return ['normal']; const pool=['e
 
 // ================= 🕳️ 深入金库（搜打撤）：连续打好几层，每层打完选「撤离」带走背包，或「继续」更深；失败背包全丢 =================
 const RORD={N:0,R:1,SR:2,SSR:3,UR:4};
-const DELVE_HP=1.3, DELVE_COIN=.35, DELVE_GOAL=.8, DELVE_GOAL_STEP=.25;
+const DELVE_HP=1.3, DELVE_COIN=.35, DELVE_GOAL=1, DELVE_GOAL_STEP=.1;
 const delveGoal=l=>Math.max(GOAL_MIN,Math.ceil(M.goal*(DELVE_GOAL+DELVE_GOAL_STEP*(l-1))));
 function delveStart(){ M.delve={layer:1,coins:0,cards:{},orbs:{},soul:0}; save(); startRound(false,{route:'delve'}); }
 function delveNext(){ if(!M.delve) return; M.delve.layer++; save(); startRound(false,{route:'delve'}); }
@@ -994,7 +1015,7 @@ function delveBagHTML(d){ const nCards=Object.values(d.cards).reduce((a,b)=>a+b,
 // ================= 🗺️ 章节地图：每章一张分岔路线图 + 命数（打败第 1 章首领、开放路线后启用） =================
 // 6 站 + 首领。每站可以选连着的一个节点；普通 / 精英没达成目标、首领战失败都会掉 1 颗心，心用完「本局结束」：本章地图重来
 const MAP_ROWS=6, MAP_HEARTS=3, NODE_TYPES_OK={normal:1,elite:1,shop:1,event:1,delve:1};
-const MAP_W={normal:48,elite:20,shop:11,event:9,delve:8}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
+const MAP_W={normal:40,elite:20,shop:12,event:11,delve:10}; // 奇遇只是偶尔出现（玩家反馈刷得太多）
 const mapOn=()=>unl('routes');
 const sideName=x=>x<.4?'左':x>.6?'右':'中';
 function genMap(){ const rows=[], next=[];
@@ -1003,7 +1024,9 @@ function genMap(){ const rows=[], next=[];
       if(r>0){ const pool=Object.entries(MAP_W).filter(([k])=>!(k==='shop'&&r<2)&&!(k==='shop'&&row.some(o=>o.t==='shop'))&&!(k==='delve'&&(r<2||rows.some(rw=>rw.some(o=>o.t==='delve'))||row.some(o=>o.t==='delve')))); const tot=pool.reduce((a,[,w])=>a+w,0); let x=Math.random()*tot; for(const [k,w] of pool){ if((x-=w)<0){ t=k; break; } } }
       row.push({t,x:(i+1)/(n+1)}); }
     rows.push(row); }
+  const normals=()=>rows.slice(2).flatMap(row=>row.filter(o=>o.t==='normal'));
   if(!rows.some(row=>row.some(o=>o.t==='elite'))){ const r=2+Math.floor(Math.random()*(MAP_ROWS-2)); rows[r][Math.floor(Math.random()*rows[r].length)].t='elite'; }
+  if(!rows.some(row=>row.some(o=>o.t==='shop'||o.t==='event'))){ const n=normals(); if(n.length) n[Math.floor(Math.random()*n.length)].t=Math.random()<.5?'event':'shop'; } // 每张图至少一个黑市或奇遇
   for(let r=0;r<MAP_ROWS-1;r++){ const a=rows[r], b=rows[r+1], e=a.map(()=>[]);
     a.forEach((o,i)=>{ const near=b.map((q,j)=>[Math.abs(q.x-o.x),j]).sort((u,v)=>u[0]-v[0]); e[i].push(near[0][1]); if(near[1]&&near[1][0]<.42&&Math.random()<.6) e[i].push(near[1][1]); });
     b.forEach((q,j)=>{ if(!e.some(l=>l.includes(j))){ let bi=0,bd=9; a.forEach((o,i)=>{ const d=Math.abs(o.x-q.x); if(d<bd){ bd=d; bi=i; } }); e[bi].push(j); } });
@@ -1018,10 +1041,11 @@ function mapReach(){ const m=ensureMap(); if(!m) return []; if(m.r>=MAP_ROWS-1) 
 function goNode(r,i){ const m=ensureMap(); if(!m||M.delve||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
 function abandonRound(){ const r=M.inRound; if(!r) return; M.inRound=null; // 上次回合打到一半就离开：按没达成处理
   if(r==='delve'){ G.earned=0; G.loot={}; delveSettle(false); } else if(r==='boss') loseHeart('首领战中途离开');
-  else { M.chAge=(M.chAge||0)+1; M.streak=0; M.goal=goalAfterMiss(M.goal,0); loseHeart('上一轮中途离开'); }
+  else { M.chAge=(M.chAge||0)+1; M.streak=0; loseHeart('上一轮中途离开'); syncGoal(); }
   save(); setTimeout(()=>toast('上一轮中途离开，按没达成处理'),600); }
+const RUN_LOSS=.25; // 命用完：散落四分之一金币（CCGS 测评：失败要有代价）
 function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return; m.hearts--; G.heartLost=why;
-  if(m.hearts<=0){ G.runOver=true; M.map=genMap(); M.map.runs=m.runs+1; M.chAge=0; M.streak=0; } }
+  if(m.hearts<=0){ G.runOver=true; const lost=Math.floor(M.money*RUN_LOSS); M.money-=lost; G.runLoss=lost; M.map=genMap(); M.map.runs=m.runs+1; M.streak=0; } }
 const NODE_INFO={
   normal:{ico:'🎯',name:'普通',tip:g=>`目标开 ${g} 包。达成：拿连胜奖励金币，首领进度 +1。没达成：掉 1 颗 ❤️，目标降低。`},
   elite:{ico:'⚔️',name:'精英',tip:g=>`卡包血量 ×${ELITE_HP}、金币 ×${ELITE_COIN}，目标开 ${Math.ceil(g*ELITE_GOAL)} 包。达成：SR 以上卡牌三选一 + 一颗特殊宝珠。没达成：掉 1 颗 ❤️。`},
@@ -1050,6 +1074,10 @@ function bindMap(root){ root.querySelectorAll('.mnode').forEach(b=>b.onclick=()=
 
 // ================= 台面 =================
 const cv=$('cv'),ctx=cv.getContext('2d'); const W=cv.width,H=cv.height;
+// 台面在手机上会缩小（540 → 约 360），代码里 10px 的字实际只有 7px。这里统一把太小的字放大（最多 ×1.45），保证屏幕上至少约 10px
+let FONT_MIN=0; { const fd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'font');
+  if(fd&&fd.set) Object.defineProperty(ctx,'font',{configurable:true,get(){ return fd.get.call(this); },
+    set(v){ if(FONT_MIN>0) v=String(v).replace(/(\d+(?:\.\d+)?)px/,(m,n)=>{ n=+n; return (n<FONT_MIN?Math.min(FONT_MIN,n*1.45):n)+'px'; }); fd.set.call(this,v); }}); }
 const LAUNCH={x:W/2,y:58};
 const SLOTS=[]; for(let j=0;j<4;j++) for(let i=0;i<5;i++) SLOTS.push({x:70+i*100+(j%2?0:0),y:210+j*125});
 // ---- 每章台面 ----
@@ -1195,7 +1223,7 @@ function startRound(boss,opt={}){
   G.eq=equipped().slice(); G.ch0=M.ch; // 统计用：这一轮开局时的装备和章节
   G.daily=daily; G.bag=[]; G.bagOn=unl('routes')&&!daily; if(G.bagOn) ORB_SPECIAL.forEach(k=>{ for(let i=0;i<((M.orbs||{})[k]||0);i++) G.bag.push(k); }); G.bag=G.bag.slice(0,am); while(G.bag.length<am) G.bag.push('normal');
   for(let i=G.bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [G.bag[i],G.bag[j]]=[G.bag[j],G.bag[i]]; }
-  G.route=boss||chal||daily?null:(opt.route||'normal');
+  syncGoal(true); G.route=boss||chal||daily?null:(opt.route||'normal');
   if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*ELITE_GOAL):M.goal; if(G.route==='elite'){ G.mut={hpX:ELITE_HP}; G.bo.coin*=ELITE_COIN; } }
   M.inRound=chal||daily?null:(boss?'boss':G.route); save(); // 刷新/关页面 = 这一轮按失败算
   if(G.route==='delve'){ const L=(M.delve||{layer:1}).layer; G.delveL=L; G.goal=delveGoal(L); G.mut={hpX:Math.pow(DELVE_HP,L)}; G.bo.coin*=1+DELVE_COIN*L; setTimeout(()=>toast(`🕳️ 深入金库 · 第 ${L} 层`),300); }
@@ -1213,6 +1241,7 @@ function startRound(boss,opt={}){
   [1,2,3].forEach(t=>{ M.shopN[t]=Math.max(0,(M.shopN[t]||0)-1); });
   M.pickRolls=0; M.round++; running=true; $('ov').classList.remove('show'); renderSide();
   G.tut=M.round===1&&!M.prestiges&&!M.guide.tut&&!chal&&!daily&&!boss?{step:0,shots:0,flash:0}:null; // 新玩家第一轮：教学关
+  if(G.tut){ G.boonNext=0; G.goal=Math.max(G.goal,TUT_GOAL); } // 教学轮不弹祝福，目标稍高一点，才感觉得到「目标」
   if(M.round===1&&!G.tut) guideTip('aim','瞄准后点击，或按空格');
   if(chal) setTimeout(()=>toast(`${chal.ico} 挑战：${chal.goalTxt}`),300);
   if(boss) setTimeout(()=>{ if(G&&!G.ended) offerBoon(); },500);
@@ -1221,7 +1250,8 @@ function freeSlots(){ return SLOTS.filter(s=>!(G.isBoss&&s.y===335)&&!G.packs.so
 // 前几章首领更弱：第 1~4 章血量 ×0.35 / ×0.5 / ×0.7 / ×0.85，第 5 章起不变
 const BOSS_EASE=[.35,.5,.7,.85];
 // 前三章参考首次挑战的单发伤害；不参考普通轮群伤或过量伤害。
-const BOSS_HITS=[26,34,42];
+const BOSS_HITS=[26,34,42], BOSS_PLAIN=4.5; // 基准伤害只看打磨等级和传承，不看当时带的卡：故意弱配装先输一次压不了血
+const dPlain=()=>orbDmg(M.up.dmg)*(1+.3*M.legacy.pow)*(1+TS.dmg)*BOSS_PLAIN;
 // 整体血量最多为上一章首领的 12 倍；首章 / 缺少旧记录时用章节基础血量封顶。
 const BOSS_STEP=12, BOSS_HP_V=2, BOSS_HARD=1.25;
 function bossHp(){
@@ -1229,7 +1259,7 @@ function bossHp(){
   if(old&&old.v===BOSS_HP_V&&Number.isFinite(old.hp)&&old.hp>0) return old.hp;
   const base=packHpBase(0)*60*Math.pow(3.2,M.ch-1)*(BOSS_EASE[M.ch-1]||1);
   // 旧存档保留已经锁定的单发基准，避免升级后迁移反而抬高首领血量。
-  const d=old&&Number.isFinite(old.d)?old.d:D();
+  const d=old&&Number.isFinite(old.d)?old.d:dPlain();
   const floor=d*(BOSS_HITS[M.ch-1]||0);
   const previous=M.ch>1&&M.lastBossHp>0?M.lastBossHp:base;
   const hp=Math.min(Math.max(base,floor)*(M.ch>=2?BOSS_HARD:1),previous*BOSS_STEP); // 第 2 章起 +25%（统计：第 2 章以后胜率 100%）
@@ -1244,7 +1274,7 @@ const p2Mech=ch=>{ const have=bossMechs(ch); let i=MORD.indexOf(have[have.length
 function enterP2(p){ p.p2=true; p.p2T=1.5; p.hp=p.max*.5; const m=p2Mech(M.ch); if(m) p.mech=p.mech.concat(m);
   if(m==='star'&&!PORTALS.length) PORTALS.push({x:W-44,y:600,r:17,to:1,col:'#a993d8'},{x:44,y:190,r:17,to:0,col:'#7fa6d6'});
   for(let i=0;i<2;i++) addPack(false); shake(14); SFX.play('bossdown'); burst(p.x,p.y,'#b3574a',40);
-  G.cine={t:0,dur:2,x:p.x,y:p.y,m}; holding=false; buzz([60,40,140]); }
+  G.cine={t:0,dur:calm()?.4:2,x:p.x,y:p.y,m}; holding=false; buzz([60,40,140]); }
 // ---- 转第二阶段的特写：镜头推近首领、上下黑边、画面定格 ----
 const cineK=c=>{ const a=Math.min(1,c.t/.35), b=Math.min(1,Math.max(0,(c.dur-c.t)/.4)), e=x=>1-Math.pow(1-x,3); return e(Math.min(a,b)); };
 function cineCam(){ const c=G&&G.cine; if(!c) return; const k=cineK(c), z=1+.75*k, cx=Math.max(W/(2*z),Math.min(W-W/(2*z),c.x)), cy=Math.max(H/(2*z),Math.min(H-H/(2*z),c.y));
@@ -1259,11 +1289,12 @@ function drawCine(){ const c=G&&G.cine; if(!c) return; const k=cineK(c), bar=78*
   ctx.restore(); ctx.save(); ctx.globalAlpha=ta; ctx.textAlign='center'; ctx.textBaseline='middle';
   if(c.m){ ctx.font='bold 13px sans-serif'; ctx.fillStyle='#e6cf9c'; ctx.fillText('追加：'+MECH[c.m].name,W/2,H-bar*.18); }
   ctx.restore(); }
+const STAGE_ODDS_MAX=10, BLACK_PACT=.25; // 黑金之约：每级保底 -10 张，另外黑金秘藏出现率 +25%（后期保底很少触发，这一项还有用）
 function addPack(instant,slot){
   const free=freeSlots(); if(!free.length) return;
   slot=slot||free[Math.floor(Math.random()*free.length)];
-  const s=DAILY?0:M.up.stage; let t=0; const r=Math.random();
-  const lk=(1+.3*upLv('luck'))*G.bo.luck; if(r<(.002+.002*s)*lk) t=3; else if(r<(.02+.015*s)*lk) t=2; else if(r<(.09+.03*s)*lk) t=1; // 秘藏等级 0 时白银 7%、黄金 1.8%
+  const s=DAILY?0:Math.min(STAGE_ODDS_MAX,M.up.stage); let t=0; const r=Math.random(); // 秘藏等级对稀有包出现率的加成最多算到 10 级（深渊里不再无限膨胀）
+  const lk=(1+.3*upLv('luck'))*G.bo.luck; if(r<(.002+.002*s)*lk*(1+BLACK_PACT*upLv('pityup'))) t=3; else if(r<(.02+.015*s)*lk) t=2; else if(r<(.09+.03*s)*lk) t=1; // 秘藏等级 0 时白银 7%、黄金 1.8%
   if(G.mut.minTier) t=Math.max(t,G.mut.minTier);
   if(M.pity>=pityN()){ t=3; M.pity=0; toast('✦ 保底：黑金秘藏现身！'); }
   const hp=packHp(t)*(G.mut.hpX||1);
@@ -1312,6 +1343,7 @@ function dmgPack(p,amt,silent,src){
   if(p.boss&&!p.p2&&p.hp<=p.max*.5){ enterP2(p); return; }
   if(p.hp<=0) openPack(p);
 }
+const DIRECT_X=2.5;
 function hitPack(b,p){
   G.hits++; b.hn=(b.hn||0)+1; if(b.hn>M.best.chain) M.best.chain=b.hn; if(b.hn>=50) grantMyth('echo'); hcTick(b); chainTick(b); p.sq=.16;
   G.combo=G.time-G.comboT<.8?G.combo+1:1; G.comboT=G.time; if(G.combo>M.best.combo) M.best.combo=G.combo;
@@ -1325,6 +1357,9 @@ function hitPack(b,p){
   // 手动瞄准的宝珠打中卡包正中（菱形正上 / 正下方）：伤害 ×1.6，倍率 +0.3
   if(b.manual&&!b.mini&&Math.abs(b.x-p.x)<(p.boss?10:6)&&Math.abs(b.y-p.y)>=p.hh-2){ mult*=1.6; addMx(b,.3); G.wk=(G.wk||0)+1;
     G.fx.push({x:p.x,y:p.y-p.hh-38,t:'正中！',c:'#9de7ff',life:.7,sz:15}); G.parts.push({ring:true,x:b.x,y:b.y,r:4,max:30,life:.25,dur:.25,c:'#9de7ff',lw:2}); SFX.play('crit'); }
+  // 直击：手动发射的宝珠，第一下就撞上卡包（中途没碰铆钉）——伤害 ×2.5，倍率 +0.5（CCGS 测评：瞄准要值得）
+  if(b.manual&&!b.mini&&!b.pegged&&!b.direct&&!p.boss){ b.direct=1; mult*=DIRECT_X; addMx(b,.5); G.direct=(G.direct||0)+1;
+    G.fx.push({x:p.x,y:p.y-p.hh-22,t:'直击！',c:'#ffe08a',life:.8,sz:17}); G.parts.push({ring:true,x:b.x,y:b.y,r:6,max:40,life:.3,dur:.3,c:'#ffe08a',lw:3}); shake(2); }
   if(b.type==='fire'){ p.burn=Math.max(p.burn,G.R.burnT); p.fb=.5; }
   p.mx=Math.max(p.mx||1,b.mx); b.pot+=POT.pack*packValue(0)*b.mx;
   dmgPack(p,D()*b.dmgX*(1+b.walls*G.R.wallBonus)*fast*mult*mxDmg(b)); addMx(b,MX.pack*(b.pierce?.5:1));
@@ -1404,8 +1439,7 @@ function bossDown(p){
   earn(coins,p.x,p.y);
   G.death={x:p.x,y:p.y,h:p.hh*2,t:0,img:'p2_'+bossIdx(M.ch)}; shake(6);
   giveCard(p,'SSR'); giveCard(p,0); giveCard(p,2); if(urUnlocked().length&&Math.random()<UR_BOSS) giveCard(p,'UR');
-  M.goal=Math.max(GOAL_MIN,Math.round(M.goal*.75)); // 新的一章卡包更硬，目标先降一点
-  const old=M.ch; M.ch++; if(M.ch>M.maxCh) M.best.chRound=M.round; M.maxCh=Math.max(M.maxCh,M.ch); M.chRounds=0; M.chAge=0;
+  const old=M.ch; M.ch++; if(M.ch>M.maxCh) M.best.chRound=M.round; M.maxCh=Math.max(M.maxCh,M.ch); M.chRounds=0; M.chAge=0; syncGoal();
   G.fx.push({x:W/2,y:H/2,t:`${chInfo(old).boss} 被击败！`,c:'#ffcc55',life:2.5});
   toast(`👑 击败首领！第 ${M.ch} 章「${chInfo(M.ch).name}」开启`);
   G.boss=null;
@@ -1439,9 +1473,10 @@ function payPocket(b){ const pk=pocketAt(b.x); pk.flash=.4; if(!(b.pot>0)) retur
 function startFever(b){ if(G.tut) tutStep(3); b.fevered=true; G.fever=FEVER.dur; G.slow=FEVER.slow; G.fevers=(G.fevers||0)+1; if(G.fevers>M.best.fever) M.best.fever=G.fevers;
   hitStop(.12,true); shake(12); SFX.play('fever'); buzz([40,30,70]); burst(b.x,b.y,'#ffd76a',40); burst(b.x,b.y,'#ff7ad9',20);
   G.fx.push({x:W/2,y:H/2-40,t:'狂 热',c:'#ffd76a',life:1.8,sz:40}); G.fx.push({x:W/2,y:H/2-2,t:'伤害、金币 ×2',c:'#f3dc9a',life:1.8,sz:16}); G.feverFlash=.5;
-  if(!M.guide.fever){ M.guide.fever=1; save(); setTimeout(()=>explainPop('🔥','狂 热',`一颗宝珠连续撞了 ${feverNeed()} 下（撞开卡包算 3 下），进入 <b>${FEVER.dur} 秒狂热</b>：<br>伤害和金币都 <b>×2</b>，时间变慢。<br><span class="sub">宝珠头上会显示连锁进度，比如「12/${FEVER.chain}」。狂热结束后 ${FEVER.cd} 秒内不会再触发。</span>`),350); } }
+  if(!M.guide.fever&&!G.tut){ M.guide.fever=1; save(); setTimeout(()=>explainPop('🔥','狂 热',`一颗宝珠连续撞了 ${feverNeed()} 下（撞开卡包算 3 下），进入 <b>${FEVER.dur} 秒狂热</b>：<br>伤害和金币都 <b>×2</b>，时间变慢。<br><span class="sub">宝珠头上会显示连锁进度，比如「12/${FEVER.chain}」。狂热结束后 ${FEVER.cd} 秒内不会再触发。</span>`),350); } }
 // ---- 教学关：新玩家第一轮分 5 步提示 ----
 const TUT_CHAIN=10;
+const TUT_GOAL=20;
 const TUT_STEPS=[
   {t:'① 瞄准卡包，点击台面发射宝珠',s:'电脑也可以按空格'},
   {t:'② 宝珠撞破卡包，就能拿到金币和新卡',s:'卡包血量归零就会打开'},
@@ -1474,12 +1509,12 @@ function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true;
 // 没达成：目标降到这轮实际开包数 ×1.15 附近（一次最多减半），旧版本 bug 抬高的目标几轮就能落回来
 const goalAfterMiss=(goal,opened)=>Math.max(GOAL_MIN,Math.min(goal-2,Math.max(Math.ceil(opened*1.15),Math.round(goal*.5))));
 function settleRoute(){ if(G.isBoss&&!G.bossWin) loseHeart('首领战失败'); if(!G.route) return; const ok=G.opened>=G.goal; G.goalOk=ok;
-  if(G.route==='delve'){ delveSettle(ok); return; }
+  if(G.route==='delve'){ M.chAge=(M.chAge||0)+1; delveSettle(ok); return; }
   M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('目标没达成');
   if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++;
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
-    M.goal+=Math.max(G.route==='elite'?2:1,Math.min(Math.max(GOAL_STEP,Math.ceil(M.goal*GOAL_GROW)),Math.round((G.opened-G.goal)*GOAL_FOLLOW))); if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
-  else { G.lostStreak=M.streak; M.streak=0; M.goal=goalAfterMiss(M.goal,G.opened); } }
+    if(G.route==='elite'){ G.pendingPick=1; const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
+  else { G.lostStreak=M.streak; M.streak=0; } syncGoal(); }
 // ---- 卡牌三选一（精英奖励 / 黑市定向 / 奇遇）----
 const BAN_MAX=6;
 const notBanned=pool=>{ const p=pool.filter(c=>!(M.banned||{})[c.id]); return p.length?p:pool; };
@@ -1558,8 +1593,12 @@ function tearPack(p){ const P=PT[p.t], body=p.t===3?'#17130f':P.b, edge=p.t===3?
   [-1,1].forEach(sg=>G.tears.push({x:p.x+sg*2,y:p.y+sg*p.hh/2,oy:0,w:p.hw*2,h:p.hh,top:sg<0,body,edge,vy:sg<0?-150:40,rot:0,vr:sg*rnd(1.5,3)*(Math.random()<.5?-1:1),life:.55}));
   G.parts.push({ring:true,x:p.x,y:p.y,r:6,max:46+p.t*12,life:.35,dur:.35,c:edge,lw:1.2}); }
 function zap(a,b,c){ SFX.play('zap'); G.zaps.push({x1:a.x,y1:a.y,x2:b.x,y2:b.y,c,life:.25}); }
-function burst(x,y,c,n){ n=Math.ceil(n*.45); for(let i=0;i<n;i++){ const a=rnd(0,7),s=rnd(60,300); G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,c,life:rnd(.3,.7)}); } }
-function shake(v){ G.shake=Math.max(G.shake,v*.4); }
+function burst(x,y,c,n){ n=Math.ceil(n*(calm()?.2:.45)); for(let i=0;i<n;i++){ const a=rnd(0,7),s=rnd(60,300); G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,c,life:rnd(.3,.7)}); } }
+// 减少动态效果：默认跟随系统设置，也可以在「设置」里手动开关（关掉震屏、闪光、狂热慢放、首领特写，粒子减半）
+const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
+const calm=()=>M&&(M.calm===true||(M.calm===undefined&&RM.matches));
+function syncCalm(){ document.body.classList.toggle('calm',!!calm()); }
+function shake(v){ if(calm()) return; G.shake=Math.max(G.shake,v*.4); }
 
 // ================= 物理 =================
 const GRAV=950;
@@ -1577,7 +1616,7 @@ function stepBall(b,dt){
   if(b.y<b.r+8){ b.y=b.r+8; b.vy=Math.abs(b.vy)*R.bounce; }
   // 铆钉
   for(const g of PEGS){ const dx=b.x-g.x,dy=b.y-g.y,d=Math.hypot(dx,dy),m=b.r+g.r;
-    if(d<m&&d>0){ const nx=dx/d,ny=dy/d; b.x=g.x+nx*m; b.y=g.y+ny*m; const vn=b.vx*nx+b.vy*ny; if(vn<0){ b.vx-=(1+R.bounce)*vn*nx; b.vy-=(1+R.bounce)*vn*ny; g.flash=.15; G.pegHits++; SFX.play('peg',b.ch); pegHook(b); pegHit(b,g); if(G.mut.pegBoom&&!(g.cd>G.time)){ g.cd=G.time+1.2; boom(g.x,g.y,70,.35*D()); } } } }
+    if(d<m&&d>0){ const nx=dx/d,ny=dy/d; b.x=g.x+nx*m; b.y=g.y+ny*m; const vn=b.vx*nx+b.vy*ny; if(vn<0){ b.vx-=(1+R.bounce)*vn*nx; b.vy-=(1+R.bounce)*vn*ny; g.flash=.15; b.pegged=1; G.pegHits++; SFX.play('peg',b.ch); pegHook(b); pegHit(b,g); if(G.mut.pegBoom&&!(g.cd>G.time)){ g.cd=G.time+1.2; boom(g.x,g.y,70,.35*D()); } } } }
   // 弹射器
   for(const g of BUMPERS){ const dx=b.x-g.x,dy=b.y-g.y,d=Math.hypot(dx,dy),m=b.r+g.r;
     if(d<m&&d>0){ const nx=dx/d,ny=dy/d; b.x=g.x+nx*m; b.y=g.y+ny*m; const sp=Math.max(650,Math.hypot(b.vx,b.vy)*1.1); b.vx=nx*sp; b.vy=ny*sp; if(g.flash<.1) SFX.play('bump'); g.flash=.2; earn(.15*packValue(0),g.x,g.y-24,true); } }
@@ -1616,7 +1655,7 @@ function update(dt){
   if(G.cine){ G.cine.t+=dt; G.shake=Math.max(0,G.shake-dt*20); if(G.cine.t>=G.cine.dur) G.cine=null; return; } // 第二阶段特写：画面定格
   // 打击停顿：短暂冻结一下画面；狂热开始时慢动作
   if(G.hs>0){ G.hs-=dt; return; }
-  if(G.slow>0){ G.slow-=dt; dt*=.3+.7*Math.max(0,1-G.slow/FEVER.slow)**2; }
+  if(G.slow>0){ G.slow-=dt; if(!calm()) dt*=.3+.7*Math.max(0,1-G.slow/FEVER.slow)**2; }
   if(G.fever>0){ G.fever-=dt; if(G.fever<=0){ G.fever=0; G.feverCd=FEVER.cd; G.fx.push({x:W/2,y:H/2,t:'狂热结束',c:'#c9b48a',life:1}); } }
   POCKETS.forEach(p=>p.flash=Math.max(0,p.flash-dt)); if(G.feverCd>0) G.feverCd-=dt; if(G.slotFl) G.slotFl=G.slotFl.map(v=>Math.max(0,v-dt));
   if(G.mut.speed) dt*=G.mut.speed;
@@ -1698,6 +1737,7 @@ const bgCache=document.createElement('canvas'); bgCache.width=W; bgCache.height=
 let UIK=1; // 小屏上台面文字的放大倍数
 function draw(){
   UIK=MOBILE.matches&&cv.clientWidth?Math.min(1.6,Math.max(1,.9*W/cv.clientWidth)):1;
+  FONT_MIN=cv.clientWidth?Math.max(0,10.5*W/cv.clientWidth):0;
   ctx.save();
   if(G&&G.shake>0) ctx.translate(rnd(-G.shake,G.shake),rnd(-G.shake,G.shake));
   cineCam();
@@ -2008,7 +2048,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-09.8';
+const GAME_V='2026-11-09.9';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2520,12 +2560,13 @@ function showIntro(){
   if(!M.guide.story&&M.round===0&&!M.prestiges) return playStory(showIntro);
   $('box').innerHTML=`<img class="hero" src="${ART.hero}" alt=""><h2 class="serif goldtxt">千珠落尽</h2><div class="sub" style="letter-spacing:3px;margin-top:4px"><span class="tag" style="color:var(--gold2);border:1px solid var(--gold3);border-radius:6px;padding:0 6px;letter-spacing:1px">测试版</span> 以珠破封 · 收藏万卡</div>
     <p style="line-height:1.9;font-size:16px;color:var(--ink);margin-top:16px"><b>瞄准卡包，点击发射。</b><br>宝珠撞破卡包，就能开出金币和新卡。<br>宝珠用完后，用收获升级，再开下一轮。</p>
-    <p class="sub">也可以按空格发射。其他玩法会在遇到时告诉你。</p>
+    <p class="sub">${matchMedia('(pointer:coarse)').matches?'':'也可以按空格发射。'}其他玩法会在遇到时告诉你。</p>
     <div class="foot"><span class="sub schrow">${SCH5.map(k=>`<span>${badge(k)}${SCH[k].name}</span>`).join('')}</span><span style="display:flex;gap:8px"><button class="ghost" id="goStory">▶ 开场</button><button class="ghost" id="goMan">📖 游戏手册</button><button class="btn" id="go">开启秘藏</button></span></div>`;
   $('box').insertAdjacentHTML('afterbegin',`<button class="ghost" id="langB" style="position:absolute;top:14px;right:14px;padding:4px 10px;font-size:12px">${LANG==='zh'?'English':'中文'}</button>`); $('langB').onclick=()=>setLang(LANG==='zh'?'en':'zh');
   $('go').onclick=()=>startRound(false); $('goMan').onclick=openManual; $('goStory').onclick=()=>playStory(); $('ov').classList.add('show');
 }
 function showBetween(){
+  syncGoal();
   const ids=Object.keys(G.loot||{}).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar));
   const total=ids.reduce((s,id)=>s+G.loot[id],0); lastLootTotal=total;
   const ready=bossReady()&&!M.delve, canP=M.maxCh>=4;
@@ -2538,8 +2579,8 @@ function showBetween(){
   const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b>每日挑战</b>：开了 <b style="color:var(--gold2)">${G.opened}</b> 包${G.dailyPB?' <b style="color:var(--green)">今天新纪录！</b>':''} · 今天最好 ${M.daily.best} 包 · 第 ${M.daily.tries} 次${G.dailyFirst?` · 今天第一次完成，<b style="color:var(--gold2)">金魂 +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · 连续 ${M.daily.streak} 天`:''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 再来一次</button><button class="ghost" id="dailyRank">看今日榜</button><span class="sub">${M.lbName?'':'起个昵称就能上今日榜'}</span></div></div>`:'';
   const chalMsg=chalC?`<div class="chap" style="margin-top:12px;border-color:${G.chalWin?'var(--green)':'var(--line)'}">${chalC.ico} 挑战「<b>${chalC.name}</b>」${G.chalWin?`<b style="color:var(--green)">成功！</b>${G.chalFirst?` 第一次通关，金魂 +${chalC.soul}`:''}`:`未完成（${chalC.prog(G)}）。换个搭配再试试。`}</div>`:'';
-  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)">目标达成</b> ${G.opened}/${G.goal} 包 · 连胜 <b>${M.streak}</b> · 奖励 <b style="color:var(--gold2)">+${f(G.goalBonus)}</b>（本轮金币的 ${pct(G.goalK)}，连胜越长越多）${G.route==='elite'?`<br>⚔️ 精英奖励：SR 以上卡牌三选一，珠袋里多了一颗<b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub">${mapOn()?'':'首领进度 +1 · '}下一轮目标 ${M.goal} 包</span></div>`
-      :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090">目标没达成</b> ${G.opened}/${G.goal} 包${G.lostStreak?` · ${G.lostStreak} 连胜中断`:''}<br><span class="sub">${mapOn()?'':'这一轮不算首领进度。'}下一轮目标降到 ${M.goal} 包。</span></div>`):'';
+  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)">目标达成</b> ${G.opened}/${G.goal} 包${G.realOpened&&G.realOpened!==G.opened?`<span class="sub">（实际打开 ${G.realOpened} 个，有的卡包一个算多个）</span>`:''} · 连胜 <b>${M.streak}</b> · <br>本轮金币：开包和落袋 ${f(G.earned-G.goalBonus)} + 连胜奖励 <b style="color:var(--gold2)">${f(G.goalBonus)}</b>（${pct(G.goalK)}，连胜越长越多）= <b style="color:var(--gold2)">${f(G.earned)}</b>${G.route==='elite'?`<br>⚔️ 精英奖励：SR 以上卡牌三选一，珠袋里多了一颗<b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub">${mapOn()?'':'首领进度 +1 · '}下一轮目标 ${M.goal} 包</span></div>`
+      :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090">目标没达成</b> ${G.opened}/${G.goal} 包${G.realOpened&&G.realOpened!==G.opened?`<span class="sub">（实际打开 ${G.realOpened} 个）</span>`:''}${G.lostStreak?` · ${G.lostStreak} 连胜中断`:''}<br><span class="sub">${mapOn()?'':'这一轮不算首领进度。'}下一轮目标降到 ${M.goal} 包。</span></div>`):'';
   if(!M.routes||(!unl('routes')&&M.routes.length>1)) M.routes=genRoutes();
   const mapNodes=mapOn()?mapReach():null; if(mapOn()) ensureMap();
   const newU=UNL.filter(u=>u.ok()&&!(M.unl||(M.unl={}))[u.id]); newU.forEach(u=>M.unl[u.id]=1); if(newU.length) save();
@@ -2547,7 +2588,8 @@ function showBetween(){
   const a2hsHTML=MOBILE.matches&&!standalone&&!M.a2hsOff&&M.round>=2&&tab==='loot'?`<div class="chap" id="a2hs" style="margin-top:12px">📱 <b>添加到主屏幕，全屏玩台面更大</b><br><span class="sub">${/iPhone|iPad|iPod/.test(navigator.userAgent)?'iPhone：点 Safari 底部的「分享」→「添加到主屏幕」':'安卓：点浏览器菜单 →「添加到主屏幕」或「安装应用」'}</span>
     <div style="margin-top:6px;display:flex;gap:8px">${instEvt?'<button class="btn" id="a2hsGo" style="padding:6px 14px;font-size:13px;letter-spacing:0">安装</button>':''}<button class="ghost" id="a2hsNo">不再提示</button></div></div>`:'';
   const lbMine=LB.progress.mine();
-  const learnHTML=tab==='loot'&&firstUpgradeReady()?`<div class="learn-step" id="firstUpgradePrompt"><b>用金币，让下一轮更强</b><br>现在可以花 ${f(REP[0].cost(0))} 金币打磨宝珠：基础伤害 ${f(orbDmg(0))} → ${f(orbDmg(1))}。<br><button class="btn" id="learnUpgrade">去升级宝珠</button></div>`:'';
+  const learnOn=tab==='loot'&&firstUpgradeReady(); $('box').classList.toggle('learning',learnOn); // 引导升级时只留一个主按钮
+  const learnHTML=learnOn?`<div class="learn-step" id="firstUpgradePrompt"><b>用金币，让下一轮更强</b><br>现在可以花 ${f(REP[0].cost(0))} 金币打磨宝珠：基础伤害 ${f(orbDmg(0))} → ${f(orbDmg(1))}。<br><button class="btn" id="learnUpgrade">去升级宝珠</button></div>`:'';
   const lbAskHTML=G.packs&&tab==='loot'&&(!M.lbName||M.lbSentName!==M.lbName)&&!M.lbAskOff&&M.round>=2?`<div class="chap" id="lbAsk" style="margin-top:12px;border-color:var(--gold3)">🏆 <b>起个名字上排行榜</b>　<span class="sub">你的最好：${lbMine?LB.progress.fmt(lbMine.value,lbMine.tb):''}${M.best.roundCoins>0?' · 单轮 ✦'+f(M.best.roundCoins):''}${M.bestStreak?' · '+M.bestStreak+' 连胜':''}</span>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><input id="lbAskName" maxlength="12" value="${escH(M.lbName||'')}" placeholder="昵称（最多 12 个字）" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
     <button class="btn" id="lbAskGo" style="padding:7px 16px;font-size:14px;letter-spacing:0">上榜</button><button class="ghost" id="lbAskNo">不再提示</button></div>
@@ -2558,13 +2600,14 @@ function showBetween(){
   const routeBtns=delveBtns||(mapNodes?mapNodes.map(([r,i],k)=>{ const t=M.map.rows[r][i].t; return `<button class="btn ${k?'alt':''}" data-node="${r},${i}" title="${NODE_INFO[t].tip(M.goal)}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>${NODE_INFO[t].ico} ${NODE_INFO[t].name}${mapNodes.length>1?` · ${sideName(M.map.rows[r][i].x)}`:''} ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[t]}</small></button>`; }).join(''):M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join(''));
   const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 不知道某个东西是什么？<span class="sub">手册里都有，打的时候也能随时打开（右上角「📖 手册」）。</span></span><button class="ghost" id="manTipB">打开手册</button></div>`:'';
-  const runMsg=G.packs&&G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090">本局结束</b>：心用完了，第 ${M.ch} 章的地图重新开始。<br><span class="sub">卡牌、金币、升级都保留；本章的卡包强度和连胜清零。</span></div>`:G.packs&&G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}，掉了 1 颗心，还剩 ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}。</div>`:'';
+  const soulMsg=tab==='loot'&&M.soul>0&&!M.guide.soul?(M.guide.soul=1,save(),`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🔥 <b>第一次拿到金魂</b><br><span class="sub">金魂来自挑战关卡、秘卡、熔金转生等。到「更多 → 传承」里买永久加成，转生后也不会丢。</span></div>`):'';
+  const runMsg=G.packs&&G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090">本局结束</b>：心用完了，第 ${M.ch} 章的地图重新开始。<br><span class="sub">逃出来时散落了 <b style="color:#e8a090">${f(G.runLoss||0)}</b> 金币（四分之一）。卡牌和升级都保留，连胜清零。</span></div>`:G.packs&&G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}，掉了 1 颗心，还剩 ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}。</div>`:'';
   const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)">成功撤离！</b>带出来：${delveBagHTML(G.delveOut)}</div>`
     :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">被困在第 ${G.delveLayer} 层</b>：目标 ${G.opened}/${G.goal} 包没达成，背包全丢了：${delveBagHTML(G.delveLost)}</div>`
     :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>深入金库 · 第 ${G.delveLayer} 层打通</b>（${G.opened}/${G.goal} 包）<br>背包：${delveBagHTML(M.delve)}<br><span class="sub">撤离：全部带走。继续：去第 ${G.delveLayer+1} 层，目标 ${delveGoal(G.delveLayer+1)} 包，卡包血量 ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}；没达成就全丢。${(G.delveLayer+1)%2===0?'打通下一层多一颗特殊宝珠。':''}${G.delveLayer+1>=3?`打通下一层再加 ${G.delveLayer-1} 金魂。`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ 这一轮提前结束了，台面上还在飞的宝珠没有结算。</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):(G.reborn?'熔金转生完成':G.delveOut?'深入金库 · 撤离成功':'欢迎回来')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):(G.reborn?'熔金转生完成':G.delveOut?'深入金库 · 撤离成功':'欢迎回来')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+soulMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${a2hsHTML}${lbAskHTML}
     ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
@@ -2658,6 +2701,7 @@ function showBetween(){
   } else if(tab==='sys'){
     body.innerHTML=`${PLAY_HELP}<div class="chap">🌐 语言 · Language <span style="display:inline-flex;gap:6px;margin-left:10px"><button class="ghost" data-lang="zh" ${LANG==='zh'?'disabled':''}>中文</button><button class="ghost" data-lang="en" ${LANG==='en'?'disabled':''}>English</button></span></div><div class="chap">🔊 音效 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}>开启</label> <span class="sub">（快捷键 M）</span></div>
       <div class="chap">📳 震动 ${navigator.vibrate?`<label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sVibe" ${M.vibe===false?'':'checked'}>开启</label> <span class="sub">（开出稀有包、×5 大奖、狂热、首领时轻震）</span>`:'<span class="sub">这台设备的浏览器不支持震动</span>'}</div>
+      <div class="chap">🌀 减少动态效果 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sCalm" ${calm()?'checked':''}>开启</label> <span class="sub">关掉震屏、全屏闪光、狂热慢放和首领特写，粒子减少。默认跟随系统的「减少动态效果」设置。</span></div>
       <div class="chap">📊 匿名统计 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sStats" ${M.stats===false?'':'checked'}>开启</label> <span class="sub">每轮结算时匿名上传用的流派和卡、章节、这一轮的成绩，帮作者调平衡。只带一个随机 id，不带昵称和其他个人信息。</span></div>
       <details class="chap"><summary style="cursor:pointer">🔒 隐私说明</summary><div class="sub" style="line-height:1.8;margin-top:6px">· <b>存档</b>只存在你这台设备的浏览器里，换设备请用下面的「导出存档」。<br>· <b>匿名统计</b>（可以关）：每轮上传一条记录，只有一个随机 id、用的卡和流派、章节、这一轮的成绩和时长，用来调平衡。<br>· <b>排行榜</b>（自愿）：起了昵称才会上榜，昵称和成绩会公开显示。<br>· 不收集账号、手机号、位置等任何个人信息，没有广告和第三方追踪。<br>· 这是<b>测试版</b>：数值还会经常调整，偶尔可能有 bug，遇到问题欢迎反馈。</div></details>
       <div class="sub" style="text-align:right;font-size:11px">测试版 · ${GAME_V}</div>
@@ -2672,6 +2716,7 @@ function showBetween(){
     $('sDev').onchange=e=>{ M.dev=e.target.checked; save(); toast(M.dev?'开发者模式已开：不上传统计和排行榜':'开发者模式已关'); };
     $('sStats').onchange=e=>{ M.stats=e.target.checked; save(); toast(M.stats?'已开启匿名统计':'已关闭匿名统计'); };
     if($('sVibe')) $('sVibe').onchange=e=>{ M.vibe=e.target.checked; save(); if(M.vibe) buzz(30); };
+    if($('sCalm')) $('sCalm').onchange=e=>{ M.calm=e.target.checked; save(); syncCalm(); };
     $('sCopy').onclick=()=>{ const t=$('sCode'); t.select(); try{ navigator.clipboard.writeText(t.value).then(()=>toast('已复制存档码'),()=>{ document.execCommand('copy'); toast('已复制存档码'); }); }catch(e){ document.execCommand('copy'); toast('已复制存档码'); } };
     body.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
     $('sImp').onclick=()=>{ try{ importCode($('sIn').value); recalcTree(); syncMute(); syncSpeed(); renderSide(); hud(); G={loot:{}}; tab='loot'; toast('存档导入成功'); showBetween(); }catch(e){ toast('导入失败：'+e.message); } };
@@ -2709,7 +2754,7 @@ $('emb').src=ART.emblem;
 function finishLoad(){
   running=false; ROUND_EQ=null; if(!M.pid) M.pid=newPid();
   const migrated=M.round>0?migrateTree():(M.treeV=2,0);
-  recalcTree(); syncMute(); syncSpeed(); buildPockets(); save(); renderSide(); hud();
+  recalcTree(); syncMute(); syncSpeed(); syncCalm(); try{ RM.addEventListener&&RM.addEventListener('change',syncCalm); }catch(e){} buildPockets(); save(); renderSide(); hud();
   if(M.round>0){ G={loot:{},migrated}; tab='up'; abandonRound(); showBetween(); } else { G=null; showIntro(); }
 }
 load();

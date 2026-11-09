@@ -27,27 +27,23 @@ test('卡包补充最快 0.45 秒，补货节点再多也不会更快', () => {
   assert.match(body, /G\.refill\.push\(\{slot:p\.slot,t:Math\.max\(REFILL_MIN,/);
 });
 
-function settle(goal, opened, route = 'normal') {
-  const ctx = vm.createContext({
-    G: {route, opened, goal, earned: 0}, M: {goal, streak: 0, bestStreak: 0, chRounds: 0, money: 0, life: 0, orbs: {}},
-    ORB_SPECIAL: ['fire'], Math, loseHeart() {},
-  });
-  vm.runInContext(between('const GOAL_MIN=', '\n') + '\n' + between('const goalAfterMiss=', '// ---- 卡牌三选一'), ctx);
-  vm.runInContext('settleRoute()', ctx);
-  return ctx.M.goal;
-}
-
-test('目标每轮最多涨 max(6, 目标的 1 倍)：后期开几千包时目标能追上来', () => {
-  assert.equal(settle(10, 12), 12);           // 小幅超额：按 80% 跟上
-  assert.equal(settle(10, 100), 20);          // 早期：最多翻倍
-  assert.equal(settle(100, 1000), 200);       // 后期：最多翻倍
-  assert.equal(settle(100, 90), 98);          // 没达成：-2
+test('固定目标曲线：只看章节和地图第几站，不再追着开包数涨', () => {
+  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, Math});
+  vm.runInContext(between('const GOAL_MIN=', 'const ROUTES={') + ';this.g=goalFor;this.s=syncGoal;', ctx);
+  assert.equal(ctx.g(1, 0), 10); assert.equal(ctx.g(1, 5), 14);
+  assert.equal(ctx.g(2, 0), 60); assert.equal(ctx.g(3, 0), 170); assert.equal(ctx.g(3, 5), 238);
+  assert.equal(ctx.g(6, 0), 400); assert.equal(ctx.g(7, 0), 448);
+  ctx.M.map = {ch: 1, r: 2}; ctx.s(); assert.equal(ctx.M.goal, 12);          // 下一站是第 3 排（r+1）
+  ctx.s(true); assert.equal(ctx.M.goal, 12);                                 // 正在打第 2 排
+  const settle = between('function settleRoute(){', '// ---- 卡牌三选一');
+  assert.doesNotMatch(settle, /M\.goal\+=/); assert.doesNotMatch(settle, /goalAfterMiss\(/);
+  assert.match(settle, /syncGoal\(\)/);
 });
 
 test('开发者模式：不上传统计、不上排行榜，存档里是布尔值', () => {
   assert.match(between('function statSend(', '\n'), /M\.dev/);
   assert.match(between('async function lbSubmit(', '\n'), /M\.dev/);
-  assert.match(html, /for\(const k of \['stats','vibe','dev'\]\)/);
+  assert.match(html, /for\(const k of \['stats','vibe','dev','calm'\]\)/);
 });
 
 test('秘卡门槛：无尽回响 50 次命中，奇点 20 颗宝珠', () => {
@@ -72,7 +68,8 @@ test('普通卡包：金币和血量同步成长，开出好卡的概率随章�
 
 test('SSR 不再太好拿：保底 100 张（黑金之约点满 50），黑金秘藏自然出现率减半，青铜包第 1 章 SSR 0.2%', () => {
   assert.match(html, /const PITY_BASE=100, PITY_STEP=10;/);
-  assert.match(html, /if\(r<\(\.002\+\.002\*s\)\*lk\) t=3;/);
+  assert.match(html, /if\(r<\(\.002\+\.002\*s\)\*lk\*\(1\+BLACK_PACT\*upLv\('pityup'\)\)\) t=3;/);
+  assert.match(html, /Math\.min\(STAGE_ODDS_MAX,M\.up\.stage\)/);
   assert.match(html, /odds:\[80,17\.5,2\.4,\.1\]/);
 });
 
@@ -206,17 +203,16 @@ test('统计调整：首领第 2 章起 +25%，灼烧加强，财富能加开包
   assert.match(html, /\(G\.R\.vip&&p\.t>=1\?1:0\)/);
 });
 
-test('本章越打越硬：每轮血量和金币 ×1.15，最多 10 轮，进下一章和转生时重置，每日挑战不受影响', () => {
+test('本章轮数只让金币小幅上涨（×1.07/轮，最多 10 轮）；卡包血量不再越打越硬', () => {
   const ctx = vm.createContext({M: {chAge: 0}, DAILY: null, Math});
   vm.runInContext(between('const AGE_G=', 'const packHp=') + ';this.a=ageMult;', ctx);
   assert.equal(ctx.a(), 1);
-  ctx.M.chAge = 4; assert.ok(Math.abs(ctx.a() - 1.15 ** 4) < 1e-9);
-  ctx.M.chAge = 30; assert.ok(Math.abs(ctx.a() - 1.15 ** 10) < 1e-9);
+  ctx.M.chAge = 4; assert.ok(Math.abs(ctx.a() - 1.07 ** 4) < 1e-9);
+  ctx.M.chAge = 30; assert.ok(Math.abs(ctx.a() - 1.07 ** 10) < 1e-9);
   ctx.DAILY = {}; assert.equal(ctx.a(), 1);
-  assert.match(html, /\*Math\.pow\(CH_HP,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
+  assert.doesNotMatch(between('const packHp=', '\n'), /ageMult/);
   assert.match(html, /\*Math\.pow\(CH_VAL,\(DAILY\?1:M\.ch\)-1\)\*ageMult\(\)/);
-  assert.match(html, /M\.chRounds=0; M\.chAge=0;/);
-  assert.match(html, /\n  M\.chAge=\(M\.chAge\|\|0\)\+1; if\(!ok\) loseHeart/);
+  assert.match(html, /M\.chRounds=0; M\.chAge=0; syncGoal\(\);/);
 });
 
 test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少一个精英；首站只有普通', () => {
@@ -228,6 +224,7 @@ test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少�
     assert.equal(m.rows.length, 6); assert.equal(m.next.length, 5); assert.equal(m.hearts, 3); assert.equal(m.r, -1);
     assert.ok(m.rows[0].every(o => o.t === 'normal'));
     assert.ok(m.rows.flat().some(o => o.t === 'elite'));
+    assert.ok(m.rows.flat().some(o => o.t === 'shop' || o.t === 'event'));   // 每张图至少一个黑市或奇遇
     assert.ok(!m.rows[1].some(o => o.t === 'shop'));
     for (let r = 0; r < 5; r++) {
       assert.ok(m.next[r].every(l => l.length >= 1));
@@ -239,10 +236,10 @@ test('章节地图：6 站，每站 2~3 个点，每个点都走得到，至少�
 });
 
 test('深入金库：每层血量 ×1.3^层、目标逐层提高；失败背包全丢并掉心，地图里每张最多一个', () => {
-  assert.match(html, /const DELVE_HP=1\.3, DELVE_COIN=\.35, DELVE_GOAL=\.8, DELVE_GOAL_STEP=\.25;/);
+  assert.match(html, /const DELVE_HP=1\.3, DELVE_COIN=\.35, DELVE_GOAL=1, DELVE_GOAL_STEP=\.1;/);
   assert.match(html, /G\.mut=\{hpX:Math\.pow\(DELVE_HP,L\)\}/);
   assert.match(html, /else \{ G\.delveLost=\{\.\.\.d\}; M\.delve=null; loseHeart\('被困在金库深处'\); \}/);
-  assert.match(html, /if\(G\.route==='delve'\)\{ delveSettle\(ok\); return; \}/);
+  assert.match(html, /if\(G\.route==='delve'\)\{ M\.chAge=\(M\.chAge\|\|0\)\+1; delveSettle\(ok\); return; \}/);
   const src = between('const MAP_ROWS=', 'function ensureMap(');
   for (let k = 0; k < 300; k++) {
     const ctx = vm.createContext({M: {ch: 2}, Math, unl: () => true});

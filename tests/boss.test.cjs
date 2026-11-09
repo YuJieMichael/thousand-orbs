@@ -14,9 +14,9 @@ function between(from, to) {
 function fixture() {
   const context = vm.createContext({
     W: 540, H: 900, damage: 3, cards: [], timers: [], performance: {now: () => 0},
-    M: {money: 0, life: 0, up: {stage: 0}, legacy: {rich: 0, start: 0},
+    M: {money: 0, life: 0, up: {stage: 0, dmg: 0}, legacy: {rich: 0, start: 0, pow: 0},
       ch: 1, maxCh: 1, round: 8, goal: 10, chRounds: 3, bossTries: 0, best: {}, orbs: {}, shopN: {}},
-    TS: {coin: 0, ks: {}}, PT: [{hp: 1, val: 1}, {hp: 4, val: 4}, {hp: 12, val: 15}],
+    TS: {coin: 0, ks: {}, dmg: 0}, PT: [{hp: 1, val: 1}, {hp: 4, val: 4}, {hp: 12, val: 15}],
     SFX: {play() {}}, CHAL: [], ORB_SPECIAL: [], BOONS: [], GOAL_MIN: 8, GOAL_REBORN: .3,
     $: () => ({classList: {remove() {}}}),
     buildLayout() {}, buildPockets() {}, rollSpecials() {}, renderSide() {}, guideTip() {}, hud() {},
@@ -25,10 +25,10 @@ function fixture() {
     buzz() {}, shake() {}, toast() {}, bossIdx: ch => ch, chInfo: () => ({name: 'test', boss: 'test'}),
     urUnlocked: () => [], f: x => String(x), rnd: () => 0,
     recalcTree() {}, save() {}, soulGain: () => 0, checkAch() {}, showBetween() {},
-    fresh: () => ({up: {stage: 0}}),
+    fresh: () => ({up: {stage: 0}}), ensureMap() {},
   });
   vm.runInContext(`let G=null, ROUND_EQ=null, running=false, tab='';
-    const D=()=>damage;
+    const D=()=>damage; const orbDmg=()=>damage/4.5; const syncGoal=()=>{ M.goal=10; }; // 首领基准只看 dPlain（打磨等级），测试里用 damage 代表它
     const setTimeout=(fn,delay)=>timers.push({fn,delay});
     const giveCard=(p,k)=>cards.push(k);
     const enterP2=p=>{p.p2=true;p.hp=p.max*.5;};
@@ -120,5 +120,5 @@ test('prestige clears the prior run boss basis, growth cap and normal-output his
   const {M} = f.state();
   assert.equal(M.ch, 1); assert.equal(M.bossD, undefined);
   assert.equal(M.lastBossHp, undefined); assert.equal(M.dealtAvg, undefined);
-  assert.equal(M.goal, Math.max(8, Math.round((goalBefore || 8) * 0.3))); assert.equal(M.streak, 0);   // 转生保留三成目标，连胜清零
+  assert.equal(M.goal, 10); assert.equal(M.streak, 0); void goalBefore;   // 转生后目标回到第 1 章的固定曲线，连胜清零
 });
