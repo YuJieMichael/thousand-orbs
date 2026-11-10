@@ -1013,7 +1013,7 @@ function delveSettle(ok){ const d=M.delve; if(!d) return; const L=d.layer;
   const coins=Math.min(M.money,G.earned); M.money-=coins; d.coins+=coins;
   for(const [id,n] of Object.entries(G.loot||{})){ const left=Math.max(0,(M.owned[id]||0)-n), took=(M.owned[id]||0)-left; if(!took) continue;
     if(left>0) M.owned[id]=left; else { delete M.owned[id]; M.deck=M.deck.filter(x=>x!==id); } d.cards[id]=(d.cards[id]||0)+took; }
-  if(ok){ if(L%2===0){ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; d.orbs[k]=(d.orbs[k]||0)+1; } if(L>=3) d.soul+=L-2; G.delveOk=true; }
+  if(ok){ if(M.run){ M.run.score+=10*M.ch*L; G.delveScore=10*M.ch*L; } if(L%2===0){ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; d.orbs[k]=(d.orbs[k]||0)+1; } if(L>=3) d.soul+=L-2; G.delveOk=true; }
   else { G.delveLost={...d}; M.delve=null; loseHeart('被困在金库深处'); }
   G.delveLayer=L; }
 function delveExtract(){ const d=M.delve; if(!d) return; M.delve=null;
@@ -2121,7 +2121,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-10.3';
+const GAME_V='2026-11-10.4';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2204,7 +2204,7 @@ function spendFx(txt,el,big){ if(!el) return; const r=el.getBoundingClientRect()
 // ================= 🧭 远征：一局一局的冒险（设计见 docs/expedition-design.md） =================
 const DAILY_RUN_DANGER=1;
 const BOSS_HEAL=.25;
-const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, DANGER_MAX=5, FINAL_BOSS=1.15; // 第 3 章首领是终章首领：血量 ×1.15
+const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, heartCap=()=>{ const q=runSquad(); return q==='iron'?4:q==='gamb'?2:RUN_HEARTS; }, DANGER_MAX=5, FINAL_BOSS=1.15; // 第 3 章首领是终章首领：血量 ×1.15
 const DANGER={goal:.15,hp:.1,boss:.25};
 const dangerLv=()=>DAILY||!M.run?0:(M.run.danger||0);
 const SQUADS=[
@@ -2237,8 +2237,8 @@ function finishRun(){ const r=M.run; if(!r||r.awarded) return M.lastRun;
   const cleared=win?ACTS:M.ch-1, depth=(r.danger||0)*4+cleared;
   M.soul+=souls; M.runs=(M.runs||0)+1; if(win) M.wins=(M.wins||0)+1;
   M.bestScore=Math.max(M.bestScore||0,score); M.bestAct=Math.max(M.bestAct||0,Math.min(ACTS,M.ch));
-  let dUnl=0; if(win&&(r.danger||0)>=(M.dangerMax||0)&&(M.dangerMax||0)<DANGER_MAX){ M.dangerMax=(r.danger||0)+1; dUnl=M.dangerMax; }
-  if(depth>(M.best.depth||0)||(depth===(M.best.depth||0)&&M.round<(M.best.depthRounds||1e9))){ M.best.depth=depth; M.best.depthRounds=M.round; }
+  let dUnl=0; if(win&&!r.daily&&(r.danger||0)>=(M.dangerMax||0)&&(M.dangerMax||0)<DANGER_MAX){ M.dangerMax=(r.danger||0)+1; dUnl=M.dangerMax; }
+  if(!r.daily&&(depth>(M.best.depth||0)||(depth===(M.best.depth||0)&&M.round<(M.best.depthRounds||1e9)))){ M.best.depth=depth; M.best.depthRounds=M.round; }
   const newSq=SQUADS.filter(q=>squadOk(q)&&!before.includes(q.id)).map(q=>q.id);
   r.awarded=1; if(r.daily){ const db=M.dailyRun&&M.dailyRun.day===r.daily?M.dailyRun:{day:r.daily,best:0,tries:0}; db.tries++; db.best=Math.max(db.best,score); M.dailyRun=db; M.daily={day:r.daily,best:db.best,streak:(M.daily&&M.daily.streak)||1}; dailySubmit(); }
   M.lastRun={daily:r.daily||null,win,score,souls,act:M.ch,danger:r.danger||0,squad:r.squad,rounds:M.round,mins:Math.round((Date.now()-r.t0)/60000),goals:r.goals,bosses:r.bosses,newSq,dUnl};
@@ -2288,9 +2288,9 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
 // 营火：回一颗心，或者磨练一张装备中的卡
 function showCampfire(){ const box=$('box'), eq=equipped(), r=M.run;
   box.innerHTML=`<h2 class="serif goldtxt">🔥 营火</h2><div class="sub" style="margin-top:6px">火光很暖。这一站不打，选一件事做。</div>
-    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=HEART_MAX?'disabled':''}><b>❤️ 休息</b><br><span class="sub">回 1 颗心（现在 ${r.hearts}/${HEART_MAX}）</span></button>
+    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=heartCap()?'disabled':''}><b>❤️ 休息</b><br><span class="sub">回 1 颗心（最多回到开局的 ${heartCap()} 颗，现在 ${r.hearts}/${heartCap()}）</span></button>
     <button class="dcard" id="cfTrain" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${eq.length?'':'disabled'}><b>🔨 磨练</b><br><span class="sub">装备中的每张卡 +2 张（升级更快）</span></button></div>`;
-  $('cfRest').onclick=()=>{ r.hearts=Math.min(HEART_MAX,r.hearts+1); if(M.map) M.map.hearts=r.hearts; SFX.play('ach'); toast('❤️ 回了 1 颗心'); leaveDetour(); };
+  $('cfRest').onclick=()=>{ r.hearts=Math.min(heartCap(),r.hearts+1); if(M.map) M.map.hearts=r.hearts; SFX.play('ach'); toast('❤️ 回了 1 颗心'); leaveDetour(); };
   $('cfTrain').onclick=()=>{ eq.forEach(id=>M.owned[id]=(M.owned[id]||0)+2); SFX.play('buy'); toast('🔨 装备中的卡都 +2 张'); recalcTree(); leaveDetour(); };
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
 
@@ -2896,7 +2896,7 @@ function showBetween(){
   const runMsg=G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090">本局结束</b>：心用完了，第 ${M.ch} 章的地图重新开始。<br><span class="sub">${G.runLoss?`逃出来时散落了 <b style="color:#e8a090">${f(G.runLoss)}</b> 金币。`:''}卡牌和升级都保留，连胜、秘符和遗珍清零。</span></div>`:G.wardSaved?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🛡️ ${G.heartLost}，心没有少。</div>`:G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}，掉了 1 颗心，还剩 ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}。</div>`:'';
   const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)">成功撤离！</b>带出来：${delveBagHTML(G.delveOut)}</div>`
     :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">被困在第 ${G.delveLayer} 层</b>：目标 ${G.opened}/${G.goal} 包没达成，背包全丢了：${delveBagHTML(G.delveLost)}</div>`
-    :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>深入金库 · 第 ${G.delveLayer} 层打通</b>（${G.opened}/${G.goal} 包）<br>背包：${delveBagHTML(M.delve)}<br><span class="sub">撤离：全部带走。继续：去第 ${G.delveLayer+1} 层，目标 ${delveGoal(G.delveLayer+1)} 包，卡包血量 ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}；没达成就全丢。${(G.delveLayer+1)%2===0?'打通下一层多一颗特殊宝珠。':''}${G.delveLayer+1>=3?`打通下一层再加 ${G.delveLayer-1} 金魂。`:''}</span></div>`:'';
+    :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>深入金库 · 第 ${G.delveLayer} 层打通</b>（${G.opened}/${G.goal} 包）${G.delveScore?` · 远征分数 +${G.delveScore}`:''}<br>背包：${delveBagHTML(M.delve)}<br><span class="sub">撤离：全部带走。继续：去第 ${G.delveLayer+1} 层，目标 ${delveGoal(G.delveLayer+1)} 包，卡包血量 ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}；没达成就全丢。${(G.delveLayer+1)%2===0?'打通下一层多一颗特殊宝珠。':''}${G.delveLayer+1>=3?`打通下一层再加 ${G.delveLayer-1} 金魂。`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ 这一轮提前结束了，台面上还在飞的宝珠没有结算。</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
   $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):(G.reborn?'熔金转生完成':G.delveOut?'深入金库 · 撤离成功':M.run&&M.round===0?'🧭 远征开始':'欢迎回来')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+soulMsg+bkMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${stageHTML}${a2hsHTML}${lbAskHTML}

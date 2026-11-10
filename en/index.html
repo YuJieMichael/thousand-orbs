@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:e6e39ff0c99ca0a53f02d19a37cce47b8feb4f1a -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:ca96d2d79de74f9caf79e68feab315b4c953fd37 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1014,7 +1014,7 @@ function delveSettle(ok){ const d=M.delve; if(!d) return; const L=d.layer;
   const coins=Math.min(M.money,G.earned); M.money-=coins; d.coins+=coins;
   for(const [id,n] of Object.entries(G.loot||{})){ const left=Math.max(0,(M.owned[id]||0)-n), took=(M.owned[id]||0)-left; if(!took) continue;
     if(left>0) M.owned[id]=left; else { delete M.owned[id]; M.deck=M.deck.filter(x=>x!==id); } d.cards[id]=(d.cards[id]||0)+took; }
-  if(ok){ if(L%2===0){ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; d.orbs[k]=(d.orbs[k]||0)+1; } if(L>=3) d.soul+=L-2; G.delveOk=true; }
+  if(ok){ if(M.run){ M.run.score+=10*M.ch*L; G.delveScore=10*M.ch*L; } if(L%2===0){ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; d.orbs[k]=(d.orbs[k]||0)+1; } if(L>=3) d.soul+=L-2; G.delveOk=true; }
   else { G.delveLost={...d}; M.delve=null; loseHeart('Trapped deep in the vault'); }
   G.delveLayer=L; }
 function delveExtract(){ const d=M.delve; if(!d) return; M.delve=null;
@@ -2122,7 +2122,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-10.3';
+const GAME_V='2026-11-10.4';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2205,7 +2205,7 @@ function spendFx(txt,el,big){ if(!el) return; const r=el.getBoundingClientRect()
 // ================= 🧭 远征：一局一局的冒险（设计见 docs/expedition-design.md） =================
 const DAILY_RUN_DANGER=1;
 const BOSS_HEAL=.25;
-const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, DANGER_MAX=5, FINAL_BOSS=1.15; // 第 3 章首领是终章首领：血量 ×1.15
+const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, heartCap=()=>{ const q=runSquad(); return q==='iron'?4:q==='gamb'?2:RUN_HEARTS; }, DANGER_MAX=5, FINAL_BOSS=1.15; // 第 3 章首领是终章首领：血量 ×1.15
 const DANGER={goal:.15,hp:.1,boss:.25};
 const dangerLv=()=>DAILY||!M.run?0:(M.run.danger||0);
 const SQUADS=[
@@ -2238,8 +2238,8 @@ function finishRun(){ const r=M.run; if(!r||r.awarded) return M.lastRun;
   const cleared=win?ACTS:M.ch-1, depth=(r.danger||0)*4+cleared;
   M.soul+=souls; M.runs=(M.runs||0)+1; if(win) M.wins=(M.wins||0)+1;
   M.bestScore=Math.max(M.bestScore||0,score); M.bestAct=Math.max(M.bestAct||0,Math.min(ACTS,M.ch));
-  let dUnl=0; if(win&&(r.danger||0)>=(M.dangerMax||0)&&(M.dangerMax||0)<DANGER_MAX){ M.dangerMax=(r.danger||0)+1; dUnl=M.dangerMax; }
-  if(depth>(M.best.depth||0)||(depth===(M.best.depth||0)&&M.round<(M.best.depthRounds||1e9))){ M.best.depth=depth; M.best.depthRounds=M.round; }
+  let dUnl=0; if(win&&!r.daily&&(r.danger||0)>=(M.dangerMax||0)&&(M.dangerMax||0)<DANGER_MAX){ M.dangerMax=(r.danger||0)+1; dUnl=M.dangerMax; }
+  if(!r.daily&&(depth>(M.best.depth||0)||(depth===(M.best.depth||0)&&M.round<(M.best.depthRounds||1e9)))){ M.best.depth=depth; M.best.depthRounds=M.round; }
   const newSq=SQUADS.filter(q=>squadOk(q)&&!before.includes(q.id)).map(q=>q.id);
   r.awarded=1; if(r.daily){ const db=M.dailyRun&&M.dailyRun.day===r.daily?M.dailyRun:{day:r.daily,best:0,tries:0}; db.tries++; db.best=Math.max(db.best,score); M.dailyRun=db; M.daily={day:r.daily,best:db.best,streak:(M.daily&&M.daily.streak)||1}; dailySubmit(); }
   M.lastRun={daily:r.daily||null,win,score,souls,act:M.ch,danger:r.danger||0,squad:r.squad,rounds:M.round,mins:Math.round((Date.now()-r.t0)/60000),goals:r.goals,bosses:r.bosses,newSq,dUnl};
@@ -2289,9 +2289,9 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
 // 营火：回一颗心，或者磨练一张装备中的卡
 function showCampfire(){ const box=$('box'), eq=equipped(), r=M.run;
   box.innerHTML=`<h2 class="serif goldtxt">🔥 Campfire</h2><div class="sub" style="margin-top:6px"> The fire is warm. No fight here — choose one thing to do.</div>
-    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=HEART_MAX?'disabled':''}><b>❤️ Rest</b><br><span class="sub"> Recover 1 heart (now ${r.hearts}/${HEART_MAX})</span></button>
+    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=heartCap()?'disabled':''}><b>❤️ Rest</b><br><span class="sub"> Recover 1 heart (up to your starting ${heartCap()} hearts; now ${r.hearts}/${heartCap()})</span></button>
     <button class="dcard" id="cfTrain" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${eq.length?'':'disabled'}><b>🔨 Train</b><br><span class="sub">+2 copies of every equipped card (levels up faster)</span></button></div>`;
-  $('cfRest').onclick=()=>{ r.hearts=Math.min(HEART_MAX,r.hearts+1); if(M.map) M.map.hearts=r.hearts; SFX.play('ach'); toast('❤️ Recovered 1 heart'); leaveDetour(); };
+  $('cfRest').onclick=()=>{ r.hearts=Math.min(heartCap(),r.hearts+1); if(M.map) M.map.hearts=r.hearts; SFX.play('ach'); toast('❤️ Recovered 1 heart'); leaveDetour(); };
   $('cfTrain').onclick=()=>{ eq.forEach(id=>M.owned[id]=(M.owned[id]||0)+2); SFX.play('buy'); toast('🔨 Equipped cards +2 each'); recalcTree(); leaveDetour(); };
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
 
@@ -2897,7 +2897,7 @@ function showBetween(){
   const runMsg=G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090"> Run over</b>: you’re out of hearts, so the Chapter ${M.ch} map starts over. <br><span class="sub">${G.runLoss?`You dropped <b style="color:#e8a090">${f(G.runLoss)}</b> coins.`:''} Cards and upgrades are kept; your streak, Sigils and Relics reset.</span></div>`:G.wardSaved?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🛡️ ${G.heartLost} — no heart lost.</div>`:G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}, lost 1 heart. Left: ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}.</div>`:'';
   const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)"> Extracted!</b> Brought out: ${delveBagHTML(G.delveOut)}</div>`
     :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">Trapped on layer ${G.delveLayer}</b>: missed the goal (${G.opened}/${G.goal} packs) and lost the whole bag: ${delveBagHTML(G.delveLost)}</div>`
-    :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>The Deep Vault · Layer ${G.delveLayer} cleared</b> (${G.opened}/${G.goal} packs)<br>Bag: ${delveBagHTML(M.delve)}<br><span class="sub">Extract: take everything home. Push on: layer ${G.delveLayer+1}, goal ${delveGoal(G.delveLayer+1)} packs, pack HP ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}; miss it and you lose it all. ${(G.delveLayer+1)%2===0?'Clearing the next layer adds a special orb. ':''}${G.delveLayer+1>=3?`Clearing it also adds ${G.delveLayer-1} Gold Souls.`:''}</span></div>`:'';
+    :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>The Deep Vault · Layer ${G.delveLayer} cleared</b> (${G.opened}/${G.goal} packs)${G.delveScore?` · expedition score +${G.delveScore}`:''}<br>Bag: ${delveBagHTML(M.delve)}<br><span class="sub">Extract: take everything home. Push on: layer ${G.delveLayer+1}, goal ${delveGoal(G.delveLayer+1)} packs, pack HP ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}; miss it and you lose it all. ${(G.delveLayer+1)%2===0?'Clearing the next layer adds a special orb. ':''}${G.delveLayer+1>=3?`Clearing it also adds ${G.delveLayer-1} Gold Souls.`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ This round ended early; orbs still in flight didn’t pay out.</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ Blessings: ${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
   $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':M.run&&M.round===0?'🧭 Expedition begins':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+soulMsg+bkMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${stageHTML}${a2hsHTML}${lbAskHTML}
