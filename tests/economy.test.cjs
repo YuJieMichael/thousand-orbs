@@ -289,5 +289,14 @@ test('远征内容：20 种奇遇、25 件遗珍、危险规则、终章首领',
   assert.match(html, /const DANGER_RULES=\[null,/);
   assert.match(html, /const FINAL_INFO=\{name:'金库核心',boss:'金库之主',ico:'👑',mech:'lord'\}/);
   assert.match(html, /if\(p\.mech\.includes\('lord'\)&&guardsUp\(\)\)\{ amt\*=LORD\.cut;/);
-  assert.match(html, /Math\.floor\(runRand\(\)\*EVENTS\.length\)/); // 每日远征的奇遇也固定
+  assert.match(html, /let x=runRand\(\)\*w\.reduce/); // 每日远征的奇遇也固定（按种子抽）
+});
+
+test('结局：四个结局、信物来源、暗门、真结局条件', () => {
+  for (const k of ['e1', 'e2', 'e3', 'e4']) assert.match(html, new RegExp(k + ":\\{n:\\d,ico:"));
+  assert.match(html, /M\.run\.ending=M\.run\.gate\?\(p\.p3\?'e4':'e2'\):\(\(M\.run\.stars\|\|0\)>=3\?'e3':'e1'\)/);
+  assert.match(html, /const trueReady=\(\)=>\{ const r=M\.run, e=M\.endings\|\|\{\}; return !!\(r&&!r\.daily&&r\.gate&&\(r\.stars\|\|0\)>=3&&e\.e2&&e\.e3&&\(r\.danger\|\|0\)>=TRUE_DANGER\); \};/);
+  for (const src of ["addStar('boss'", "addStar('event'", "addStar('direct'", "giveKey('从石门", "giveKey('精英"]) assert.ok(html.includes(src), src);
+  assert.match(html, /last\.reduce\(\(a,o\)=>o\.x>a\.x\?o:a,last\[0\]\)\.t='gate'/);
+  assert.match(html, /const META_KEYS=\['unlocked','dailyRun','endings',/);
 });
