@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:bd737cb1e3edc4dbcd6c21cc2b65c9ebca7238a3 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:cfc2275bccd7c611da98aaae280985ca2473a223 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -689,7 +689,7 @@ const CARD_COIN_CAP=6;
 
 // ================= 存档 =================
 const KEY='thousand-orbs-run-v1'; // 远征版：新存档位（旧版存档不迁移）
-const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,cnt:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0},life:0,prestiges:0,foil:{},bossTries:0,
+const fresh=()=>({money:0,owned:{},deck:[],up:{dmg:0,ammo:0,packs:0,basket:0,slot:0,stage:0,cnt:0,auto:0,crit:0,critx:0,breaker:0,cleave:0,basket2:0,volley:0,luck:0,pityup:0,reson:0,rapid:0},round:0,pity:0,opened:0,autoOn:true,ch:1,chRounds:0,maxCh:1,soul:0,legacy:{pow:0,rich:0,orb:0,shine:0,start:0,relic:0,heart:0,pack:0,recruit:0,skill:0,sigil:0},life:0,prestiges:0,foil:{},bossTries:0,
   mute:false,fbSeen:0,shopN:{1:0,2:0,3:0},asc:{},chalDone:{},nextMut:null,mutOff:false,ach:{},eggR:{},lastSeen:0,rate:0,best:{chain:0,opened:0,combo:0,nobask:false,quick:false,mx:1,fever:0,hc:0,roundCoins:0,chRound:0},tree:{},treeSpent:0,keep:{},treeV:2,
   goal:10,streak:0,bestStreak:0,orbs:{fire:1,heavy:1},routes:null,banned:{},pickRolls:0,unl:{},
   pid:'',lbName:'',lbSent:{},lbSentName:'',saveV:1,guide:{},inRound:null,elitePick:0,bkCh:0,sigils:[],sigQ:[],relics:[],relicQ:[],run:null,recruit:0,unlocked:{},dailyRun:null,endings:{},squads:{},dangerMax:0,runs:0,wins:0,bestScore:0,bestAct:0,seen:{}});
@@ -731,7 +731,7 @@ function normalizeSave(data){
   if(Array.isArray(next.charms)&&!next.sigils.length) next.sigils=next.charms; delete next.charms; // 旧版「护符」→「秘符」（id 相同的直接沿用）
   if(typeof SIGILS!=='undefined'){ next.sigils=next.sigils.filter(id=>typeof id==='string'&&SIGILS.some(c=>c.id===id));
     next.sigQ=next.sigQ.filter(x=>['start','mid','elite','gold'].includes(x)).slice(0,6); next.sigils=next.sigils.slice(0,SIGIL_MAX+1);
-    next.relics=next.relics.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,RELIC_MAX); next.relicQ=next.relicQ.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,6); }
+    next.relics=next.relics.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,RELIC_MAX+2); next.relicQ=next.relicQ.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,6); }
   if(next.inRound!==undefined&&next.inRound!==null&&!['normal','elite','delve','boss'].includes(next.inRound)) bad();
   if(next.elitePick!==undefined&&!(Number.isSafeInteger(next.elitePick)&&next.elitePick>=0&&next.elitePick<=5)) bad();
   for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
@@ -896,7 +896,15 @@ const LEGACY=[
   {id:'orb',ico:'🔮',name:'Orb Hoard',desc:l=>`+${l} orbs every round`,cost:l=>2+2*l,max:5},
   {id:'shine',ico:'✨',name:'Shine',desc:l=>`Foil chance ${(.5+.25*l).toFixed(2)}%`,cost:l=>2+l,max:7},
   {id:'start',ico:'🏁',name:'Pioneer',desc:l=>`Starting coins each run ${l?f(200*Math.pow(6,l-1)):0}`,cost:l=>1+l,max:6},
+  // 2026-11-12：玩家反馈「遗物格子太少、局外成长没感觉」——加几条直接改变远征玩法的传承（每日远征不吃这几条）
+  {id:'relic',ico:'🏺',name:'Relic Rack',desc:l=>`Relic slots: ${RELIC_MAX+l} `,cost:l=>6+6*l,max:2},
+  {id:'heart',ico:'❤️',name:'Toughness',desc:l=>`Starting hearts and heart cap +${l}`,cost:l=>8+8*l,max:2},
+  {id:'pack',ico:'🎁',name:'Kit Bag',desc:l=>l?`Start with ${l}  random relic(s)`:'Start with no relics',cost:l=>10+10*l,max:2},
+  {id:'recruit',ico:'✋',name:'Connections',desc:l=>`Starting recruits +${l} `,cost:l=>5+5*l,max:2},
+  {id:'skill',ico:'⚡',name:'Practice',desc:l=>`Active skill charges after ${SKILL_CHARGE-2*l}  packs`,cost:l=>4+4*l,max:2},
+  {id:'sigil',ico:'🔷',name:'Sigil Pouch',desc:l=>`Sigil cap +${l}`,cost:()=>10,max:1},
 ];
+const lg=id=>M.run&&M.run.daily?0:((M.legacy||{})[id]||0); // 远征用的传承等级：每日远征大家一样，不吃这几条
 function soulGain(){ return Math.floor(Math.sqrt(M.life/2e4))+Math.max(0,M.ch-3)*2; }
 function prestige(){
   const g=soulGain(); M.soul+=g; M.prestiges++;
@@ -1104,7 +1112,7 @@ const packFatigue=n=>n<=PACK_SOFT?1:Math.sqrt(PACK_SOFT/n);
 const GOAL_MIN=8, GOAL_FOLLOW=.8, GOAL_STEP=6, GOAL_GROW=1, GOAL_REBORN=.3; // 旧的「目标追实力」参数，只留给旧测试和说明
 // 固定目标曲线（CCGS 测评 P0）：目标只看章节和地图上走到第几站，不再追着你的开包数涨——变强就是真的变强
 // 按模拟（新号贪心升级）各章常见开包数定的表：首站约为常见开包的 1/3～1/2，越往后的站越高；第 6 章以后每章 ×1.12
-const GOAL_TABLE=[20,46,54,60,66,72], GOAL_CH=1.08, GOAL_STOP=.1; // 2026-11-12：按模拟重定（目标只数真包 + 直击 / 金标 / 宝箱怪加的包；不用技能、随手瞄准的机器人普通轮约 85%、精英轮约 70% 达成）
+const GOAL_TABLE=[20,30,46,52,58,64], GOAL_CH=1.08, GOAL_STOP=.12; // 2026-11-12：按模拟重定（目标只数真包 + 直击 / 金标 / 宝箱怪加的包；不用技能、随手瞄准的机器人普通轮约 85%、精英轮约 70% 达成）
 const goalWorth=()=>1; // 旧版目标会乘 √(一包算几包)；现在一包就是一包
 // 有地图时 = 第几排（正在打的那一站，或下一站）；没开地图时 = 本章已达成几轮
 const mapStop=(playing=false)=>M.map&&M.map.ch===M.ch&&mapOn()?Math.max(0,Math.min(MAP_ROWS-1,(M.map.r|0)+(playing?0:1))):Math.min(MAP_ROWS,M.chRounds||0);
@@ -1529,14 +1537,14 @@ function openGold(p){ G.goldHits=(G.goldHits||0)+1; G.opened+=GOLD_PACK.bonus; p
 const BOARD_MODS=[
   {id:'wind',ico:'🌬️',name:'Gale',desc:'The wind swings back and forth and pushes orbs off course (the aim line ignores wind)',go:G=>{G.mut.wind=(Math.random()<.5?-1:1)*320;}},
   {id:'moon',ico:'🌙',name:'Low gravity',desc:'Gravity ×0.6, orbs stay up longer',go:G=>{G.mut.grav=.6;}},
-  {id:'spring',ico:'🪀',name:'Spring walls',desc:'Walls don’t slow orbs down; they speed them up by 10%',go:G=>{G.mut.wallK=1.1;}},
-  {id:'drift',ico:'↔️',name:'Drifting pegs',desc:'The middle pegs slide left and right',go:()=>{PEGS.forEach(g=>{ if(!g.wall&&!g.amp&&!g.guard&&g.y>200&&g.y<690){ g.ox=g.x; g.amp=30; g.sp=(g.y%250<125?1:-1)*(.9+Math.random()*.6); } });}},
+  {id:'spring',ico:'🔁',name:'Spring walls',desc:'Walls don’t slow orbs down; they speed them up by 10%',go:G=>{G.mut.wallK=1.1;}},
+  {id:'drift',ico:'🔀',name:'Drifting pegs',desc:'The middle pegs slide left and right',go:()=>{PEGS.forEach(g=>{ if(!g.wall&&!g.amp&&!g.guard&&g.y>200&&g.y<690){ g.ox=g.x; g.amp=30; g.sp=(g.y%250<125?1:-1)*(.9+Math.random()*.6); } });}},
   {id:'hole',ico:'🕳️',name:'Black hole',desc:'A black hole pulls orbs in and flings them back out (+1 multiplier when flung)',go:G=>{G.mut.hole={x:rnd(150,W-150),y:rnd(330,560)};}},
   {id:'brittle',ico:'🪨',name:'Brittle pegs',desc:'Pegs break after 4 hits and explode when they do',go:G=>{G.mut.brittle=4;}},
-  {id:'pegboom',ico:'🧨',name:'Blast pegs',desc:'Hitting a peg sets off a small blast',go:G=>{G.mut.pegBoom=1;}},
+  {id:'pegboom',ico:'💥',name:'Blast pegs',desc:'Hitting a peg sets off a small blast',go:G=>{G.mut.pegBoom=1;}},
   {id:'goldrush',ico:'🎯',name:'Bullseye shower',desc:'2 extra bullseye packs at the start',go:G=>{G.goldExtra=2;}},
   {id:'fast',ico:'⏩',name:'Fast forward',desc:'The whole board runs at ×1.25 speed',go:G=>{G.mut.speed=1.25;}},
-  {id:'thick',ico:'🧱',name:'Thick skin',desc:'Pack HP ×1.3, but coins ×1.5',go:G=>{G.mut.hpX=(G.mut.hpX||1)*1.3; G.bo.coin*=1.5;}},
+  {id:'thick',ico:'🛡️',name:'Thick skin',desc:'Pack HP ×1.3, but coins ×1.5',go:G=>{G.mut.hpX=(G.mut.hpX||1)*1.3; G.bo.coin*=1.5;}},
 ];
 function rollBoardMods(n){ const pool=BOARD_MODS.slice(), out=[]; while(out.length<n&&pool.length) out.push(pool.splice(Math.floor(runRand()*pool.length),1)[0]); return out; }
 // ③ 主动技能：每轮一次，本轮开满 8 个卡包后充能；按左上角的按钮（电脑按 E）。技能看远征队
@@ -1547,23 +1555,24 @@ const SKILLS={
 };
 const SKILL_CHARGE=8, SKILL_BTN={x:46,y:116,r:26};
 const skillOf=()=>({rich:'rain',gamb:'rain',sage:'stop',spec:'stop'})[runSquad()]||'bomb';
-const skillReady=()=>!!(G&&G.skill&&!G.skillUsed&&(G.realOpened||0)>=SKILL_CHARGE&&!G.ended&&!G.paused&&!G.cine);
+const skillCharge=()=>SKILL_CHARGE-2*lg('skill');
+const skillReady=()=>!!(G&&G.skill&&!G.skillUsed&&(G.realOpened||0)>=skillCharge()&&!G.ended&&!G.paused&&!G.cine);
 const skillHit=(x,y)=>!!(G&&G.skill&&!G.skillUsed&&Math.hypot(x-SKILL_BTN.x,y-SKILL_BTN.y)<SKILL_BTN.r+10);
 function useSkill(){ if(!G||!G.skill||G.skillUsed||G.ended) return;
-  if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+70,y:SKILL_BTN.y+44,t:`Open ${SKILL_CHARGE-(G.realOpened||0)} more packs to charge`,c:'#c9b48a',life:.9,sz:13}); return; }
+  if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+70,y:SKILL_BTN.y+44,t:`Open ${skillCharge()-(G.realOpened||0)} more packs to charge`,c:'#c9b48a',life:.9,sz:13}); return; }
   G.skillUsed=1; const k=G.skill; SFX.play('ach'); shake(5);
   if(k==='bomb'){ G.packs.slice().forEach(p=>{ if(p.gold) return; burst(p.x,p.y,'#ff6b4a',10); dmgPack(p,p.boss?8*D():p.max*.35+3*D(),true,'skill'); });
     G.parts.push({ring:true,x:W/2,y:H/2,r:10,max:W*.75,life:.5,dur:.5,c:'#ff6b4a',lw:5}); }
   else if(k==='stop') G.zeroG=4;
   else for(let i=0;i<8;i++) spawnBall(40+i*(W-80)/7,24,rnd(-60,60),rnd(80,180),{mini:true,mx:2});
   G.fx.push({x:W/2,y:H*.4,t:`${SKILLS[k].ico} ${SKILLS[k].name}！`,c:'#ffd76a',life:1.2,sz:26,slow:1}); }
-function drawSkill(){ if(!G.skill) return; const s=SKILLS[G.skill], b=SKILL_BTN, k=Math.min(1,(G.realOpened||0)/SKILL_CHARGE), on=skillReady(), used=G.skillUsed;
+function drawSkill(){ if(!G.skill) return; const s=SKILLS[G.skill], b=SKILL_BTN, k=Math.min(1,(G.realOpened||0)/skillCharge()), on=skillReady(), used=G.skillUsed;
   ctx.save(); ctx.globalAlpha=used?.35:1; ctx.fillStyle='#0f0d0bdd'; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.fill();
   ctx.strokeStyle='#2e2821'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(b.x,b.y,b.r-2,0,7); ctx.stroke();
   if(!used){ ctx.strokeStyle=on?'#ffd76a':'#a88a4e'; ctx.beginPath(); ctx.arc(b.x,b.y,b.r-2,-Math.PI/2,-Math.PI/2+k*Math.PI*2); ctx.stroke(); }
   if(on){ const pu=.5+.5*Math.sin(performance.now()/160); ctx.strokeStyle=`rgba(255,215,106,${.3+.4*pu})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(b.x,b.y,b.r+4+3*pu,0,7); ctx.stroke(); }
   ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='22px sans-serif'; ctx.fillStyle='#efe6d2'; ctx.fillText(s.ico,b.x,b.y+1);
-  ctx.textBaseline='alphabetic'; ctx.font=`bold ${Math.round(11*UIK)}px sans-serif`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const t=used?'Used':on?s.name+(MOBILE.matches?'':' · E'):`${Math.min(G.realOpened||0,SKILL_CHARGE)}/${SKILL_CHARGE}`;
+  ctx.textBaseline='alphabetic'; ctx.font=`bold ${Math.round(11*UIK)}px sans-serif`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const t=used?'Used':on?s.name+(MOBILE.matches?'':' · E'):`${Math.min(G.realOpened||0,skillCharge())}/${skillCharge()}`;
   ctx.strokeText(t,b.x,b.y+b.r+14*UIK); ctx.fillStyle=on?'#ffd76a':'#c9b48a'; ctx.fillText(t,b.x,b.y+b.r+14*UIK); ctx.restore(); }
 // ④ 局内事件：宝箱怪（横穿台面，打开多算 4 包、金币 ×5；跑掉就没了）；达成目标后「加时」：+2 宝珠、6 秒内金币 ×2
 const MIMIC={p:.45,bonus:4,coin:5,hpX:2.2,sp:72}, OT={t:6,ammo:2,coin:2};
@@ -2451,7 +2460,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-12.1';
+const GAME_V='2026-11-12.2';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2552,7 +2561,7 @@ function tokensHTML(){ const r=M.run; if(!r||!(r.key||r.stars)) return ''; retur
 function endingsHTML(){ const e=M.endings||{}, n=Object.keys(ENDINGS).filter(k=>e[k]).length;
   return `<div class="h3" style="margin-top:16px"><span>📜 Ending ${n}/4</span></div><div style="display:grid;gap:6px">${Object.entries(ENDINGS).map(([k,x])=>{ const got=e[k], showHint=got||k!=='e4'||(e.e2&&e.e3);
     return `<div class="row" style="cursor:default;${got?'border-color:var(--gold3)':'opacity:.75'}">${got?artImg('ending_'+x.n,'endthumb'):'<span class="endthumb q">?</span>'}<div style="flex:1"><b> Ending ${x.n} · ${got?x.name:'???'}</b><div class="sub">${showHint?x.hint:'See the other endings first.'}${got?'':` · First time 🔥 ${x.soul}`}</div></div></div>`; }).join('')}</div>`; }
-const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, heartCap=()=>Math.max(1,squadHearts(runSquad())-(dangerLv()>=5?1:0)), DANGER_MAX=5, FINAL_BOSS=1.05; // 第 3 章首领是终章首领：血量 ×1.15
+const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, heartCap=()=>Math.max(1,squadHearts(runSquad())+lg('heart')-(dangerLv()>=5?1:0)), DANGER_MAX=5, FINAL_BOSS=1.05; // 第 3 章首领是终章首领：血量 ×1.15
 const DANGER={goal:.12,hp:.1,boss:.2};
 // 每级危险除了数值，再加一条规则（累加）
 const DANGER_RULES=[null,
@@ -2578,13 +2587,14 @@ const META_KEYS=['unlocked','dailyRun','endings','opened','chalDone','soul','leg
 function startRun(sq,danger,sch,daily){ danger=Math.max(0,Math.min(DANGER_MAX,daily?DAILY_RUN_DANGER:Math.min(danger|0,M.dangerMax||0)));
   const keep={}; META_KEYS.forEach(k=>{ if(M[k]!==undefined) keep[k]=M[k]; });
   M=Object.assign(fresh(),keep);
-  const hearts=Math.max(1,squadHearts(sq)-(danger>=5?1:0));
+  const hearts=Math.max(1,squadHearts(sq)+(daily?0:(M.legacy.heart||0))-(danger>=5?1:0));
   M.run={squad:sq,danger:danger||0,sch:sq==='spec'?sch:null,hearts,score:0,goals:0,bosses:0,t0:Date.now(),over:null};
   if(daily){ M.run.daily=daily; M.run.seed=hashStr(/*i18n-keep*/'千珠落尽·远征·'+daily); M.run.rs=M.run.seed; }
   M.money=(M.legacy.start?200*Math.pow(6,M.legacy.start-1):0)+(sq==='rich'?300:0);
   if(sq==='sage') M.sigQ.push('gold');
   if(sq==='gamb') for(let k=0;k<2;k++){ const id=rollRelic('elite'); if(id) M.relics.push(id); }
-  M.recruit=danger>=2?2:3; recalcTree(); M.map=null; ensureMap(); syncGoal();
+  for(let k=0;k<lg('pack');k++){ const id=rollRelic('elite'); if(id&&M.relics.length<relicMax()) M.relics.push(id); }
+  M.recruit=(danger>=2?2:3)+lg('recruit'); recalcTree(); M.map=null; ensureMap(); syncGoal();
   G={loot:{}}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo=''; tab='loot';
   save(); renderSide(); hud(); SFX.play('raise'); showBetween(); }
 function runScore(){ const r=M.run; if(!r) return 0; return Math.round((r.score+(r.over==='win'?500:0))*(1+.25*(r.danger||0))); }
@@ -2627,7 +2637,7 @@ function showRunEnd(){ const L=finishRun(); if(!L) return showCamp(); const q=SQ
 let campSel={sq:'std',d:0,sch:'combo',tab:'go'};
 function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
   if(!SQUADS.find(q=>q.id===campSel.sq&&squadOk(q))) campSel.sq='std'; campSel.d=Math.min(campSel.d,M.dangerMax||0);
-  const legRow=x=>{ const l=M.legacy[x.id]||0, mx=x.max&&l>=x.max, c=x.cost(l); return `<div class="row" style="cursor:default">${x.ico} <div style="flex:1"><b>${x.name}</b> <span class="sub">Lv${l}</span><div class="sub">${x.desc(l)}</div></div><button class="ghost" data-leg="${x.id}" ${mx||M.soul<c?'disabled style="opacity:.45"':''}>${mx?'Maxed':`🔥 ${c}`}</button></div>`; };
+  const legRow=x=>{ const l=M.legacy[x.id]||0, mx=x.max&&l>=x.max, c=x.cost(l); return `<div class="row" style="cursor:default">${x.ico} <div style="flex:1"><b>${x.name}</b> <span class="sub">Lv${l}</span><div class="sub">${x.desc(l)}${mx?'':` <span style="color:var(--gold2)">→ ${x.desc(l+1)}</span>`}</div></div><button class="ghost" data-leg="${x.id}" ${mx||M.soul<c?'disabled style="opacity:.45"':''}>${mx?'Maxed':`🔥 ${c}`}</button></div>`; };
   const ct=campSel.tab||'go', okSq=SQUADS.filter(squadOk), lockSq=SQUADS.filter(q=>!squadOk(q)), today=M.dailyRun&&M.dailyRun.day===dayKey()?M.dailyRun:null;
   const eN=Object.keys(ENDINGS).filter(k=>(M.endings||{})[k]).length;
   const goTab=`<div class="sqlist">${okSq.map(q=>`<button class="sq${campSel.sq===q.id?' on':''}" data-sq="${q.id}">${artImg('squad_'+q.id,'sqart')}<span class="sq-n">${q.name}</span><span class="sq-d">${q.desc}</span></button>`).join('')}</div>
@@ -2645,7 +2655,7 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
   const endTab=`${endingsHTML()}<div class="sub" style="margin-top:14px"> Expeditions ${M.runs||0}  · Cleared ${M.wins||0}  · Best score ${M.bestScore||0} · Codex ${Object.keys(M.seen||{}).length}/${CARDS.length}</div>`;
   $('box').innerHTML=`<h2 class="serif goldtxt">⛺ Camp</h2>
     <div style="margin-top:8px"><span class="soulpill">🔥 Gold Souls <b>${M.soul}</b></span></div>
-    <div class="ctabs">${[['go','Setting out'],['vault','Legacy & Vault'],['end',`Ending ${eN}/4`]].map(([k,n])=>`<button class="tab ${ct===k?'on':''}" data-ct="${k}">${n}</button>`).join('')}</div>
+    <div class="ctabs">${[['go','Setting out'],['vault','Legacy & Vault'+(LEGACY.some(x=>!(x.max&&(M.legacy[x.id]||0)>=x.max)&&M.soul>=x.cost(M.legacy[x.id]||0))?' ●':'')],['end',`Ending ${eN}/4`]].map(([k,n])=>`<button class="tab ${ct===k?'on':''}" data-ct="${k}">${n}</button>`).join('')}</div>
     ${ct==='go'&&!M.runs?coach('cCamp','First time? Ignore the rest and tap <b> “Start Expedition”</b> in the bottom right. Squads and danger can wait.'):''}
     ${ct==='vault'?vaultTab:ct==='end'?endTab:goTab}
     <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan" title="Manual">📖</button><button class="ghost" id="campMute" title="Sound">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campSet" title="Settings">⚙️</button><button class="ghost" id="campLang">${LANG==='zh'?'EN':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
@@ -2677,7 +2687,7 @@ function showCampfire(){ const box=$('box'), eq=equipped(), r=M.run;
 const SIGIL_MAX=4;
 const TIER={s:{name:'Silver',c:'#c9d2dc'},g:{name:'Gold',c:'#ffd76a'},p:{name:'Prismatic',c:'#e9a6ff'}};
 const SIGIL_ODDS={start:[60,35,5],mid:[40,45,15],elite:[20,55,25],gold:[0,100,0]};
-const sigilMax=()=>SIGIL_MAX+(runSquad()==='sage'?1:0); // 白银 / 黄金 / 棱彩
+const sigilMax=()=>SIGIL_MAX+(runSquad()==='sage'?1:0)+lg('sigil'); // 白银 / 黄金 / 棱彩
 const SIGILS=[
   {id:'pouch',t:'s',ico:'🔮',name:'Deep Pouch',desc:'+2 orbs at the start of every round'},
   {id:'thread',t:'s',ico:'🪙',name:'Gold Thread',desc:'Coins every round ×1.25'},
@@ -2735,8 +2745,8 @@ function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigil
   return `<span class="chip">🔷 Sigil ${cs.length}/${sigilMax()}${cs.length?': '+cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join(', '):''}</span>`; }
 
 // ================= 🏺 遗珍：精英、首领、黑金秘藏掉落的整局宝物 =================
-// 3 个栏位，满了可以换掉旧的。整局有效：进下一章也保留，命用完或转生时清空。
-const RELIC_MAX=3, RELIC_BLACK=.08; // 黑金秘藏 8% 掉遗珍
+// 4 个栏位（传承「遗珍架」最多再 +2），满了可以换掉旧的。整局有效：进下一章也保留，命用完或转生时清空。
+const RELIC_MAX=4, RELIC_BLACK=.08, relicMax=()=>RELIC_MAX+lg('relic'); // 黑金秘藏 8% 掉遗珍
 const RARE={c:{name:'Normal',c:'#c9b48a',w:{elite:60,boss:20,black:50}},r:{name:'Rare',c:'#7fb2ff',w:{elite:30,boss:50,black:40}},l:{name:'Legendary',c:'#ffb347',w:{elite:10,boss:30,black:10}}};
 const RELICS=[
   {id:'magnet',r:'c',ico:'🧲',name:'Lodestone Gauntlet',desc:'Orbs are pulled toward nearby packs'},
@@ -2770,7 +2780,7 @@ const hasRelic=id=>!DAILY&&!(G&&G.chal)&&(M.relics||[]).includes(id);
 function rollRelic(src){ const have=new Set([...(M.relics||[]),...(M.relicQ||[])]); const pool=RELICS.filter(r=>!have.has(r.id)&&!vaultLocked('r',r.id)); if(!pool.length) return null;
   const w=r=>RARE[r.r].w[src]||1; const tot=pool.reduce((a,r)=>a+w(r),0); let x=runRand()*tot; return (pool.find(r=>(x-=w(r))<0)||pool[0]).id; }
 function dropRelic(src,x,y){ if(DAILY||(G&&G.chal)||!mapOn()) return null; const id=rollRelic(src); if(!id) return null; const r=relicOf(id);
-  if(M.relics.length<RELIC_MAX) M.relics.push(id); else M.relicQ.push(id);
+  if(M.relics.length<relicMax()) M.relics.push(id); else M.relicQ.push(id);
   (G.relicGot=G.relicGot||[]).push(id); toast(`🏺 Relic: ${r.name} (${RARE[r.r].name})`);
   if(G&&G.fx&&x!==undefined) G.fx.push({x,y:y-30,t:`🏺 ${r.name}`,c:RARE[r.r].c,life:1.6,sz:18});
   save(); return id; }
@@ -2783,12 +2793,12 @@ function relicsRound(G){ if(G.chal||G.daily) return;
 const relicIco=(r,px)=>`<img class="ri" src="${artUrl('relic_'+r.id)}" alt="" style="width:${px||18}px;height:${px||18}px" onerror="this.style.display='none'">`;
 const relicTag=r=>`<b style="color:${RARE[r.r].c}" title="${r.desc}">${relicIco(r,16)}${r.name}</b>`;
 function relicsHTML(){ if(!mapOn()) return ''; const rs=(M.relics||[]).map(relicOf).filter(Boolean);
-  return `<span class="chip">🏺 Relics ${rs.length}/${RELIC_MAX}${rs.length?': '+rs.map(relicTag).join(', '):''}</span>`; }
+  return `<span class="chip">🏺 Relics ${rs.length}/${relicMax()}${rs.length?': '+rs.map(relicTag).join(', '):''}</span>`; }
 // 栏位满了：结算页上选择换掉哪一件
 function relicSwapHTML(){ const id=(M.relicQ||[])[0]; if(!id) return ''; const n=relicOf(id);
   const rc=(r,extra)=>`<div class="rcard" style="border-color:${RARE[r.r].c}66"><div class="rc-h"><b style="color:${RARE[r.r].c};display:flex;align-items:center;gap:8px">${relicIco(r,40)}${r.name}</b><span class="rc-r" style="color:${RARE[r.r].c}">${RARE[r.r].name}</span></div><div class="rc-d">${r.desc}</div>${extra||''}</div>`;
   return `<div class="chap" id="relicSwap" style="margin-top:12px;border-color:${RARE[n.r].c}">
-    <div class="h3" style="margin:0 0 8px"><span>🏺 New relic</span><span class="sub"> Relic slots full ${M.relics.length}/${RELIC_MAX}</span></div>
+    <div class="h3" style="margin:0 0 8px"><span>🏺 New relic</span><span class="sub"> Relic slots full ${M.relics.length}/${relicMax()}</span></div>
     ${rc(n)}
     <div class="sub" style="margin:12px 0 6px"> Which one goes? Tap twice to confirm.</div>
     <div class="rgrid">${M.relics.map((rid,i)=>rc(relicOf(rid),`<button class="ghost" data-rswap="${i}"> Replace this</button>`)).join('')}</div>
@@ -3141,13 +3151,13 @@ function manualHTML(){
     'When you’re out of orbs and all orbs have landed, the round goes to <b> Results</b>. Spend coins on upgrades there, then start the next round.',
     'Each round has a <b> pack goal</b> (bottom-left of the board), rising as you near the boss. Hit it for a streak bonus; miss it and lose 1 ❤️.',
     '<b>🔷 Sigil</b>: pick 1 of 3 when you set out on a map, after stop 3, and after winning an elite. The tier (Silver / Gold / Prismatic) is revealed first; you can pay to reroll once. Lasts the whole map, up to 4; cleared when you beat the boss and move on.',
-    '<b>🏺 Relics</b>: guaranteed from elites and bosses, with a chance from Black-Gold Vaults. 3 slots — replace an old one when full. Lasts the whole expedition (kept into the next chapter).',
+    '<b>🏺 Relics</b>: guaranteed from elites and bosses, and black-gold packs can drop them too. 4 slots (Relic Rack in Legacy at camp adds up to 2 more); when full you can swap one out. They last the whole expedition (kept into the next chapter).',
     'An orb that chains 20 hits triggers <b> Frenzy</b>: double damage for a short time.',
     '<b> The aim line</b> runs until the first thing the orb would hit. Hitting a pack first is a <b> Direct hit</b> (no pegs on the way; banking off a wall is fine): damage ×2.5 and it counts 1 extra pack.',
     '<b>🎯 Bullseye packs</b> (gold frame): only a direct hit opens them; other damage does nothing. Opening one counts 3 extra packs and pays coins ×3. Normal rounds start with 1, elite rounds with 2, and a new one appears 10 packs after you open one.',
     '<b> Board modifiers</b>: 1 per normal round and 2 per elite round, such as Gale, Low gravity, Spring walls, Drifting pegs, Black hole and Brittle pegs. They’re shown when the round starts and listed in the bottom-left corner.',
     '<b> Active skill</b> (the round button at the top left, or E on a keyboard): once per round, charged after you open 8 packs that round. Vault Expedition / Iron Guard get 💣 Detonate, Gold Caravan / The Gambler get 🌧️ Gold rain, Sigil Scholar / School Specialist get 🪶 Zero-G.',
-    '<b>🧰 Mimic</b>: sometimes a pack with eyes runs across the board. Open it before it escapes for 4 extra packs and coins ×5. Reaching the round goal starts <b> Overtime</b>: +2 orbs and coins ×2 for 6 seconds.',
+    '<b> Mimic</b>: sometimes a pack with eyes runs across the board. Open it before it escapes for 4 extra packs and coins ×5. Reaching the round goal starts <b> Overtime</b>: +2 orbs and coins ×2 for 6 seconds.',
   ]))}
   ${sec('🎛️','Buttons',li([
     '<b>⏩ ×1 / ×2 / ×3</b>: game speed (hotkey F). Same results, just faster.',
@@ -3171,9 +3181,9 @@ function manualHTML(){
   ${sec('⬆️','Getting Stronger',li([
     '<b> Orb Polish</b>: raises base orb damage — upgrade this first.',
     '<b> Vault Level</b> (unlocks at Polish Lv3): packs get tougher, but coins ×2 and rare packs show up more often. More coins means faster damage upgrades, but keep your damage up first or the pack goals get harder. Beat bosses to raise the level cap.',
-    `<b> Tally</b> (opens at Polish Lv3): each level adds pack count +${Math.round(CNT_STEP*100)}%, with no cap.`,
+    `<b> Tally</b> (opens at Polish Lv3): each level adds pack count +${Math.round(CNT_STEP*100)}%, up to +${Math.round(CNT_MAX*100)}%.`,
     '<b> Star Chart</b> (opens at Round 3): start from the center ✦ and light connected nodes one by one; each costs more. Red <b> Keystone</b> are big changes you can toggle any time. Respec any time for an 80% refund.',
-    '<b> Legacy</b> (at camp): permanent bonuses bought with Gold Souls — damage, coins, extra orbs, foil chance, starting coins.',
+    '<b> Legacy</b> (camp → → Legacy & Vault): permanent bonuses bought with Gold Souls. Besides damage, coins, orbs, foil chance and starting coins, there’s +1 relic slot, +1 heart, starting relics, extra starting recruits, faster skill charge and +1 sigil cap (these don’t apply to the daily expedition). Every expedition pays Gold Souls, and the tab shows ●.',
   ]))}
   ${sec('🗺️','Rounds and Modes',li([
     `<b>🕳️ The Deep Vault</b> (appears now and then on the map): a loot-and-extract mode. Fight down layer by layer — each one is tougher and pays more — with your coins and cards held in a bag. After each cleared layer, extract with everything or push deeper; layers 2, 4… add a special orb and layer 3+ adds Gold Souls. Miss a goal and you’re trapped, losing the whole bag.`,

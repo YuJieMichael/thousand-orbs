@@ -31,12 +31,12 @@ test('固定目标曲线：只看章节和地图第几站，不再追着开包�
   let worth = 1;
   const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, DANGER: {goal: .15}, dangerLv: () => 0, runSquad: () => null, hasRelic: () => false, Math});
   vm.runInContext(between('const GOAL_MIN=', 'const ROUTES={') + ';this.g=goalFor;this.s=syncGoal;', ctx);
-  assert.equal(ctx.g(1, 0), 20); assert.equal(ctx.g(1, 5), 30);
-  assert.equal(ctx.g(2, 0), 46); assert.equal(ctx.g(3, 0), 54); assert.equal(ctx.g(3, 5), 81);
-  assert.equal(ctx.g(6, 0), 72); assert.equal(ctx.g(7, 0), 78);
+  assert.equal(ctx.g(1, 0), 20); assert.equal(ctx.g(1, 5), 32);
+  assert.equal(ctx.g(2, 0), 30); assert.equal(ctx.g(3, 0), 46); assert.equal(ctx.g(3, 5), 74);
+  assert.equal(ctx.g(6, 0), 64); assert.equal(ctx.g(7, 0), 69);
   worth = 4; assert.equal(ctx.g(1, 0), 20); worth = 1;                       // 目标只数真包：秘藏等级不再影响目标
-  ctx.M.map = {ch: 1, r: 2}; ctx.s(); assert.equal(ctx.M.goal, 26);          // 下一站是第 3 排（r+1）
-  ctx.s(true); assert.equal(ctx.M.goal, 24);                                 // 正在打第 2 排
+  ctx.M.map = {ch: 1, r: 2}; ctx.s(); assert.equal(ctx.M.goal, 27);          // 下一站是第 3 排（r+1）
+  ctx.s(true); assert.equal(ctx.M.goal, 25);                                 // 正在打第 2 排
   const settle = between('function settleRoute(){', '// ---- 卡牌三选一');
   assert.doesNotMatch(settle, /M\.goal\+=/); assert.doesNotMatch(settle, /goalAfterMiss\(/);
   assert.match(settle, /syncGoal\(\)/);
