@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:cfc2275bccd7c611da98aaae280985ca2473a223 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:6bd9eefbe74bd877370db881acd864bd4671191d -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1547,32 +1547,33 @@ const BOARD_MODS=[
   {id:'thick',ico:'🛡️',name:'Thick skin',desc:'Pack HP ×1.3, but coins ×1.5',go:G=>{G.mut.hpX=(G.mut.hpX||1)*1.3; G.bo.coin*=1.5;}},
 ];
 function rollBoardMods(n){ const pool=BOARD_MODS.slice(), out=[]; while(out.length<n&&pool.length) out.push(pool.splice(Math.floor(runRand()*pool.length),1)[0]); return out; }
-// ③ 主动技能：每轮一次，本轮开满 8 个卡包后充能；按左上角的按钮（电脑按 E）。技能看远征队
+// ③ 主动技能：每开 12 个卡包充好一次，用掉后重新攒（一轮能放好几次）；按左上角的按钮（电脑按 E）。技能看远征队
 const SKILLS={
   bomb:{ico:'💣',name:'Detonate',desc:'Every pack on the board loses 35% HP, and the boss takes a hit too'},
   stop:{ico:'🪶',name:'Zero-G',desc:'4 s of no gravity: orbs bounce all over the board'},
   rain:{ico:'🌧️',name:'Gold rain',desc:'8 mini orbs fall from the top with a ×2 multiplier'},
 };
-const SKILL_CHARGE=8, SKILL_BTN={x:46,y:116,r:26};
+const SKILL_CHARGE=12, SKILL_BTN={x:46,y:116,r:26};
 const skillOf=()=>({rich:'rain',gamb:'rain',sage:'stop',spec:'stop'})[runSquad()]||'bomb';
 const skillCharge=()=>SKILL_CHARGE-2*lg('skill');
-const skillReady=()=>!!(G&&G.skill&&!G.skillUsed&&(G.realOpened||0)>=skillCharge()&&!G.ended&&!G.paused&&!G.cine);
-const skillHit=(x,y)=>!!(G&&G.skill&&!G.skillUsed&&Math.hypot(x-SKILL_BTN.x,y-SKILL_BTN.y)<SKILL_BTN.r+10);
-function useSkill(){ if(!G||!G.skill||G.skillUsed||G.ended) return;
-  if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+70,y:SKILL_BTN.y+44,t:`Open ${skillCharge()-(G.realOpened||0)} more packs to charge`,c:'#c9b48a',life:.9,sz:13}); return; }
-  G.skillUsed=1; const k=G.skill; SFX.play('ach'); shake(5);
+const skillPts=()=>(G.realOpened||0)-(G.skillBase||0);
+const skillReady=()=>!!(G&&G.skill&&skillPts()>=skillCharge()&&!G.ended&&!G.paused&&!G.cine);
+const skillHit=(x,y)=>!!(G&&G.skill&&Math.hypot(x-SKILL_BTN.x,y-SKILL_BTN.y)<SKILL_BTN.r+10);
+function useSkill(){ if(!G||!G.skill||G.ended) return;
+  if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+70,y:SKILL_BTN.y+44,t:`Open ${skillCharge()-skillPts()} more packs to charge`,c:'#c9b48a',life:.9,sz:13}); return; }
+  G.skillBase=G.realOpened||0; G.skillN=(G.skillN||0)+1; const k=G.skill; SFX.play('ach'); shake(5);
   if(k==='bomb'){ G.packs.slice().forEach(p=>{ if(p.gold) return; burst(p.x,p.y,'#ff6b4a',10); dmgPack(p,p.boss?8*D():p.max*.35+3*D(),true,'skill'); });
     G.parts.push({ring:true,x:W/2,y:H/2,r:10,max:W*.75,life:.5,dur:.5,c:'#ff6b4a',lw:5}); }
   else if(k==='stop') G.zeroG=4;
   else for(let i=0;i<8;i++) spawnBall(40+i*(W-80)/7,24,rnd(-60,60),rnd(80,180),{mini:true,mx:2});
   G.fx.push({x:W/2,y:H*.4,t:`${SKILLS[k].ico} ${SKILLS[k].name}！`,c:'#ffd76a',life:1.2,sz:26,slow:1}); }
-function drawSkill(){ if(!G.skill) return; const s=SKILLS[G.skill], b=SKILL_BTN, k=Math.min(1,(G.realOpened||0)/skillCharge()), on=skillReady(), used=G.skillUsed;
+function drawSkill(){ if(!G.skill) return; const s=SKILLS[G.skill], b=SKILL_BTN, k=Math.min(1,skillPts()/skillCharge()), on=skillReady(), used=false;
   ctx.save(); ctx.globalAlpha=used?.35:1; ctx.fillStyle='#0f0d0bdd'; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.fill();
   ctx.strokeStyle='#2e2821'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(b.x,b.y,b.r-2,0,7); ctx.stroke();
   if(!used){ ctx.strokeStyle=on?'#ffd76a':'#a88a4e'; ctx.beginPath(); ctx.arc(b.x,b.y,b.r-2,-Math.PI/2,-Math.PI/2+k*Math.PI*2); ctx.stroke(); }
   if(on){ const pu=.5+.5*Math.sin(performance.now()/160); ctx.strokeStyle=`rgba(255,215,106,${.3+.4*pu})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(b.x,b.y,b.r+4+3*pu,0,7); ctx.stroke(); }
   ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='22px sans-serif'; ctx.fillStyle='#efe6d2'; ctx.fillText(s.ico,b.x,b.y+1);
-  ctx.textBaseline='alphabetic'; ctx.font=`bold ${Math.round(11*UIK)}px sans-serif`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const t=used?'Used':on?s.name+(MOBILE.matches?'':' · E'):`${Math.min(G.realOpened||0,skillCharge())}/${skillCharge()}`;
+  ctx.textBaseline='alphabetic'; ctx.font=`bold ${Math.round(11*UIK)}px sans-serif`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const t=on?s.name+(MOBILE.matches?'':' · E'):`${Math.min(skillPts(),skillCharge())}/${skillCharge()}`;
   ctx.strokeText(t,b.x,b.y+b.r+14*UIK); ctx.fillStyle=on?'#ffd76a':'#c9b48a'; ctx.fillText(t,b.x,b.y+b.r+14*UIK); ctx.restore(); }
 // ④ 局内事件：宝箱怪（横穿台面，打开多算 4 包、金币 ×5；跑掉就没了）；达成目标后「加时」：+2 宝珠、6 秒内金币 ×2
 const MIMIC={p:.45,bonus:4,coin:5,hpX:2.2,sp:72}, OT={t:6,ammo:2,coin:2};
@@ -2460,7 +2461,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-12.2';
+const GAME_V='2026-11-12.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -3156,7 +3157,7 @@ function manualHTML(){
     '<b> The aim line</b> runs until the first thing the orb would hit. Hitting a pack first is a <b> Direct hit</b> (no pegs on the way; banking off a wall is fine): damage ×2.5 and it counts 1 extra pack.',
     '<b>🎯 Bullseye packs</b> (gold frame): only a direct hit opens them; other damage does nothing. Opening one counts 3 extra packs and pays coins ×3. Normal rounds start with 1, elite rounds with 2, and a new one appears 10 packs after you open one.',
     '<b> Board modifiers</b>: 1 per normal round and 2 per elite round, such as Gale, Low gravity, Spring walls, Drifting pegs, Black hole and Brittle pegs. They’re shown when the round starts and listed in the bottom-left corner.',
-    '<b> Active skill</b> (the round button at the top left, or E on a keyboard): once per round, charged after you open 8 packs that round. Vault Expedition / Iron Guard get 💣 Detonate, Gold Caravan / The Gambler get 🌧️ Gold rain, Sigil Scholar / School Specialist get 🪶 Zero-G.',
+    '<b> Active skill</b> (the round button at the top left, or E on a keyboard): charges every 12 packs you open and recharges after use, so you can fire it several times a round. Vault Expedition / Iron Guard get 💣 Detonate, Gold Caravan / The Gambler get 🌧️ Gold rain, Sigil Scholar / School Specialist get 🪶 Zero-G.',
     '<b> Mimic</b>: sometimes a pack with eyes runs across the board. Open it before it escapes for 4 extra packs and coins ×5. Reaching the round goal starts <b> Overtime</b>: +2 orbs and coins ×2 for 6 seconds.',
   ]))}
   ${sec('🎛️','Buttons',li([
