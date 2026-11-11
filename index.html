@@ -1116,7 +1116,7 @@ const MECH={
   void:{ico:'👁️',name:'吞噬',desc:'每 10 秒吞掉台面上的一个卡包，回复 6% 血量。打得越快，它吃得越少。'},
   lord:{ico:'👑',name:'王冠护卫',desc:()=>`三枚王冠绕着它转。只要还有一枚王冠，它只受 ${Math.round(LORD.cut*100)}% 伤害。每枚王冠要撞 ${LORD.hp} 下才碎（伤害再高也没用）；全碎后 ${LORD.back} 秒重新长出来，第二阶段只要 ${LORD.back2} 秒，而且转得更快。`},
 };
-const LORD={cut:.4,hp:5,back:12,back2:8,rad:112};
+const LORD={cut:.5,hp:5,back:12,back2:8,rad:112};
 const MORD=['shield','mirror','forge','star','void'];
 const bossMechs=ch=>ch<=5?[chInfo(ch).mech]:[MORD[(ch-6)%5],MORD[(ch-4)%5]];
 const FINAL_INFO={name:'金库核心',boss:'金库之主',ico:'👑',mech:'lord'};
@@ -2177,7 +2177,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.0';
+const GAME_V='2026-11-11.1';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2262,7 +2262,7 @@ const DAILY_RUN_DANGER=1;
 const BOSS_HEAL=.25;
 const squadHearts=q=>q==='iron'?4:q==='gamb'?2:RUN_HEARTS;
 const isFinal=ch=>!!(M&&M.run&&ch===ACTS);
-const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, heartCap=()=>Math.max(1,squadHearts(runSquad())-(dangerLv()>=5?1:0)), DANGER_MAX=5, FINAL_BOSS=1.15; // 第 3 章首领是终章首领：血量 ×1.15
+const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, heartCap=()=>Math.max(1,squadHearts(runSquad())-(dangerLv()>=5?1:0)), DANGER_MAX=5, FINAL_BOSS=1.05; // 第 3 章首领是终章首领：血量 ×1.15
 const DANGER={goal:.12,hp:.1,boss:.2};
 // 每级危险除了数值，再加一条规则（累加）
 const DANGER_RULES=[null,
