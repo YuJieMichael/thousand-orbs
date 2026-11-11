@@ -279,3 +279,15 @@ test('秘符：三个品级都至少有 3 个可选；遗珍三种稀有度都�
   assert.match(html, /if\(!\(M\.run&&M\.run\.over\)\) dropRelic\('boss',p\.x,p\.y\);/);
   assert.match(html, /if\(false&&G\.boonNext/);   // 局内祝福已取消
 });
+
+test('远征内容：20 种奇遇、25 件遗珍、危险规则、终章首领', () => {
+  const block = name => { const i = html.indexOf('const ' + name + '=['); let d = 0, j = i; for (; j < html.length; j++) { if (html[j] === '[') d++; else if (html[j] === ']' && !--d) break; } return html.slice(i, j); };
+  assert.ok((block('EVENTS').match(/\{ico:'/g) || []).length >= 20);
+  const ids = block('RELICS').match(/\{id:'(\w+)'/g).map(x => x.slice(5, -1));
+  assert.ok(ids.length >= 25); assert.equal(new Set(ids).size, ids.length);
+  for (const id of ids.filter(i => !['magnet','chest','wall','abacus','compass','glass','feather'].includes(i))) assert.ok(html.includes(`hasRelic('${id}')`), id + ' 没有实现');
+  assert.match(html, /const DANGER_RULES=\[null,/);
+  assert.match(html, /const FINAL_INFO=\{name:'金库核心',boss:'金库之主',ico:'👑',mech:'lord'\}/);
+  assert.match(html, /if\(p\.mech\.includes\('lord'\)&&guardsUp\(\)\)\{ amt\*=LORD\.cut;/);
+  assert.match(html, /Math\.floor\(runRand\(\)\*EVENTS\.length\)/); // 每日远征的奇遇也固定
+});
