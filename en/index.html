@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:2612e5dceb3b861c8faa250d9e0b553ccf188d7d -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:606fbc4dde1b75f2e70e6a9e78841832d6eb7dcb -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -480,6 +480,12 @@
   .rcard .ghost{align-self:flex-end;margin-top:4px;min-height:36px}
   .rcard .ghost.armed,#relicSwap .ghost.armed{border-color:#e8a090;color:#e8a090}
   .rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px}
+  #boonPop .akban{width:min(560px,94vw);margin:0 0 4px}
+  .coach{display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px 12px;border:1px solid var(--gold);border-radius:10px;background:linear-gradient(90deg,#d9b45a22,#d9b45a08);font-size:14px;line-height:1.5}
+  .coach .ctx{flex:1} .coach .ghost{flex:none;padding:6px 10px;font-size:12px;min-height:32px}
+  .coach .cdot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--gold2);box-shadow:0 0 0 0 #d9b45a88;animation:cpulse 1.6s infinite}
+  @keyframes cpulse{70%{box-shadow:0 0 0 10px #d9b45a00}100%{box-shadow:0 0 0 0 #d9b45a00}}
+  body.calm .coach .cdot{animation:none}
 </style>
 </head>
 <body>
@@ -1142,7 +1148,7 @@ function ensureMap(){ if(!mapOn()) return null; if(!M.map||M.map.ch!==M.ch){ con
 const mapAtBoss=()=>{ const m=M.map; return !!m&&m.ch===M.ch&&m.r===MAP_ROWS-1; };
 function mapReach(){ const m=ensureMap(); if(!m) return []; if(m.r>=MAP_ROWS-1) return [];
   if(m.r<0) return m.rows[0].map((o,i)=>[0,i]); return m.next[m.r][m.i].map(j=>[m.r+1,j]); }
-function goNode(r,i){ const m=ensureMap(); if(!m||M.delve||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
+function goNode(r,i){ coachDone('cMap'); const m=ensureMap(); if(!m||M.delve||!mapReach().some(([a,b])=>a===r&&b===i)) return; m.r=r; m.i=i; save(); goRoute(m.rows[r][i].t); }
 function abandonRound(){ const r=M.inRound; if(!r) return; M.inRound=null; // 上次回合打到一半就离开：按没达成处理
   if(r==='delve'){ G.earned=0; G.loot={}; delveSettle(false); } else if(r==='boss') loseHeart('Left a boss fight midway');
   else { M.chAge=(M.chAge||0)+1; M.streak=0; loseHeart('Left the last round midway'); syncGoal(); }
@@ -1178,7 +1184,11 @@ function mapHTML(big){ const m=ensureMap(); if(!m) return ''; const reach=mapRea
     <div class="map${big?' big':''}" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
     <div id="mapInfo" class="sub" style="min-height:1.6em;margin-top:6px"> Tap a node to see what it is.</div>
     <details style="margin-top:4px"><summary class="sub" style="cursor:pointer"> How does the map work?</summary><div class="sub" style="margin-top:6px;line-height:1.7"> Climb from bottom to top, one connected node at a time (glowing nodes are reachable). The boss waits at the top. Missing a goal or losing a boss fight costs 1 heart; run out and the expedition ends.</div><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).filter(x=>!x.hidden).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>: ${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
-const akBan=(ok,t,sub)=>`<div class="akban${ok?'':' bad'}"><div class="ak-t${t.length>8?' long':''}">${t}</div>${sub?`<div class="ak-s">${sub}</div>`:''}</div>`;
+// 第一次远征的引导条：每种只出现一次，做了对应操作或点「知道了」就不再出现
+const coach=(k,txt)=>M.guide&&M.guide[k]?'':`<div class="coach" data-coach="${k}"><span class="cdot"></span><span class="ctx">${txt}</span><button class="ghost" data-coachx="${k}"> Got it</button></div>`;
+const coachDone=k=>{ if(!M.guide||M.guide[k]) return; M.guide[k]=1; save(); document.querySelectorAll(`[data-coach="${k}"]`).forEach(e=>e.remove()); };
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-coachx]'); if(b){ e.stopPropagation(); coachDone(b.dataset.coachx); } },true);
+const akBan=(ok,t,sub,col)=>`<div class="akban${ok?'':' bad'}"${col?` style="background:linear-gradient(100deg,${col} 0,${col}cc 55%,${col}00 100%)"`:''}><div class="ak-t${t.length>8?' long':''}">${t}</div>${sub?`<div class="ak-s">${sub}</div>`:''}</div>`;
 const akRows=(rows,d0=.12,step=.09)=>`<div class="akrows">${rows.filter(Boolean).map((r,i)=>`<div class="akrow ${r.cls||''}" style="--d:${(d0+i*step).toFixed(2)}s"><span class="ak-i">${r.ico}</span><span class="ak-n">${r.n}${r.sub?`<small>${r.sub}</small>`:''}</span><span class="ak-v">${r.v}</span></div>`).join('')}</div>`;
 function countUp(root){ root.querySelectorAll('.countup[data-to]').forEach(el=>{ const to=+el.dataset.to, pre=el.dataset.pre!==undefined?el.dataset.pre:'+'; if(!(to>0)||calm()) return; const t0=performance.now()+(+el.dataset.delay||0), dur=Math.min(1100,350+Math.log10(1+to)*140);
   const step=now=>{ if(!el.isConnected) return; const k=Math.max(0,Math.min(1,(now-t0)/dur)), e=1-Math.pow(1-k,3); el.textContent=pre+f(Math.round(to*e)); if(k<1) requestAnimationFrame(step); else el.textContent=pre+f(to); }; el.textContent=pre+'0'; requestAnimationFrame(step); }); }
@@ -1317,7 +1327,7 @@ const starOf=id=>(M.asc&&M.asc[id])||0;
 function cardP(id){ if(DAILY){ const c=byId[id],sc=schoolCount(); return [DAILY_LV,powerOf(DAILY_LV)*resMult(Math.max(sc[c.sch]||0,c.sch2?sc[c.sch2]||0:0))]; }
   const lv=cardLv(id),c=byId[id],sc=schoolCount(); return [lv,powerOf(lv)*(1+.4*starOf(id))*resMult(Math.max(sc[c.sch]||0,c.sch2?sc[c.sch2]||0:0))*(M.foil[id]?1.25:1)*(setDone(c.sch)?1.3:1)*(1+TS.card)*(TS.ks.focus?1.6:1)]; }
 
-function startRound(boss,opt={}){
+function startRound(boss,opt={}){ if(boss===true) coachDone('cBoss');
   $('boonPop').classList.remove('show');
   const daily=opt.daily?dailyOf(dayKey()):null; DAILY=null; if(daily){ recalcTree(); DAILY=daily; TS=blankTS(); }
   boss=!!boss; buildLayout(daily?daily.ch:M.ch,boss); buildPockets(); rollSpecials();
@@ -1365,7 +1375,7 @@ function startRound(boss,opt={}){
   M.pickRolls=0; M.round++; running=true; $('ov').classList.remove('show'); renderSide();
   G.tut=M.round<=3&&!M.prestiges&&!M.guide.tut&&!chal&&!daily&&!boss?{step:0,shots:0,flash:0}:null; // 新玩家第一轮：教学关
   if(G.tut){ G.boonNext=0; G.goal=Math.max(G.goal,TUT_GOAL); } // 教学轮不弹祝福，目标稍高一点，才感觉得到「目标」
-  if(M.round===1&&!G.tut) guideTip('aim','Aim, then tap — or press Space');
+  if(M.round===1&&!G.tut) guideTip('aim',matchMedia('(pointer:coarse)').matches?'Drag to aim, release to fire':'Aim, then tap — or press Space');
   if(chal) setTimeout(()=>toast(`${chal.ico} Challenge: ${chal.goalTxt}`),300);
 }
 function freeSlots(){ return SLOTS.filter(s=>!(G.isBoss&&s.y===335)&&!G.packs.some(p=>p.slot===s)&&!G.refill.some(r=>r.slot===s)); }
@@ -1662,11 +1672,11 @@ function rollPick(o){ const minI=RO.indexOf(o.minRar||'N'); const pool=notBanned
 const rerollCost=()=>Math.ceil(packValue(1)*6*Math.pow(1.5,M.pickRolls||0));
 function openPick(o,done){ let ids=o.recruit&&Array.isArray(M.recruitPicks)&&M.recruitPicks.every(id=>byId[id])?M.recruitPicks:rollPick(o); if(o.recruit){ M.recruitPicks=ids; save(); } const el=$('boonPop');
   const close=()=>{ el.classList.remove('show'); checkAch(); if(done) done(); };
-  const render=()=>{ el.innerHTML=`<div class="bt serif goldtxt">${o.title||'Pick 1 of 3'}</div><div class="sub" style="text-align:center"> New cards are added; owned ones get +2 copies and level up faster</div>
+  const render=()=>{ el.innerHTML=`${akBan(true,o.recruit?'recruit':'Pick a Card',(o.title||'Pick 1 of 3').replace(/^\S+\s/,''))}<div class="sub" style="text-align:center">${o.recruit&&!M.runs&&!(M.guide||{}).cRec?'Pick 3 times in a row to build your starting deck. Picked cards are equipped automatically.':'New cards are added · owned cards get +2 copies'}</div>
     <div class="bcs pkrow lock">${ids.map(id=>`<div class="pk" data-id="${id}" style="width:150px">${cardHTML(id,{isNew:!M.owned[id]})}</div>`).join('')}</div>
     ${o.recruit?'':`<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn alt" id="pkRe" style="padding:8px 16px;font-size:14px"> Reroll ✦ ${f(rerollCost())}</button><button class="ghost" id="pkSkip"> Skip</button></div>`}`;
     el.querySelectorAll('.pk').forEach(x=>x.onclick=()=>{ const id=x.dataset.id, isNew=!M.owned[id]; M.owned[id]=(M.owned[id]||0)+(isNew?1:2);
-      if(isNew&&equipped().length<maxSlots()) M.deck.push(id); if(o.recruit) M.recruitPicks=null; save(); renderSide(); SFX.play(byId[id].rar==='N'?'R':byId[id].rar); toast(`${isNew?'New':'Upgraded'}: ${byId[id].name}`); close(); });
+      if(isNew&&equipped().length<maxSlots()) M.deck.push(id); if(o.recruit){ M.recruitPicks=null; if(M.recruit<=1&&M.guide) M.guide.cRec=1; } save(); renderSide(); SFX.play(byId[id].rar==='N'?'R':byId[id].rar); toast(`${isNew?'New':'Upgraded'}: ${byId[id].name}`); close(); });
     if($('pkRe')) $('pkRe').onclick=e=>{ if(!spend(rerollCost(),e.target)) return; M.pickRolls=(M.pickRolls||0)+1; ids=rollPick(o); render(); };
     if($('pkSkip')) $('pkSkip').onclick=close; clearTimeout(openPick.t); openPick.t=setTimeout(()=>{ const r=el.querySelector('.pkrow'); if(r) r.classList.remove('lock'); },700); };
   render(); el.classList.add('show'); }
@@ -2037,7 +2047,7 @@ function draw(){
   if(MOBILE.matches){ drawHud(); drawSkillStrip(); }
   drawBanner(); drawTut();
   if(G.mh&&G.mhT>0) drawMythHint();
-  if(G.route){ ctx.save(); ctx.font=`bold ${Math.round(13*UIK)}px sans-serif`; ctx.textAlign='left'; const t=`${G.route==='elite'?'Elite · ':''} Goal ${Math.min(G.opened,G.goal)}/${G.goal} packs ${packWorth()*cntMult()>1.001?`(each counts ×${f(Math.round(packWorth()*cntMult()*100)/100)})`:''}${M.streak?` · streak ${M.streak}`:''}`;
+  if(G.route&&!MOBILE.matches){ ctx.save(); ctx.font=`bold ${Math.round(13*UIK)}px sans-serif`; ctx.textAlign='left'; const t=`${G.route==='elite'?'Elite · ':''} Goal ${Math.min(G.opened,G.goal)}/${G.goal} packs ${packWorth()*cntMult()>1.001?`(each counts ×${f(Math.round(packWorth()*cntMult()*100)/100)})`:''}${M.streak?` · streak ${M.streak}`:''}`;
     ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=G.goalHit?'#7fe0a0':G.route==='elite'?'#e8a090':'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
   if(G.mut.id||G.chal){ ctx.save(); ctx.font='bold 13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic'; const c=G.chal?CHAL.find(x=>x.id===G.chal):null;
     const t=c?`${c.ico} ${c.name} · ${c.prog(G)}`:`${G.mut.ico} ${G.mut.name} · Coins ×${G.mut.coinX}`; ctx.lineWidth=3; ctx.strokeStyle='#000c'; ctx.strokeText(t,20,H-40); ctx.fillStyle=c?(G.chalWin?'#7fe0a0':'#9de7ff'):'#c9b48a'; ctx.fillText(t,20,H-40); ctx.restore(); }
@@ -2123,9 +2133,14 @@ function drawHud(){
   hudBox(16,14,w1,62); ctx.textAlign='left';
   ctx.font='700 25px "Noto Serif SC",serif'; ctx.fillStyle='#e6cf9c'; ctx.fillText(m,28,44);
   ctx.font='bold 15px sans-serif'; ctx.fillStyle='#f3dc9a'; ctx.fillText(e,28,66);
-  const r1='Round '+Math.max(1,M.round)+' ', r2='Pity '+M.pity+'/'+pityN();
-  ctx.font='bold 17px sans-serif'; const w2=Math.max(ctx.measureText(r1).width,ctx.measureText(r2).width)+24;
-  hudBox(W-16-w2,14,w2,62); ctx.textAlign='right'; ctx.fillStyle='#efe6d2'; ctx.fillText(r1,W-28,42); ctx.font='bold 15px sans-serif'; ctx.fillStyle=M.pity>=pityN()-5?'#ffcc55':'#9a8f78'; ctx.fillText(r2,W-28,64);
+  // 右上角：有目标的轮次显示「目标 已开/目标」+ 进度条（这是这一轮最重要的数字）；首领战显示章节；保底快到时才显示
+  const goalR=!!G.route&&G.goal>0, pityHot=M.pity>=pityN()-15;
+  const r1=goalR?`${Math.min(G.opened,G.goal)}/${G.goal}`:G.isBoss?`Chapter ${M.ch} · boss`:'Round '+Math.max(1,M.round)+' ', r2=pityHot?'Pity '+M.pity+'/'+pityN():'';
+  ctx.font='700 22px "Noto Serif SC",serif'; const w2=Math.max(goalR?150:0,ctx.measureText(r1).width,(ctx.font='bold 14px sans-serif',ctx.measureText(r2).width))+24;
+  hudBox(W-16-w2,14,w2,62); ctx.textAlign='right'; ctx.font='700 22px "Noto Serif SC",serif'; ctx.fillStyle=goalR&&G.goalHit?'#7fe0a0':G.route==='elite'?'#f0b2a4':'#efe6d2'; ctx.fillText(r1,W-28,44);
+  if(goalR){ ctx.textAlign='left'; ctx.font='bold 12px sans-serif'; ctx.fillStyle='#9a8f78'; ctx.fillText(G.route==='elite'?'Elite goal':'Goal',W-16-w2+12,42); ctx.textAlign='right'; }
+  if(goalR){ const bx=W-16-w2+12, bw=w2-24, k=Math.min(1,G.opened/G.goal); ctx.fillStyle='#2e2821'; rr(bx,54,bw,6,3); ctx.fill(); ctx.fillStyle=G.goalHit?'#7fe0a0':'#d9b45a'; if(k>0){ rr(bx,54,Math.max(6,bw*k),6,3); ctx.fill(); } }
+  if(r2){ ctx.font='bold 13px sans-serif'; ctx.fillStyle='#ffcc55'; ctx.fillText(r2,W-28,goalR?90:66); }
   ctx.restore();
 }
 function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
@@ -2305,7 +2320,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.6';
+const GAME_V='2026-11-11.7';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2500,6 +2515,7 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
   $('box').innerHTML=`<h2 class="serif goldtxt">⛺ Camp</h2>
     <div style="margin-top:8px"><span class="soulpill">🔥 Gold Souls <b>${M.soul}</b></span></div>
     <div class="ctabs">${[['go','Setting out'],['vault','Legacy & Vault'],['end',`Ending ${eN}/4`]].map(([k,n])=>`<button class="tab ${ct===k?'on':''}" data-ct="${k}">${n}</button>`).join('')}</div>
+    ${ct==='go'&&!M.runs?coach('cCamp','First time? Ignore the rest and tap <b> “Start Expedition”</b> in the bottom right. Squads and danger can wait.'):''}
     ${ct==='vault'?vaultTab:ct==='end'?endTab:goTab}
     <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan" title="Manual">📖</button><button class="ghost" id="campMute" title="Sound">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campSet" title="Settings">⚙️</button><button class="ghost" id="campLang">${LANG==='zh'?'EN':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
   const box=$('box');
@@ -2508,7 +2524,7 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
   box.querySelectorAll('[data-csch]').forEach(b=>b.onclick=()=>{ campSel.sch=b.dataset.csch; showCamp(); });
   box.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{ campSel.d=+b.dataset.dg; showCamp(); });
   box.querySelectorAll('[data-leg]').forEach(b=>b.onclick=()=>{ const x=LEGACY.find(y=>y.id===b.dataset.leg), l=M.legacy[x.id]||0, c=x.cost(l); if(M.soul<c||(x.max&&l>=x.max)) return; M.soul-=c; M.legacy[x.id]=l+1; SFX.play('buy'); save(); showCamp(); });
-  $('campGo').onclick=()=>startRun(campSel.sq,campSel.d,campSel.sch);
+  $('campGo').onclick=()=>{ coachDone('cCamp'); startRun(campSel.sq,campSel.d,campSel.sch); };
   box.querySelectorAll('[data-vault]').forEach(b=>b.onclick=()=>{ const v=VAULT.find(x=>x.k+':'+x.id===b.dataset.vault); if(!v||M.soul<v.cost) return; M.soul-=v.cost; (M.unlocked=M.unlocked||{})[b.dataset.vault]=1; SFX.play('ach'); save(); showCamp(); });
   if($('campRank')) $('campRank').onclick=()=>{ G={loot:{}}; tab='daily'; showBetween(); };
   $('campMan').onclick=openManual; if($('campDaily')) $('campDaily').onclick=()=>startRun('std',DAILY_RUN_DANGER,null,dayKey());
@@ -2577,9 +2593,7 @@ function offerSigil(src,after){ M.sigils=M.sigils||[];
   else { t=rollTier(src); picks=sigilPicks(t); if(!picks.length){ t='s'; picks=sigilPicks(t); } if(!picks.length) return done(); }
   const keep=()=>{ M.sigPend={src,t,ids:picks.map(c=>c.id),rolled}; save(); }; keep();
   const el=$('boonPop'), T=TIER[t], srcName={start:'Setting out',mid:'Reached stop 3',elite:'Elite reward',gold:'Sigil Scholar'}[src]||'';
-  const draw=()=>{ el.innerHTML=`<div class="sub" style="text-align:center;letter-spacing:3px">${srcName} · Sigil</div>
-    <div class="bt serif" style="color:${T.c};text-shadow:0 0 18px ${T.c}88">◆ ${T.name} Sigil ◆</div>
-    <div class="sub" style="text-align:center"> Lasts this whole map · You have ${M.sigils.length}/${sigilMax()} <br> Cleared when you beat the boss and move on</div>
+  const draw=()=>{ el.innerHTML=`${akBan(true,`${T.name} Sigil`,`${srcName} · lasts this chapter · owned ${M.sigils.length}/${sigilMax()}`,T.c)}
     <div class="bcs">${picks.map((c,i)=>`<button class="bc sig sig-${t}" data-i="${i}" disabled><div class="bi">${c.sch?badge(c.sch):c.ico}</div><b>${sigilName(c)}</b><div class="sub">${sigilDesc(c)}</div></button>`).join('')}</div>
     ${rolled?'':`<button class="ghost" id="sigRoll">🎲 Reroll (✦ ${f(sigRerollCost())})</button>`}`;
     setTimeout(()=>el.querySelectorAll('.bc').forEach(b=>b.disabled=false),600);
@@ -3175,13 +3189,13 @@ function showBetween(){
       G.route==='elite'&&ok?{ico:'🔷',n:'Sigil pick of 3',v:'Pending',cls:'gold'}:null,
       G.route==='elite'&&ok&&G.eliteOrb?{ico:'🔮',n:`Special orb · <span style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</span>`,v:'+1'}:null,
       G.delveScore?{ico:'🕳️',n:'Expedition score',v:`+${G.delveScore}`}:null];
-    $('box').innerHTML=`${akBan(ok,title,where)}${unlHTML}${akRows(rows)}${G.isBoss&&ok?bossMsg:''}${G.route==='delve'?delveMsg:''}${G.runOver?runMsg:''}${earlyMsg}${roundMsg}${oneTip}
+    $('box').innerHTML=`${akBan(ok,title,where)}${unlHTML}${!M.runs?coach('cRes',`Each round you need to open the <b> goal number</b> of packs; missing it costs <b> 1 heart</b>. Run out of hearts and the run ends. Spend coins in “Build → Upgrades”.`):''}${akRows(rows)}${G.isBoss&&ok?bossMsg:''}${G.route==='delve'?delveMsg:''}${G.runOver?runMsg:''}${earlyMsg}${roundMsg}${oneTip}
     <details style="margin-top:14px"${total&&total<=12?' open':''}><summary class="h3" style="cursor:pointer"><span> View loot ${total}</span>${newN?`<span class="sub">${newN} new cards</span>`:''}</summary><div id="tabBody"></div></details>
     <div class="foot"><span></span><div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${M.delve?delveBtns:`<button class="btn" id="resGo">${M.run.over?'See expedition results ▶':'Continue ▶'}</button>`}</div></div>`; $('box').classList.remove('learning'); }
   else $('box').innerHTML=`<h2 class="serif goldtxt">${G.delveOut?'The Deep Vault · Extracted':M.run&&M.round===0?'🧭 Expedition begins':M.run?`Chapter ${M.ch} · ${chInfo(M.ch).name}`:'Welcome back'}</h2>
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
-    ${unlHTML}${migHTML}${mapView?(G.delveOut?delveMsg:'')+relicSwapHTML()+nextBoss+learnHTML+stageHTML+(mapOn()&&!G.daily&&!G.chal?mapHTML(true):''):''}
+    ${unlHTML}${migHTML}${mapView?(G.delveOut?delveMsg:'')+relicSwapHTML()+nextBoss+learnHTML+stageHTML+(M.run&&!M.runs&&!(M.recruit>0)?(bossReady()?coach('cBoss','You’ve reached the top: tap the <b> boss</b> button below. Beat it to move to the next chapter — there are 3.'):coach('cMap','This is the chapter map. <b> Tap a glowing node</b>, then “Go here”. Each stop is one round; the boss waits at the top.')):'')+(mapOn()&&!G.daily&&!G.chal?mapHTML(true):''):''}
     <div id="tabBody"></div>
     <div class="foot"><div class="fmeta" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${upLv('auto')?`<label class="tg"><input type="checkbox" id="autoT" ${M.autoOn?'checked':''}> Auto Fire <span style="font-size:11px"> (cleared chapters only)</span></label>`:''}${M.routes.length>1?'<span class="sub" style="font-size:12px"> Where next?</span>':''}</div>
       <div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${ready?`<button class="btn boss" id="bossGo">👑 Challenge the boss</button>`:''}${routeBtns}</div></div>
@@ -3220,7 +3234,7 @@ function showBetween(){
     box.querySelectorAll('[data-node]').forEach(b=>{ const k=b.dataset.node; ['pointerenter','focus'].forEach(e=>b.addEventListener(e,()=>hl(k,true))); ['pointerleave','blur'].forEach(e=>b.addEventListener(e,()=>hl(k,false))); });
     box.querySelectorAll('.mnode.can[data-mr]').forEach(d=>{ const k=d.dataset.mr+','+d.dataset.mi; d.addEventListener('pointerenter',()=>hl(k,true)); d.addEventListener('pointerleave',()=>hl(k,false)); }); }
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
-  if($('resGo')) $('resGo').onclick=()=>{ G.resDone=1; showBetween(); $('ov').scrollTop=0; };
+  if($('resGo')) $('resGo').onclick=()=>{ coachDone('cRes'); G.resDone=1; showBetween(); $('ov').scrollTop=0; };
   countUp($('box')); statusBar();
   if(!M.run){ const ft=$('box').querySelector('.foot'); if(ft){ ft.innerHTML='<span></span><button class="btn" id="toCamp"> Back to camp ▶</button>'; $('toCamp').onclick=()=>{ G={loot:{}}; showCamp(); }; } } // 每日挑战（不在远征里）结束后回营地
   if(M.run&&M.recruit>0&&!running&&!offerSigil.busy&&!$('boonPop').classList.contains('show')){ const rs=M.run.sch; setTimeout(()=>{ if(running||!(M.recruit>0)||$('boonPop').classList.contains('show')) return; openPick({minRar:'N',sch:rs||undefined,recruit:1,title:`🎴 Opening recruit (${M.recruit} left)`},()=>{ M.recruit--; save(); showBetween(); }); },300); }
