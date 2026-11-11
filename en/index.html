@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:b298b1607e33a9e5cd94a8b5f35b163b54727830 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:2612e5dceb3b861c8faa250d9e0b553ccf188d7d -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -456,6 +456,30 @@
   @keyframes akIn{from{opacity:0;transform:translateX(-14px)}}
   body.calm .akban,body.calm .akrow{animation:none}
   @media (prefers-reduced-motion:reduce){ .akban,.akrow{animation:none} }
+  /* ---- 构筑页折叠 + 手机紧凑卡牌 ---- */
+  details.fold{margin:8px 0;border:1px solid var(--line);border-radius:10px;background:#0c0907;padding:0 12px}
+  details.fold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;font-size:14px}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary>span:first-child::after{content:' ▾';color:var(--dim);font-size:12px}
+  details.fold[open]>summary>span:first-child::after{content:' ▴'}
+  details.fold[open]{padding-bottom:10px}
+  @media (max-width:600px){
+    #box .grid.deckgrid,#box .grid.bookgrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}
+    #box .deckgrid .card .in,#box .bookgrid .card .in{min-height:0!important;padding:5px 5px 7px}
+    #box .deckgrid .card .cd,#box .bookgrid .card .cd,#box .bookgrid .card .cp{display:none}
+    #box .deckgrid .card .ci,#box .bookgrid .card .ci{height:44px;margin-top:14px} #box .deckgrid .card .ci svg,#box .bookgrid .card .ci svg{max-height:44px}
+    #box .deckgrid .card .cn,#box .bookgrid .card .cn{font-size:12px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #box .deckgrid .card .cs,#box .bookgrid .card .cs{font-size:10px}
+    #box .deckgrid .card-detail{position:absolute;top:auto;bottom:4px;right:4px;margin:0;min-height:0;width:26px;height:26px;padding:0;border-radius:50%;font-size:0;display:flex;align-items:center;justify-content:center}
+    #box .deckgrid .card-detail::before{content:'i';font-size:13px;font-weight:700;font-family:Georgia,serif;color:var(--gold2)}
+    #box .bookgrid .schhead{grid-column:1/-1}
+  }
+  .rcard{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#0e0b08;display:flex;flex-direction:column;gap:4px}
+  .rcard .rc-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline} .rcard .rc-r{font-size:11px}
+  .rcard .rc-d{font-size:13px;line-height:1.5;color:var(--ink);flex:1}
+  .rcard .ghost{align-self:flex-end;margin-top:4px;min-height:36px}
+  .rcard .ghost.armed,#relicSwap .ghost.armed{border-color:#e8a090;color:#e8a090}
+  .rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px}
 </style>
 </head>
 <body>
@@ -2261,7 +2285,7 @@ function cardHTML(id,o={}){
 let tab='loot';
 let instEvt=null; addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); instEvt=e; });
 // 技能页的筛选和排序（只在本次打开期间记住）
-const deckF={sch:'all',sort:'rar'};
+const deckF={sch:'all',sort:'rar',open:false};
 const TRIG={launch:'On launch',hit:'On hit',open:'On pack open,',wall:'On wall hit',peg:'On rivet hit',passive:'Passive'};
 const trigOf=c=>c.launch?'launch':c.hit?'hit':c.open?'open':c.wall?'wall':c.peg?'peg':'passive';
 // 页签分组：5 个大类，大类下面再分小页
@@ -2281,7 +2305,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.5';
+const GAME_V='2026-11-11.6';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2616,9 +2640,17 @@ function relicsHTML(){ if(!mapOn()) return ''; const rs=(M.relics||[]).map(relic
   return `<span class="chip">🏺 Relics ${rs.length}/${RELIC_MAX}${rs.length?': '+rs.map(relicTag).join(', '):''}</span>`; }
 // 栏位满了：结算页上选择换掉哪一件
 function relicSwapHTML(){ const id=(M.relicQ||[])[0]; if(!id) return ''; const n=relicOf(id);
-  return `<div class="chap" id="relicSwap" style="margin-top:12px;border-color:${RARE[n.r].c}">🏺 <b> New Relic: </b>${relicTag(n)} (${RARE[n.r].name}) <br><span class="sub">${n.desc}</span><br><span class="sub"> Your Relic slots are full — replace which one?</span>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${M.relics.map((rid,i)=>{ const r=relicOf(rid); return `<button class="ghost" data-rswap="${i}" title="${r.desc}"> Replace ${r.name}</button>`; }).join('')}<button class="ghost" data-rswap="-1"> Discard it</button></div></div>`; }
-function bindRelicSwap(){ document.querySelectorAll('[data-rswap]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.rswap, id=M.relicQ.shift(); if(i>=0) M.relics[i]=id; save(); SFX.play('buy'); showBetween(); }); }
+  const rc=(r,extra)=>`<div class="rcard" style="border-color:${RARE[r.r].c}66"><div class="rc-h"><b style="color:${RARE[r.r].c}">🏺 ${r.name}</b><span class="rc-r" style="color:${RARE[r.r].c}">${RARE[r.r].name}</span></div><div class="rc-d">${r.desc}</div>${extra||''}</div>`;
+  return `<div class="chap" id="relicSwap" style="margin-top:12px;border-color:${RARE[n.r].c}">
+    <div class="h3" style="margin:0 0 8px"><span>🏺 New relic</span><span class="sub"> Relic slots full ${M.relics.length}/${RELIC_MAX}</span></div>
+    ${rc(n)}
+    <div class="sub" style="margin:12px 0 6px"> Which one goes? Tap twice to confirm.</div>
+    <div class="rgrid">${M.relics.map((rid,i)=>rc(relicOf(rid),`<button class="ghost" data-rswap="${i}"> Replace this</button>`)).join('')}</div>
+    <div style="margin-top:8px;text-align:right"><button class="ghost" data-rswap="-1"> Skip “${n.name}”</button></div></div>`; }
+function bindRelicSwap(){ document.querySelectorAll('[data-rswap]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.rswap;
+    if(!b.dataset.c){ document.querySelectorAll('[data-rswap]').forEach(x=>{ delete x.dataset.c; x.classList.remove('armed'); x.textContent=+x.dataset.rswap<0?`Skip “${relicOf(M.relicQ[0]).name}”`:'Replace this'; });
+      b.dataset.c=1; b.classList.add('armed'); b.textContent=i<0?'Really skip?':`Confirm: swap in “${relicOf(M.relicQ[0]).name}”`; return; }
+    const id=M.relicQ.shift(); if(i>=0){ const old=relicOf(M.relics[i]); M.relics[i]=id; toast(`🏺 ${old.name} → ${relicOf(id).name}`); } save(); SFX.play('buy'); showBetween(); }); }
 
 // ================= ✨ 局内三选一祝福 =================
 const BOONS=[
@@ -2733,17 +2765,19 @@ function ksBar(){ const ks=ownedKs(); if(!ks.length) return '';
     <div class="sub" style="margin-top:6px;line-height:1.6">${ks.map(n=>`${n.ico} <b>${KS[n.e.ks].name}</b>: ${KS[n.e.ks].desc}`).join('<br>')}</div></div>`; }
 function bindKs(body){ body.querySelectorAll('[data-ks]').forEach(b=>b.onclick=()=>{ const k=b.dataset.ks; M.ksOff=M.ksOff||{}; if(M.ksOff[k]) delete M.ksOff[k]; else M.ksOff[k]=1;
     recalcTree(); save(); renderSide(); hud(); const n=ownedKs().find(x=>x.e.ks===k); b.outerHTML=ksBtn(n); bindKs(body); toast(`${KS[k].name}: ${M.ksOff[k]?'Turned off':'Turned on'}`); }); }
+let skyOpen=!matchMedia('(max-width:600px)').matches; // 手机上星盘图默认收起，下面的「现在可以点亮」清单照常显示
 function renderTree(body){
   if(!TV) TV=tvHome();
   const reps=REP.map(u=>{ const l=M.up[u.id]||0,c=u.cost(l),lock=u.need&&!u.need();
     return `<div class="row ${lock||M.money<c?'off':''}" data-rep="${u.id}"><div class="ico">${u.ico}</div><div class="info"><div class="nm">${u.name} <span class="lvl">Lv${l}</span></div><div class="sub">${lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):`${u.desc(l)} → ${u.desc(l+1)}`}</div></div><div class="cost">${lock?'🔒':'✦ '+f(c)}</div></div>`; }).join('');
   const n=tCount(), refund=Math.floor((M.treeSpent||0)*.8), teach=firstUpgradeReady();
   body.innerHTML=`${teach?'<div class="learn-step" id="firstUpgradeGuide"> Tap “Orb Polish” below to spend coins on more damage next round. You’ll stay on this page after upgrading.</div>':''}<div id="workshopUpgrades" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 8px">${reps}</div>${ksBar()}
+    <details class="fold" id="skyBox"${skyOpen?' open':''}><summary><span>🌌 Star chart</span><span class="sub"> Lit ${n} </span></summary>
     <div class="sub" style="margin:8px 0 6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>🌌 Star Chart: start from the center ✦ and you can only light nodes <b style="color:var(--gold2)"> connected to lit nodes</b>. Lit: <b id="tNodeCount" style="color:var(--gold2)">${n}</b> — each one makes the next more expensive. Drag to pan; scroll or pinch to zoom.</span>
       <span style="display:flex;gap:6px"><button class="ghost" id="tHome">⌂ Center</button><button class="ghost" id="tRespec" ${n?'':'disabled'}> Respec (refund ${f(refund)})</button></span></div>
     <div id="sky" style="position:relative;height:min(62vh,560px);border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:none;cursor:grab;
       background:#0f0d0b"><svg id="skySvg" width="100%" height="100%" style="display:block"></svg></div>
-    <div id="tinfo" class="chap" style="min-height:70px"></div>
+    <div id="tinfo" class="chap" style="min-height:70px"></div></details>
     <div id="tlist"></div>`;
   body.querySelectorAll('[data-rep]').forEach(el=>el.onclick=()=>{ const u=REP.find(x=>x.id===el.dataset.rep),l=M.up[u.id]||0,c=u.cost(l);
     if(u.need&&!u.need()) return toast(typeof u.needTxt==='function'?u.needTxt():u.needTxt); if(!spend(c,el)) return;
@@ -2754,6 +2788,7 @@ function renderTree(body){
   $('tHome').onclick=()=>{ TV=tvHome(); drawSky(); };
   bindTreeRespec(body);
   drawSky(); requestAnimationFrame(drawSky); skyInput(body); tInfo(body); tList(body);
+  const sb=$('skyBox'); if(sb) sb.ontoggle=()=>{ skyOpen=sb.open; if(sb.open){ drawSky(); requestAnimationFrame(drawSky); } };
 }
 // Build actions update the existing view instead of replacing the whole panel.
 function holdBuildView(update,anchor){
@@ -2831,7 +2866,7 @@ function refreshTreeView(body){
 }
 
 
-const treeLocked=body=>{ const sky=$('sky'); if(!sky) return; ['tHome','tRespec','tinfo','tlist'].forEach(id=>{ const e=$(id); if(e) e.remove(); }); const tip=sky.previousElementSibling; if(tip) tip.remove();
+const treeLocked=body=>{ const sbx=$('skyBox'); if(sbx){ const t=$('tlist'); if(t) t.remove(); sbx.outerHTML='<div class="chap" style="text-align:center;padding:18px">🔒 <b> Star Chart</b>: rounds until it opens — '+Math.max(1,3-M.round)+' . Spend coins on “Orb Polish” above for now.</div>'; return; } const sky=$('sky'); if(!sky) return; ['tHome','tRespec','tinfo','tlist'].forEach(id=>{ const e=$(id); if(e) e.remove(); }); const tip=sky.previousElementSibling; if(tip) tip.remove();
   sky.outerHTML='<div class="chap" style="text-align:center;padding:18px">🔒 <b> Star Chart</b>: rounds until it opens — '+Math.max(1,3-M.round)+' . Spend coins on “Orb Polish” above for now.</div>'; };
 // 「可以点亮」清单：不用在星盘上找，直接点
 function tList(body){
@@ -3186,7 +3221,7 @@ function showBetween(){
     box.querySelectorAll('.mnode.can[data-mr]').forEach(d=>{ const k=d.dataset.mr+','+d.dataset.mi; d.addEventListener('pointerenter',()=>hl(k,true)); d.addEventListener('pointerleave',()=>hl(k,false)); }); }
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
   if($('resGo')) $('resGo').onclick=()=>{ G.resDone=1; showBetween(); $('ov').scrollTop=0; };
-  countUp($('box'));
+  countUp($('box')); statusBar();
   if(!M.run){ const ft=$('box').querySelector('.foot'); if(ft){ ft.innerHTML='<span></span><button class="btn" id="toCamp"> Back to camp ▶</button>'; $('toCamp').onclick=()=>{ G={loot:{}}; showCamp(); }; } } // 每日挑战（不在远征里）结束后回营地
   if(M.run&&M.recruit>0&&!running&&!offerSigil.busy&&!$('boonPop').classList.contains('show')){ const rs=M.run.sch; setTimeout(()=>{ if(running||!(M.recruit>0)||$('boonPop').classList.contains('show')) return; openPick({minRar:'N',sch:rs||undefined,recruit:1,title:`🎴 Opening recruit (${M.recruit} left)`},()=>{ M.recruit--; save(); showBetween(); }); },300); }
   else if(mapOn()&&M.map&&M.map.ch===M.ch&&!M.map.sig0&&!M.delve){ M.map.sig0=1; M.sigQ.push('start'); save(); }
@@ -3201,7 +3236,11 @@ function showBetween(){
   else if(tab==='loot'){
     body.innerHTML=ids.length?`<div class="grid">${ids.map((id,i)=>cardHTML(id,{pop:1,delay:i*.07,count:G.loot[id],isNew:G.newIds[id],up:G.upIds[id],foilNew:G.foilIds&&G.foilIds[id]})).join('')}</div>`:G.reborn?`<div class="chap" style="margin-top:0;border-color:var(--gold3)">🔥 <b> Smelting complete</b>: gained <b style="color:var(--gold2)">${G.reborn}</b> Gold Souls. You’re back at Chapter 1 — your cards, foils and Codex are all still here. <br><span class="sub"> Head to “More → Legacy” to spend Gold Souls on permanent bonuses, then start the next round.</span></div>`:'<p class="sub"> No cards this round. Try aiming where packs are clustered!</p>';
   } else if(tab==='bag'){
-    body.innerHTML=`<p class="sub"> At the start of each round, special orbs from your Orb Bag are shuffled in with regular Gold Orbs (any beyond this round’s orb count sit out). The next three are shown beside the launcher and fire in order. <br> New special orbs come at random from cleared Elite rounds and from the Orbsmith encounter.</p>`+ORB_SPECIAL.map(k=>{ const o=ORBS[k],n=M.orbs[k]||0; return `<div class="ach ${n?'yes':'no'}"><div class="ico" style="color:${o.c}">${o.ico}</div><div><div style="font-weight:800;color:${o.c}">${o.name}</div><div class="sub">${o.desc}</div></div><div class="rw">× ${n}</div></div>`; }).join('');
+    const orbRow=k=>{ const o=ORBS[k],n=M.orbs[k]||0; return `<div class="ach ${n?'yes':'no'}"><div class="ico" style="color:${o.c}">${o.ico}</div><div><div style="font-weight:800;color:${o.c}">${o.name}</div><div class="sub">${o.desc}</div></div><div class="rw">× ${n}</div></div>`; };
+    const have=ORB_SPECIAL.filter(k=>M.orbs[k]), none=ORB_SPECIAL.filter(k=>!M.orbs[k]);
+    body.innerHTML=`<details class="fold"><summary><span>❔ What’s the orb bag?</span></summary><div class="sub" style="margin-top:6px;line-height:1.7"> At the start of each round, special orbs are shuffled in with your gold orbs (extras beyond this round’s orb count sit out). The next three show beside the launcher. New special orbs come from elite rewards and events.</div></details>`
+      +(have.length?have.map(orbRow).join(''):'<p class="sub"> No special orbs in the bag yet.</p>')
+      +(none.length?`<details class="fold" style="margin-top:8px"><summary><span> Not yet owned: ${none.length} </span></summary>${none.map(orbRow).join('')}</details>`:'');
   } else if(tab==='up'){
     renderTree(body);
   } else if(tab==='deck'){
@@ -3215,12 +3254,14 @@ function showBetween(){
     let grid='', last=null; list.forEach(c=>{ if(grp&&grp(c)!==last){ last=grp(c); grid+=`<div class="schhead">${gName(last)}</div>`; } grid+=cardHTML(c.id,{eq:eq.includes(c.id),details:true}); });
     const chip=(k,label,color,cnt)=>`<button class="ghost" data-fs="${k}" style="${F.sch===k?'border-color:var(--gold);color:var(--gold2);background:#d9b45a18':color?`color:${color}`:''}">${label} <span style="opacity:.7">${cnt}</span></button>`;
     const chips=[chip('all','All','',all.length)].concat(SO.filter(k=>k!=='myth'||all.some(c=>c.sch==='myth')).map(k=>chip(k,`${SCH[k].ico}${SCH[k].name}${resMult(n[k]||0)>1?` ×${resMult(n[k])}`:''}`,(n[k]||0)>=2?SCH[k].color:'',all.filter(c=>c.sch===k||c.sch2===k).length)),chip('eq','Equipped','',eq.length));
-    body.innerHTML=`<p class="sub"> Tap a card to equip or unequip it. 2/3/4/5 cards of one school give ×1.3/1.6/2/2.6.</p>
-      ${loadBar()}<div class="eqbar"><span class="sub"> Equipped ${eq.length}/${maxSlots()}</span>${eq.map(id=>`<button class="ghost" data-uneq="${id}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico} ${byId[id].name} ✕</button>`).join('')}${eq.length<maxSlots()?'<span class="sub">· Tap a card below to equip it</span>':''}</div>
-      <div class="res" style="margin:8px 0 6px;gap:6px">${chips.join('')}</div>
-      <div class="subtabs" style="margin:0 0 10px"><span class="sub" style="align-self:center;margin-right:4px"> Sort</span>${Object.entries({rar:'Rarity',lv:'Level',sch:'School',trig:'Trigger'}).map(([k,v])=>`<button class="${F.sort===k?'on':''}" data-so="${k}">${v}</button>`).join('')}</div>
+    const fName=F.sch==='all'?'All':F.sch==='eq'?'Equipped':SCH[F.sch].name, sName={rar:'Rarity',lv:'Level',sch:'School',trig:'Trigger'}[F.sort];
+    body.innerHTML=`${loadBar()}<div class="eqbar"><span class="sub"> Equipped ${eq.length}/${maxSlots()}</span>${eq.map(id=>`<button class="ghost" data-uneq="${id}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico} ${byId[id].name} ✕</button>`).join('')}${eq.length<maxSlots()?'<span class="sub">· Tap a card below to equip it</span>':''}</div>
+      <details class="fold" id="deckFold"${F.open?' open':''}><summary><span>⚙️ Filter: <b>${fName}</b> · Sort: <b>${sName}</b></span><span class="sub">${list.length} cards</span></summary>
+      <div class="sub" style="margin:6px 0 4px"> Equip 2/3/4/5 cards of one school for effects ×1.3/1.6/2/2.6</div>
+      <div class="res" style="margin:4px 0 6px;gap:6px">${chips.join('')}</div>
+      <div class="subtabs" style="margin:0 0 4px"><span class="sub" style="align-self:center;margin-right:4px"> Sort</span>${Object.entries({rar:'Rarity',lv:'Level',sch:'School',trig:'Trigger'}).map(([k,v])=>`<button class="${F.sort===k?'on':''}" data-so="${k}">${v}</button>`).join('')}</div></details>
       ${all.length?(list.length?`<div class="grid deckgrid">${grid}</div>`:'<p class="sub"> No cards match this filter.</p>'):'<p class="sub"> No cards yet.</p>'}`;
-    bindLoadBar(body);
+    bindLoadBar(body); { const fd=$('deckFold'); if(fd) fd.ontoggle=()=>{ F.open=fd.open; }; }
     body.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{ F.sch=b.dataset.fs; showBetween(); });
     body.querySelectorAll('[data-so]').forEach(b=>b.onclick=()=>{ F.sort=b.dataset.so; showBetween(); });
     body.querySelectorAll('[data-uneq]').forEach(b=>b.onclick=()=>{ M.deck=M.deck.filter(x=>x!==b.dataset.uneq); save(); renderSide(); refreshDeckView(body,b); });
@@ -3282,8 +3323,8 @@ function showBetween(){
     $('reset').onclick=()=>{ if($('reset').dataset.c){ try{ applySavedState(fresh(),true); running=false; ROUND_EQ=null; G=null; recalcTree(); syncMute(); syncSpeed(); renderSide(); showIntro(); }catch(e){ toast(e.message); } } else { $('reset').dataset.c=1; $('reset').textContent='Tap again to confirm'; } };
   } else {
     const fc=CARDS.filter(c=>M.foil[c.id]).length, ur=CARDS.filter(c=>c.rar==='UR');
-    body.innerHTML=`<p class="sub">✨ Foils collected ${fc}/${CARDS.length} · Each card has a ${((.005+.0025*M.legacy.shine)*100).toFixed(2)}% chance to be foil; owning a foil gives that card a permanent +25%<br>
-      📖 Complete a school: all its cards <b style="color:var(--green)">×1.3</b> · Complete all five schools: orb damage <b style="color:var(--green)">×1.5</b>${allSets()?' ✓':''}</p>`+'<div class="grid">'+SCH5.map(k=>{ const v=SCH[k],cs=CARDS.filter(c=>c.sch===k&&c.rar!=='UR'&&c.rar!=='FX'),done=setDone(k);
+    body.innerHTML=`<details class="fold"><summary><span>❔ Collection bonuses</span><span class="sub"> Foils ${fc}/${CARDS.length}</span></summary><p class="sub" style="line-height:1.7"> Each card has a ${((.005+.0025*M.legacy.shine)*100).toFixed(2)}% chance to be foil; owning a foil gives that card a permanent +25%<br>
+      📖 Complete a school: all its cards <b style="color:var(--green)">×1.3</b> · Complete all five schools: orb damage <b style="color:var(--green)">×1.5</b>${allSets()?' ✓':''}</p></details>`+'<div class="grid bookgrid">'+SCH5.map(k=>{ const v=SCH[k],cs=CARDS.filter(c=>c.sch===k&&c.rar!=='UR'&&c.rar!=='FX'),done=setDone(k);
       return `<div class="schhead" style="color:${v.color}">${badge(k)||v.ico} ${v.name} · ${cs.filter(c=>M.owned[c.id]).length}/${cs.length}<span class="setbonus ${done?'on':''}">${done?'✓ Complete: effect ×1.3':'Set bonus: effect ×1.3'}</span></div>`+cs.map(c=>cardHTML(c.id,{unknown:!M.owned[c.id]})).join(''); }).join('')
       +`<div class="schhead" style="color:#ff7ad9;display:flex;align-items:center;gap:8px;flex-wrap:wrap">✦ Myth · ${ur.filter(c=>M.owned[c.id]).length}/${ur.length}<span class="setbonus"> Unlock by solving the riddle first; then Black-Gold Vaults and bosses can drop it</span>${ur.every(c=>M.owned[c.id])?'':'<button class="ghost" id="eggHelp" style="margin-left:auto;font-size:12px;padding:3px 10px;letter-spacing:0">💡 Stuck? See how to unlock</button>'}</div>`
       +`<div class="chap" id="eggAns" style="grid-column:1/-1;display:none;margin:0;line-height:1.8">${ur.map(c=>`${M.owned[c.id]?'<span style="color:var(--green)">✓</span>':'🔒'} <b style="color:#ff9be6">${c.name}</b>：${EGG_HOW[c.id]||''}`).join('<br>')}</div>`
