@@ -434,6 +434,27 @@
   #wallet .wi{background:none;border:1px solid #d9b45a33;border-radius:7px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;position:relative}
   #wallet .wi .ic{width:15px;height:15px} #wallet .wi small{position:absolute;right:1px;bottom:-1px;font-size:9px;color:var(--gold2)}
   @media (max-width:600px){ #wallet{flex-wrap:wrap;row-gap:4px} #wallet .wicons{width:100%;justify-content:center} .ov{padding-top:calc(var(--wh,44px) + 6px)!important} }
+  /* ---- 结算：明日方舟肉鸽式横幅 + 逐条明细 ---- */
+  .akban{position:relative;margin:2px -2px 12px;padding:12px 40px 10px 22px;background:linear-gradient(100deg,#e2c06a 0,#c49a42 55%,#c49a4200 100%);clip-path:polygon(0 0,100% 0,calc(100% - 30px) 100%,0 100%);color:#1a1208;animation:akBan .45s cubic-bezier(.2,.8,.2,1) both}
+  .akban::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:#1a1208}
+  .akban.bad{background:linear-gradient(100deg,#c96456 0,#93392f 55%,#93392f00 100%);color:#fff3ee} .akban.bad::before{background:#2a0d0a}
+  .akban .ak-t{font-family:'Noto Serif SC','Noto Serif CJK SC',serif;font-size:27px;font-weight:900;letter-spacing:8px;line-height:1.15}
+  .akban .ak-t.long{font-size:22px;letter-spacing:1px}
+  .akban .ak-s{font-size:12px;letter-spacing:1px;opacity:.82;margin-top:3px}
+  .akrows{display:grid;gap:4px}
+  .akrow{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:10px;padding:9px 12px;background:linear-gradient(90deg,#1b1610,#0e0b08 80%);border-left:3px solid #d9b45a66;font-size:14px;animation:akIn .35s ease-out both;animation-delay:var(--d,0s)}
+  .akrow.good{border-left-color:var(--green)} .akrow.bad{border-left-color:#c8584a} .akrow.gold{border-left-color:var(--gold)}
+  .akrow .ak-i{display:flex;justify-content:center;color:var(--gold2)} .akrow.bad .ak-i{color:#e8a090}
+  .akrow .ak-n small{display:block;font-size:11px;color:var(--dim);margin-top:1px}
+  .akrow .ak-v{font-variant-numeric:tabular-nums;font-weight:700;color:var(--gold2);font-size:16px;text-align:right;white-space:nowrap}
+  .akrow.bad .ak-v{color:#e8a090} .akrow.good .ak-v{color:var(--green)}
+  .akrow.total{margin-top:6px;padding:12px 14px;border-left-width:5px;border-left-color:var(--gold);background:linear-gradient(90deg,#2a2114,#100c08 85%)}
+  .akrow.total .ak-n{font-family:'Noto Serif SC','Noto Serif CJK SC',serif;font-size:16px;letter-spacing:3px} .akrow.total .ak-v{font-size:26px}
+  .akrow.sub2 .ak-v{color:var(--ink);font-weight:600}
+  @keyframes akBan{from{opacity:0;transform:translateX(-40px)}}
+  @keyframes akIn{from{opacity:0;transform:translateX(-14px)}}
+  body.calm .akban,body.calm .akrow{animation:none}
+  @media (prefers-reduced-motion:reduce){ .akban,.akrow{animation:none} }
 </style>
 </head>
 <body>
@@ -1055,7 +1076,7 @@ function delveSettle(ok){ const d=M.delve; if(!d) return; const L=d.layer;
   const coins=Math.min(M.money,G.earned); M.money-=coins; d.coins+=coins;
   for(const [id,n] of Object.entries(G.loot||{})){ const left=Math.max(0,(M.owned[id]||0)-n), took=(M.owned[id]||0)-left; if(!took) continue;
     if(left>0) M.owned[id]=left; else { delete M.owned[id]; M.deck=M.deck.filter(x=>x!==id); } d.cards[id]=(d.cards[id]||0)+took; }
-  if(ok){ if(M.run){ M.run.score+=10*M.ch*L; G.delveScore=10*M.ch*L; } if(L%2===0){ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; d.orbs[k]=(d.orbs[k]||0)+1; } if(L>=3) d.soul+=L-2; G.delveOk=true; }
+  if(ok){ if(M.run){ addScore('delve',10*M.ch*L); G.delveScore=10*M.ch*L; } if(L%2===0){ const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; d.orbs[k]=(d.orbs[k]||0)+1; } if(L>=3) d.soul+=L-2; G.delveOk=true; }
   else { G.delveLost={...d}; M.delve=null; loseHeart('被困在金库深处'); }
   G.delveLayer=L; }
 function delveExtract(){ const d=M.delve; if(!d) return; M.delve=null;
@@ -1102,6 +1123,7 @@ function abandonRound(){ const r=M.inRound; if(!r) return; M.inRound=null; // �
   else { M.chAge=(M.chAge||0)+1; M.streak=0; loseHeart('上一轮中途离开'); syncGoal(); }
   save(); setTimeout(()=>toast('上一轮中途离开，按没达成处理'),600); }
 const RUN_LOSS=.15, RUN_LOSS_CH=3; // 命用完：第 3 章起散落 15% 金币（最多上一轮金币的 3 倍），新手章节不罚
+function addScore(k,v){ const r=M.run; if(!r) return; r.score+=v; r.sc=r.sc||{}; r.sc[k]=(r.sc[k]||0)+v; }
 function gainHeart(){ if(!M.run||M.run.hearts>=heartCap()) return false; M.run.hearts++; if(M.map) M.map.hearts=M.run.hearts; return true; }
 function loseHeart(why){ const m=M.map; if(!mapOn()||!m||m.ch!==M.ch) return;
   if(why==='目标没达成'&&hasSigil('ward')){ M.sigils=M.sigils.filter(x=>x!=='ward'); G.heartLost='护身符碎了，替你挡下这次失败'; G.wardSaved=1; return; }
@@ -1131,8 +1153,10 @@ function mapHTML(big){ const m=ensureMap(); if(!m) return ''; const reach=mapRea
     <div class="map${big?' big':''}" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
     <div id="mapInfo" class="sub" style="min-height:1.6em;margin-top:6px">点一个点，看看它是什么。</div>
     <details style="margin-top:4px"><summary class="sub" style="cursor:pointer">地图怎么走？</summary><div class="sub" style="margin-top:6px;line-height:1.7">从下往上，每次走到一个连着的点（发光的就是能去的），走到顶就是首领。没达成目标或输了首领战会掉 1 颗心，心用完这次远征就结束。</div><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).filter(x=>!x.hidden).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>：${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
-function countUp(root){ root.querySelectorAll('.countup[data-to]').forEach(el=>{ const to=+el.dataset.to; if(!(to>0)||calm()) return; const t0=performance.now(), dur=Math.min(1100,350+Math.log10(1+to)*140);
-  const step=now=>{ if(!el.isConnected) return; const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3); el.textContent='+'+f(to*e); if(k<1) requestAnimationFrame(step); else el.textContent='+'+f(to); }; el.textContent='+0'; requestAnimationFrame(step); }); }
+const akBan=(ok,t,sub)=>`<div class="akban${ok?'':' bad'}"><div class="ak-t${t.length>8?' long':''}">${t}</div>${sub?`<div class="ak-s">${sub}</div>`:''}</div>`;
+const akRows=(rows,d0=.12,step=.09)=>`<div class="akrows">${rows.filter(Boolean).map((r,i)=>`<div class="akrow ${r.cls||''}" style="--d:${(d0+i*step).toFixed(2)}s"><span class="ak-i">${r.ico}</span><span class="ak-n">${r.n}${r.sub?`<small>${r.sub}</small>`:''}</span><span class="ak-v">${r.v}</span></div>`).join('')}</div>`;
+function countUp(root){ root.querySelectorAll('.countup[data-to]').forEach(el=>{ const to=+el.dataset.to, pre=el.dataset.pre!==undefined?el.dataset.pre:'+'; if(!(to>0)||calm()) return; const t0=performance.now()+(+el.dataset.delay||0), dur=Math.min(1100,350+Math.log10(1+to)*140);
+  const step=now=>{ if(!el.isConnected) return; const k=Math.max(0,Math.min(1,(now-t0)/dur)), e=1-Math.pow(1-k,3); el.textContent=pre+f(Math.round(to*e)); if(k<1) requestAnimationFrame(step); else el.textContent=pre+f(to); }; el.textContent=pre+'0'; requestAnimationFrame(step); }); }
 function bindMap(root){ root.querySelectorAll('.mnode').forEach(b=>b.onclick=()=>{ const info=$('mapInfo'); if(!info) return;
   if(b.dataset.mboss){ const go=mapAtBoss(); info.innerHTML=`👑 <b>首领</b>：${NODE_INFO.boss.tip()}${go?' <button class="btn boss" id="mapGo" style="padding:4px 12px;font-size:13px">挑战</button>':' <span>（走到最上面一站后才能打）</span>'}`; if(go) $('mapGo').onclick=()=>startRound(true); return; }
   const r=+b.dataset.mr, i=+b.dataset.mi, o=M.map.rows[r][i], can=b.classList.contains('can'), x=NODE_INFO[o.t];
@@ -1522,7 +1546,7 @@ function bossDown(p){
   const coins=packValue(2)*12*(1+.4*M.legacy.rich); // packValue 已经按章节涨了
   earn(coins,p.x,p.y);
   G.death={x:p.x,y:p.y,h:p.hh*2,t:0,img:'p2_'+bossIdx(M.ch)}; shake(6);
-  giveCard(p,'SSR'); giveCard(p,0); giveCard(p,2); if(M.run){ M.run.bosses++; M.run.score+=150*M.ch; if(M.ch>=ACTS){ M.run.over='win'; M.run.ending=M.run.gate?(p.p3?'e4':'e2'):((M.run.stars||0)>=3?'e3':'e1'); } else { if(M.run.hearts>=heartCap()) addStar('boss','满心击败首领'); if(hasRelic('tithe')&&gainHeart()) toast('🍷 王者之杯：回了 1 颗心'); } } if(!(M.run&&M.run.over)) dropRelic('boss',p.x,p.y); if(urUnlocked().length&&Math.random()<UR_BOSS) giveCard(p,'UR');
+  giveCard(p,'SSR'); giveCard(p,0); giveCard(p,2); if(M.run){ M.run.bosses++; addScore('boss',150*M.ch); if(M.ch>=ACTS){ M.run.over='win'; M.run.ending=M.run.gate?(p.p3?'e4':'e2'):((M.run.stars||0)>=3?'e3':'e1'); } else { if(M.run.hearts>=heartCap()) addStar('boss','满心击败首领'); if(hasRelic('tithe')&&gainHeart()) toast('🍷 王者之杯：回了 1 颗心'); } } if(!(M.run&&M.run.over)) dropRelic('boss',p.x,p.y); if(urUnlocked().length&&Math.random()<UR_BOSS) giveCard(p,'UR');
   const old=M.ch; M.ch++; if(M.ch>M.maxCh) M.best.chRound=M.round; M.maxCh=Math.max(M.maxCh,M.ch); M.chRounds=0; M.chAge=0; M.sigils=[]; M.sigQ=[]; syncGoal();
   G.fx.push({x:W/2,y:H/2,t:`${chInfo(old).boss} 被击败！`,c:'#ffcc55',life:2.5});
   toast(`👑 击败首领！第 ${M.ch} 章「${chInfo(M.ch).name}」开启`);
@@ -1601,7 +1625,7 @@ function settleRoute(){ if(G.isBoss&&!G.bossWin){ if(M.run&&G.boss) M.bossWound=
   if(G.route==='delve'){ M.chAge=(M.chAge||0)+1; delveSettle(ok); return; }
   if(mapOn()&&M.map&&M.map.ch===M.ch&&M.map.r===2&&!M.map.sigMid){ M.map.sigMid=1; M.sigQ.push('mid'); }
   M.chAge=(M.chAge||0)+1; if(!ok) loseHeart('目标没达成');
-  if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++; if(M.run){ M.run.goals++; M.run.score+=20*M.ch; }
+  if(ok){ M.streak++; M.bestStreak=Math.max(M.bestStreak||0,M.streak); M.chRounds++; if(M.run){ M.run.goals++; addScore('goal',20*M.ch); }
     const k=.15+.03*Math.min(M.streak,10), v=G.earned*k; M.money+=v; M.life+=v; G.earned+=v; G.goalBonus=v; G.goalK=k;
     if(G.route==='elite'){ dropRelic('elite'); M.sigQ.push('elite'); if(M.run&&!M.run.key&&M.ch<ACTS&&runRand()<.3) giveKey('精英身上掉下来的'); const k=ORB_SPECIAL[Math.floor(Math.random()*ORB_SPECIAL.length)]; M.orbs[k]=(M.orbs[k]||0)+1; G.eliteOrb=k; } }
   else { G.lostStreak=M.streak; M.streak=0; } syncGoal(); }
@@ -2256,7 +2280,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.4';
+const GAME_V='2026-11-11.5';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2403,21 +2427,31 @@ function finishRun(){ const r=M.run; if(!r||r.awarded) return M.lastRun;
   const newSq=SQUADS.filter(q=>squadOk(q)&&!before.includes(q.id)).map(q=>q.id);
   const end=win?(r.ending||'e1'):null; M.endings=M.endings||{}; const endFirst=!!(end&&!M.endings[end]&&!r.daily), endSoul=endFirst?ENDINGS[end].soul:0; if(end&&!r.daily) M.endings[end]=1; M.soul+=endSoul;
   r.awarded=1; if(r.daily){ const db=M.dailyRun&&M.dailyRun.day===r.daily?M.dailyRun:{day:r.daily,best:0,tries:0}; db.tries++; db.best=Math.max(db.best,score); M.dailyRun=db; M.daily={day:r.daily,best:db.best,streak:(M.daily&&M.daily.streak)||1}; dailySubmit(); }
-  M.lastRun={daily:r.daily||null,win,score,souls,act:M.ch,danger:r.danger||0,squad:r.squad,rounds:M.round,mins:Math.round((Date.now()-r.t0)/60000),goals:r.goals,bosses:r.bosses,newSq,dUnl,end,endFirst,endSoul,stars:r.stars||0,key:!!r.key,gate:!!r.gate,trueMiss:!!(end==='e2'&&(r.stars||0)>=3&&!trueReady())};
+  M.lastRun={daily:r.daily||null,win,score,souls,act:M.ch,danger:r.danger||0,squad:r.squad,rounds:M.round,mins:Math.round((Date.now()-r.t0)/60000),goals:r.goals,bosses:r.bosses,sc:Object.assign({},r.sc),raw:r.score,newSq,dUnl,end,endFirst,endSoul,stars:r.stars||0,key:!!r.key,gate:!!r.gate,trueMiss:!!(end==='e2'&&(r.stars||0)>=3&&!trueReady())};
   save(); lbSubmit(); runStatSend(M.lastRun); return M.lastRun; }
 function showRunEnd(){ const L=finishRun(); if(!L) return showCamp(); const q=SQUADS.find(x=>x.id===L.squad)||SQUADS[0];
   const E=L.win?ENDINGS[L.end||'e1']:null;
   const ending=E?`<div class="chap" style="margin-top:12px;border-color:var(--gold);display:flex;gap:12px;align-items:center"><img src="${ART.hero}" alt="" style="width:72px;height:72px;object-fit:contain;flex:none">
     <div><div class="sub" style="letter-spacing:3px">${E.ico} 结局 ${E.n} · ${E.name}${L.endFirst?` · <b style="color:var(--gold2)">第一次达成 🔥 +${L.endSoul}</b>`:''}</div><div style="font-family:'Noto Serif SC','Noto Serif CJK SC',serif;line-height:1.9;color:#e9dcbc;margin-top:4px">${E.txt}</div></div></div>
     ${L.trueMiss?`<div class="sub" style="margin-top:8px">🌟 星珠和钥匙一起发着光，好像还差了点什么……</div>`:''}`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${L.win?'🏆 远征成功':'💔 远征结束'}</h2>${L.daily?'<div class="sub">📅 每日远征 · '+L.daily+'</div>':''}${ending}
-    <div class="sub" style="margin-top:6px">${q.ico} ${q.name} · 危险 ${L.danger} · ${L.win?`打通全部 ${ACTS} 章`:`倒在第 ${L.act} 章`}</div>
-    <div class="kv" style="margin-top:14px"><div><b>${L.score}</b><span>分数</span></div><div><b>+${L.souls}</b><span>金魂</span></div><div><b>${L.rounds}</b><span>${LANG==='en'?`round${L.rounds===1?'':'s'} · ${L.mins} min`:`轮 · ${L.mins} 分钟`}</span></div></div>
-    <div class="sub" style="margin-top:10px">达成目标 ${L.goals} 次 · 击败首领 ${L.bosses} 个${L.win?' · 通关奖励 +500':''}${L.danger?` · 危险加成 ×${(1+.25*L.danger).toFixed(2)}`:''}</div>
+  const sc=L.sc||{}, known=(sc.goal||0)+(sc.boss||0)+(sc.delve||0), other=Math.max(0,(L.raw||0)-known), mul=1+.25*L.danger, st=.16;
+  const rows=[
+    {ico:'🎯',n:'达成目标',sub:`${L.goals} 次`,v:`+${sc.goal||0}`},
+    {ico:'👑',n:'击败首领',sub:`${L.bosses} 个`,v:`+${sc.boss||0}`},
+    sc.delve?{ico:'🕳️',n:'深入金库',v:`+${sc.delve}`}:null,
+    other?{ico:'✦',n:'其他',v:`+${other}`}:null,
+    L.win?{ico:'🏆',n:'通关奖励',v:'+500',cls:'gold'}:null,
+    L.danger?{ico:'🔥',n:`危险 ${L.danger} 加成`,v:`×${mul.toFixed(2)}`,cls:'sub2'}:null];
+  const nR=rows.filter(Boolean).length, tD=(.35+nR*st);
+  const tail=[{ico:'⭐',n:'总分',v:`<span class="countup" data-pre="" data-to="${L.score}" data-delay="${Math.round(tD*1000)}">${L.score}</span>`,cls:'total'},
+    {ico:'🔥',n:'金魂',sub:L.endSoul?`含第一次达成结局 +${L.endSoul}`:'',v:`+${L.souls+(L.endSoul||0)}`,cls:'gold'},
+    {ico:'⏱️',n:'用时',v:`${L.rounds} 轮 · ${L.mins} 分钟`,cls:'sub2'}];
+  $('box').innerHTML=`${akBan(L.win,L.win?'远征成功':'远征失败',`${q.ico} ${q.name} · 危险 ${L.danger} · ${L.win?`打通全部 ${ACTS} 章`:`倒在第 ${L.act} 章`}${L.daily?' · 每日远征 '+L.daily:''}`)}
+    ${akRows(rows,.35,st)}${akRows(tail,tD,.22)}${ending}
     ${L.dUnl?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🔥 解锁 <b>危险 ${L.dUnl}</b>：目标、卡包和首领都更硬，分数也更高。</div>`:''}
     ${L.newSq.map(id=>{ const s=SQUADS.find(x=>x.id===id); return `<div class="chap" style="margin-top:12px;border-color:var(--gold)">${s.ico} 解锁探险队 <b>${s.name}</b>：${s.desc}</div>`; }).join('')}
-    <div class="sub" style="margin-top:12px">卡牌、金币、升级、秘符和遗珍都留在了这一局；金魂、传承、图鉴和成就会一直保留。</div>
-    <div class="foot"><span></span><button class="btn" id="toCamp">回到营地 ▶</button></div>`;
+    <div class="sub" style="margin-top:12px">金魂、传承、图鉴、结局和成就会一直保留，其余留在这一局。</div>
+    <div class="foot"><span></span><button class="btn" id="toCamp">回到营地 ▶</button></div>`; countUp($('box'));
   $('toCamp').onclick=()=>{ M.run=null; M.money=0; M.sigils=[]; M.sigQ=[]; M.relicQ=[]; M.detour=null; M.recruitPicks=null; M.sigPend=null; M.deck=[]; save(); hud(); renderSide(); showCamp(); }; $('ov').classList.add('show'); $('ov').scrollTop=0; SFX.play(L.win?'ach':'end'); }
 let campSel={sq:'std',d:0,sch:'combo',tab:'go'};
 function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
@@ -3092,8 +3126,21 @@ function showBetween(){
   const resTitle=G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:G.route==='delve'?`深入金库 · 第 ${G.delveLayer||1} 层`:`第 ${M.round} 轮 · 结算`;
   const plainRes=G.packs&&!goalMsg?`<div class="resbar${G.isBoss&&!G.bossWin?' bad':''}"><div><div class="rb-t">开了 <b>${G.opened}</b> 包</div><div class="rb-s">${Object.keys(G.newIds).length} 张新卡 · 命中 ${G.hits} 次</div></div><div class="rb-c"><span class="countup" data-to="${G.earned}">+${f(G.earned)}</span><small>金币</small></div></div>`:'';
   const newN=Object.keys(G.newIds||{}).length;
-  if(resView){ $('box').innerHTML=`<h2 class="serif goldtxt">${resTitle}</h2>${unlHTML}${delveMsg}${runMsg}${bossMsg}${goalMsg}${plainRes}${relicMsg}${earlyMsg}${roundMsg}${oneTip}
-    <div class="h3" style="margin-top:16px"><span>战利品 ${total}</span>${newN?`<span class="sub">${newN} 张新卡</span>`:''}</div><div id="tabBody"></div>
+  if(resView){ const isR=!!G.route&&G.route!=='delve', ok=G.isBoss?G.bossWin:G.route==='delve'?!G.delveLost:G.goalOk, chN=G.ch0||M.ch, node=G.isBoss?'首领':(NODE_INFO[G.route]||{}).name||'';
+    const where=`第 ${chN} 章 · ${G.isBoss?'首领战':`第 ${Math.max(1,((M.map||{}).r||0)+1)} 站 · ${node}`}`;
+    const title=G.isBoss?(ok?'首领击破':'首领战失败'):G.route==='delve'?(ok?'这一层打通':'被困金库'):(ok?'行动成功':'行动失败');
+    const lost=G.heartLost&&!G.wardSaved, rows=[
+      isR||G.route==='delve'?{ico:'🎯',n:'开包目标',v:`${G.opened} / ${G.goal}`,cls:ok?'good':'bad',sub:isR?`下一轮目标 ${M.goal}`:''}:null,
+      G.isBoss?{ico:'👑',n:chInfo(chN).boss,v:ok?'击破':`剩 ${pct(Math.max(0,G.lastBossHp||0))}`,cls:ok?'good':'bad',sub:ok?'':'首领不会回满血，这次打掉的血会留着'}:null,
+      {ico:'✦',n:'金币',v:`<span class="countup" data-to="${G.earned}" data-delay="250">+${f(G.earned)}</span>`,cls:'gold',sub:G.goalBonus?`含连胜奖励 +${f(G.goalBonus)}（连胜 ${M.streak}）`:G.lostStreak?`${G.lostStreak} 连胜中断`:''},
+      lost?{ico:'💔',n:`失去 1 颗心`,v:`剩 ${Math.max(0,(M.map||{}).hearts||0)}`,cls:'bad',sub:G.heartLost}:G.wardSaved?{ico:'🛡️',n:'护身符挡下了失败',v:'❤ 不变',cls:'good'}:null,
+      {ico:'🎴',n:'战利品',v:`${total} 张`,sub:newN?`${newN} 张新卡`:''},
+      ...(G.relicGot||[]).map(id=>{ const r=relicOf(id); return r&&{ico:'🏺',n:`遗珍 · <b style="color:${RARE[r.r].c}">${r.name}</b>`,v:RARE[r.r].name,cls:'gold',sub:r.desc}; }),
+      G.route==='elite'&&ok?{ico:'🔷',n:'秘符三选一',v:'待选',cls:'gold'}:null,
+      G.route==='elite'&&ok&&G.eliteOrb?{ico:'🔮',n:`特殊宝珠 · <span style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</span>`,v:'+1'}:null,
+      G.delveScore?{ico:'🕳️',n:'远征分数',v:`+${G.delveScore}`}:null];
+    $('box').innerHTML=`${akBan(ok,title,where)}${unlHTML}${akRows(rows)}${G.isBoss&&ok?bossMsg:''}${G.route==='delve'?delveMsg:''}${G.runOver?runMsg:''}${earlyMsg}${roundMsg}${oneTip}
+    <details style="margin-top:14px"${total&&total<=12?' open':''}><summary class="h3" style="cursor:pointer"><span>查看战利品 ${total}</span>${newN?`<span class="sub">${newN} 张新卡</span>`:''}</summary><div id="tabBody"></div></details>
     <div class="foot"><span></span><div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${M.delve?delveBtns:`<button class="btn" id="resGo">${M.run.over?'查看远征结果 ▶':'继续 ▶'}</button>`}</div></div>`; $('box').classList.remove('learning'); }
   else $('box').innerHTML=`<h2 class="serif goldtxt">${G.delveOut?'深入金库 · 撤离成功':M.run&&M.round===0?'🧭 远征开始':M.run?`第 ${M.ch} 章 · ${chInfo(M.ch).name}`:'欢迎回来'}</h2>
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
