@@ -31,12 +31,12 @@ test('固定目标曲线：只看章节和地图第几站，不再追着开包�
   let worth = 1;
   const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, DANGER: {goal: .15}, dangerLv: () => 0, runSquad: () => null, hasRelic: () => false, Math});
   vm.runInContext(between('const GOAL_MIN=', 'const ROUTES={') + ';this.g=goalFor;this.s=syncGoal;', ctx);
-  assert.equal(ctx.g(1, 0), 10); assert.equal(ctx.g(1, 5), 16);
-  assert.equal(ctx.g(2, 0), 35); assert.equal(ctx.g(3, 0), 55); assert.equal(ctx.g(3, 5), 88);
-  assert.equal(ctx.g(6, 0), 105); assert.equal(ctx.g(7, 0), 118);
-  worth = 4; assert.equal(ctx.g(1, 0), 20); worth = 1;                       // 一包算 4 包时目标只 ×√4
-  ctx.M.map = {ch: 1, r: 2}; ctx.s(); assert.equal(ctx.M.goal, 14);          // 下一站是第 3 排（r+1）
-  ctx.s(true); assert.equal(ctx.M.goal, 12);                                 // 正在打第 2 排
+  assert.equal(ctx.g(1, 0), 20); assert.equal(ctx.g(1, 5), 30);
+  assert.equal(ctx.g(2, 0), 46); assert.equal(ctx.g(3, 0), 54); assert.equal(ctx.g(3, 5), 81);
+  assert.equal(ctx.g(6, 0), 72); assert.equal(ctx.g(7, 0), 78);
+  worth = 4; assert.equal(ctx.g(1, 0), 20); worth = 1;                       // 目标只数真包：秘藏等级不再影响目标
+  ctx.M.map = {ch: 1, r: 2}; ctx.s(); assert.equal(ctx.M.goal, 26);          // 下一站是第 3 排（r+1）
+  ctx.s(true); assert.equal(ctx.M.goal, 24);                                 // 正在打第 2 排
   const settle = between('function settleRoute(){', '// ---- 卡牌三选一');
   assert.doesNotMatch(settle, /M\.goal\+=/); assert.doesNotMatch(settle, /goalAfterMiss\(/);
   assert.match(settle, /syncGoal\(\)/);
@@ -154,12 +154,12 @@ test('秘卡：过半提示，解锁给金币和金魂', () => {
   assert.match(html, /M\.money\+=gold; M\.life\+=gold; if\(live\) G\.earned\+=gold; M\.soul\+=MYTH_SOUL;/);
 });
 
-test('秘藏等级：血量 ×1.6^等级，一个卡包也算 round(1.6^等级) 包；祝福节奏和金币递减按真实包数', () => {
+test('秘藏等级：一个卡包只算 1 包（不再算 round(1.6^等级) 包）；祝福节奏和金币递减按真实包数', () => {
   const ctx = vm.createContext({M: {up: {stage: 0}}, DAILY: null, Math});
   vm.runInContext(between('const PACK_WORTH_MAX=', 'const packValue=') + ';this.w=packWorth;', ctx);
-  assert.deepEqual([0, 1, 2, 3, 4, 5].map(l => ctx.w(l)), [1, 2, 3, 4, 7, 10]);
-  assert.equal(ctx.w(30), 10); assert.equal(ctx.w(60), 10);                   // 后期秘藏等级几十级：封顶 10，不会一包算上亿包
-  ctx.DAILY = {}; assert.equal(ctx.w(5), 1);                                    // 每日挑战不吃养成
+  vm.runInContext('this.c=packCount;this.G=null;', ctx);
+  [0, 3, 10, 60].forEach(l => { ctx.M.up.stage = l; assert.equal(ctx.c(), 1); });   // 秘藏等级再高，一包也只算一包
+  assert.doesNotMatch(html, /每个卡包算 \$\{packWorth/);
   assert.match(html, /G\.opened\+=packCount\(\)\+\(G\.R\.vip&&p\.t>=1\?1:0\); G\.realOpened=/);
   assert.match(html, /coins\*=packFatigue\(G\.realOpened\)/);
   assert.match(html, /G\.realOpened>=G\.boonNext/);
@@ -171,7 +171,8 @@ test('开包计数倍率：清点术每级 +4%、清点祝福 +15%，小数按�
   assert.ok(Math.abs(ctx.m() - 1.35) < 1e-9);
   let n = 0; for (let i = 0; i < 20000; i++) n += ctx.c();
   assert.ok(n / 20000 > 1.32 && n / 20000 < 1.38);
-  ctx.M.up.stage = 3; let k = 0; for (let i = 0; i < 2000; i++) k += ctx.c(); assert.ok(k / 2000 > 5.2 && k / 2000 < 5.6);   // 4 × 1.35
+  ctx.M.up.stage = 3; let k = 0; for (let i = 0; i < 2000; i++) k += ctx.c(); assert.ok(k / 2000 > 1.3 && k / 2000 < 1.4);   // 秘藏等级不影响计数
+  ctx.M.up.cnt = 100; assert.ok(Math.abs(ctx.m() - 1.75) < 1e-9); ctx.M.up.cnt = 5;   // 清点术最多 +60%
   ctx.DAILY = {}; assert.ok(Math.abs(ctx.m() - 1.15) < 1e-9);                   // 每日挑战不吃清点术，只吃本轮祝福
   ctx.G.bo.cnt = 0; assert.equal(ctx.m(), 1); assert.equal(ctx.c(), 1);
   assert.match(html, /\{id:'cnt',ico:'🧾',name:'清点术'/);
