@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:0bf78fc7c00dec31c90091734ac48de0d8e07ca9 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:375124db3beb3cb33c3690ef8873878013e134c8 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -344,7 +344,7 @@
     .mnode::after{content:'';position:absolute;inset:-7px;border-radius:50%}
     #box .btn,#box .ghost{min-height:40px} }
   .tabs{position:sticky;top:0;z-index:4;background:#110f0d}
-  @media (max-width:600px){ .tabs{top:calc(env(safe-area-inset-top) + 38px)} }
+  @media (max-width:600px){ .tabs{top:-6px} } /* .ov 的上内边距 = 状态栏高 + 6px，粘在状态栏正下方 */
   .mnode.hl{transform:scale(1.25)!important;border-color:#fff3c4;box-shadow:0 0 0 3px #d9b45a88,0 0 18px #ffd76a;z-index:2}
   #box .foot .btn.hl{outline:2px solid #fff3c4;outline-offset:2px}
   .mnode.past::after{content:'✓';position:absolute;right:-4px;top:-6px;font-size:11px;color:var(--gold2);opacity:1;filter:none}
@@ -424,6 +424,17 @@
   .soulpill b{font-size:18px}
   .h3{gap:10px;align-items:baseline} .h3 .sub{letter-spacing:0;text-align:right}
   summary.h3{list-style:none} summary.h3::-webkit-details-marker{display:none} summary.h3>span:first-child::before{content:'▸ ';color:var(--dim)} details[open]>summary.h3>span:first-child::before{content:'▾ '}
+  .map.big .mnode{width:42px;height:42px;margin:-21px 0 0 -21px;font-size:19px}
+  .map.big .mnode.boss{width:50px;height:50px;margin:-25px 0 0 -25px}
+  #wallet .wrun{display:none;gap:10px;align-items:center} #wallet.isrun .wrun{display:flex}
+  #wallet .wch{font-family:'Noto Serif SC','Noto Serif CJK SC',serif;color:var(--gold2);font-size:15px;font-variant-numeric:tabular-nums} #wallet .wch small{color:var(--dim);font-size:11px}
+  #wallet .whe{display:flex;gap:1px;color:#e8707a} #wallet .whe i.off{opacity:.25} #wallet .whe .ic{width:15px;height:15px}
+  #wallet .wgo{color:var(--ink);white-space:nowrap}
+  #wallet .wm{white-space:nowrap}
+  #wallet .wicons{display:flex;gap:2px;flex-wrap:wrap} #wallet .wicons:empty{display:none}
+  #wallet .wi{background:none;border:1px solid #d9b45a33;border-radius:7px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;position:relative}
+  #wallet .wi .ic{width:15px;height:15px} #wallet .wi small{position:absolute;right:1px;bottom:-1px;font-size:9px;color:var(--gold2)}
+  @media (max-width:600px){ #wallet{flex-wrap:wrap;row-gap:4px} #wallet .wicons{width:100%;justify-content:center} .ov{padding-top:calc(var(--wh,44px) + 6px)!important} }
 </style>
 </head>
 <body>
@@ -453,7 +464,7 @@
 </div>
 <div class="ov show" id="ov"><div class="box" id="box"></div></div>
 <div class="ov" id="manOv" style="z-index:40"><div class="box" style="max-width:760px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 class="serif goldtxt" style="margin:0">📖 Game Manual</h2><button class="ghost" id="manX">✕ Close</button></div><div id="manBody" style="margin-top:12px"></div></div></div>
-<div id="wallet"><span>✦ Balance <b id="walletN">0</b></span><span>🔥 Gold Souls <b id="walletS">0</b></span></div>
+<div id="wallet"><span id="wRun" class="wrun"></span><span class="wm">✦ <b id="walletN">0</b></span><span class="wm">🔥 <b id="walletS">0</b></span><span id="wIcons" class="wicons"></span></div>
 <div id="toast"></div>
 <div id="mythPop"></div>
 <div id="boonPop"></div>
@@ -1108,7 +1119,7 @@ const NODE_INFO={
   delve:{ico:'🕳️',name:'The Deep Vault',tip:g=>`Loot-and-extract: fight down layer after layer. Layer 1’s goal is ${delveGoal(1)} packs; each layer deeper gives packs ×${DELVE_HP} HP, +${pct(DELVE_COIN)} coins and a higher goal. Coins and cards from each layer go into your bag. After clearing a layer, Extract to take it all home, or Push On: every 2 layers adds a special orb, and from layer 3 each layer adds Gold Souls. Miss a goal and you’re trapped: you lose the whole bag and 1 ❤️.`},
   boss:{ico:'👑',name:'boss',tip:()=>'This chapter’s boss. Beat it to reach the next chapter and a new map. Losing costs 1 ❤️, and you can try again.'},
 };
-function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(), rowH=46, H0=(MAP_ROWS+1)*rowH+10;
+function mapHTML(big){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(), rowH=big?60:46, H0=(MAP_ROWS+1)*rowH+10;
   const yOf=r=>H0-20-r*rowH; // 起点在下，首领在上
   const lines=[]; m.next.forEach((e,r)=>e.forEach((l,i)=>l.forEach(j=>{ const a=m.rows[r][i], b=m.rows[r+1][j], on=(m.r===r&&m.i===i)||(r<m.r); lines.push(`<line x1="${a.x*100}" y1="${yOf(r)}" x2="${b.x*100}" y2="${yOf(r+1)}" stroke="${m.r===r&&m.i===i?'var(--gold)':'#d9b45a33'}" stroke-width="${m.r===r&&m.i===i?2:1}" stroke-dasharray="${on?'':'3 3'}" vector-effect="non-scaling-stroke"/>`); })));
   m.rows[MAP_ROWS-1].forEach(o=>lines.push(`<line x1="${o.x*100}" y1="${yOf(MAP_ROWS-1)}" x2="50" y2="${yOf(MAP_ROWS)}" stroke="#ff6b5b55" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`));
@@ -1116,15 +1127,17 @@ function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(
     return `<button class="mnode${can?' can':''}${cur?' cur':''}${past?' past':''}" data-mr="${r}" data-mi="${i}" style="left:${o.x*100}%;top:${yOf(r)}px${o.t==='gate'?';border-color:#ffd76a;color:#ffd76a;box-shadow:0 0 12px #ffd76a66':''}" title="${info.name}">${info.ico}</button>`; };
   const nodes=m.rows.map((row,r)=>row.map((o,i)=>node(r,i,o)).join('')).join('')+`<button class="mnode boss${mapAtBoss()?' can':''}" data-mboss="1" style="left:50%;top:${yOf(MAP_ROWS)}px" title="boss">👑</button>`;
   const hearts='❤️'.repeat(Math.max(0,m.hearts))+'<span style="opacity:.25">'+'❤️'.repeat(Math.max(0,MAP_HEARTS-m.hearts))+'</span>';
-  return `<div class="chap" style="margin-top:12px"><div class="maph"><span class="mh-t">Chapter ${M.ch} · ${chInfo(M.ch).name}</span><span>${hearts}</span><span class="mh-r">stop ${Math.max(0,m.r+1)}/${MAP_ROWS}</span></div>
-    <div class="chips">${sigilsHTML()}${relicsHTML()}${tokensHTML()}</div>
-    <div class="map" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
+  return `<div class="chap" style="margin-top:12px">${big?'':`<div class="maph"><span class="mh-t">Chapter ${M.ch} · ${chInfo(M.ch).name}</span><span>${hearts}</span><span class="mh-r">stop ${Math.max(0,m.r+1)}/${MAP_ROWS}</span></div>
+    <div class="chips">${sigilsHTML()}${relicsHTML()}${tokensHTML()}</div>`}
+    <div class="map${big?' big':''}" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
     <div id="mapInfo" class="sub" style="min-height:1.6em;margin-top:6px"> Tap a node to see what it is.</div>
     <details style="margin-top:4px"><summary class="sub" style="cursor:pointer"> How does the map work?</summary><div class="sub" style="margin-top:6px;line-height:1.7"> Climb from bottom to top, one connected node at a time (glowing nodes are reachable). The boss waits at the top. Missing a goal or losing a boss fight costs 1 heart; run out and the expedition ends.</div><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).filter(x=>!x.hidden).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>: ${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
+function countUp(root){ root.querySelectorAll('.countup[data-to]').forEach(el=>{ const to=+el.dataset.to; if(!(to>0)||calm()) return; const t0=performance.now(), dur=Math.min(1100,350+Math.log10(1+to)*140);
+  const step=now=>{ if(!el.isConnected) return; const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3); el.textContent='+'+f(to*e); if(k<1) requestAnimationFrame(step); else el.textContent='+'+f(to); }; el.textContent='+0'; requestAnimationFrame(step); }); }
 function bindMap(root){ root.querySelectorAll('.mnode').forEach(b=>b.onclick=()=>{ const info=$('mapInfo'); if(!info) return;
   if(b.dataset.mboss){ const go=mapAtBoss(); info.innerHTML=`👑 <b> boss</b>: ${NODE_INFO.boss.tip()}${go?' <button class="btn boss" id="mapGo" style="padding:4px 12px;font-size:13px"> Challenges</button>':' <span> (reach the top stop first)</span>'}`; if(go) $('mapGo').onclick=()=>startRound(true); return; }
   const r=+b.dataset.mr, i=+b.dataset.mi, o=M.map.rows[r][i], can=b.classList.contains('can'), x=NODE_INFO[o.t];
-  info.innerHTML=`${x.ico} <b>${x.name}</b>: ${x.tip(M.goal)}${can?' <button class="btn" id="mapGo" style="padding:4px 12px;font-size:13px">▶ Go here</button>':''}`; if(can) $('mapGo').onclick=()=>goNode(r,i); }); }
+  info.innerHTML=`${x.ico} <b>${x.name}</b>: ${x.tip(M.goal)}${can?' <button class="btn" id="mapGo" style="padding:4px 12px;font-size:13px">▶ Go here</button>':''}`; deEmoji(info); if(can) $('mapGo').onclick=()=>goNode(r,i); }); }
 
 // ================= 台面 =================
 const cv=$('cv'),ctx=cv.getContext('2d'); const W=cv.width,H=cv.height;
@@ -2162,9 +2175,25 @@ let lastAmmo=-1;
 const bossReady=()=>mapOn()?mapAtBoss():M.chRounds>=3;
 function chapHTML(){ const ci=chInfo(M.ch), ready=bossReady();
   return `${ci.ico} Chapter <b>${M.ch}</b> · <b>${ci.name}</b>${M.soul||M.prestiges?` <span style="float:right;color:var(--dim)">🔥 Gold Souls ${M.soul}</span>`:''}<div class="sub" style="font-size:11px;margin-top:3px">${ready?`👑 Boss “${ci.boss}” has appeared — challenge it from the results screen`:mapOn()&&M.map&&M.map.ch===M.ch?`🗺️ stop ${Math.max(0,M.map.r+1)}/${MAP_ROWS} · ${'❤️'.repeat(Math.max(0,M.map.hearts))} · Goal ${M.goal} packs ${M.streak?` · streak ${M.streak}`:''}`:`Goal hits needed for the boss: ${3-M.chRounds} · Goal ${M.goal} packs ${M.streak?` · streak ${M.streak}`:''}`}</div>${ageMult()>1.001?`<div class="sub" style="font-size:11px;margin-top:2px;color:var(--gold3)">🔺 Pack strength ×${ageMult().toFixed(2)} · packs toughen each round in a chapter, with more coins; resets after the boss</div>`:''}<div class="bar"><i style="width:${mapOn()&&M.map&&M.map.ch===M.ch?Math.max(0,M.map.r+1)/MAP_ROWS*100:Math.min(100,M.chRounds/3*100)}%"></i></div>`; }
-let lastChap='';
+let lastChap='', lastSB='';
+// 顶部状态栏（远征中）：章节和站、心、目标，右边一排遗珍 / 秘符 / 信物小图标，点图标看说明
+function statusBar(){ const run=M.run&&mapOn()&&M.map, w=$('wallet'); if(!w) return;
+  let a='', b='';
+  if(run){ const m=M.map, cap=heartCap(), h=Math.max(0,M.run.hearts);
+    a=`<span class="wch">${M.ch}-${Math.max(0,m.r+1)}<small>/${MAP_ROWS}</small></span><span class="whe">${Array.from({length:Math.max(cap,h)},(_,i)=>`<i class="${i<h?'':'off'}">${icHTML('❤️')}</i>`).join('')}</span><span class="wgo" title="Goal">${icHTML('🎯')} ${M.goal}</span>`;
+    const it=[...(M.relics||[]).map(id=>{ const r=relicOf(id); return r&&{ico:r.ico,c:RARE[r.r].c,t:r.name+'：'+r.desc}; }),
+      ...(M.sigils||[]).map(id=>{ const c=sigilOf(id); return c&&{ico:'🔷',c:TIER[c.t].c,t:sigilName(c)+'：'+sigilDesc(c)}; }),
+      ...(M.run.key?[{ico:'🗝️',c:'#ffd76a',t:'Brass Key: carry it into Chapter 3 to find the hidden door'}]:[]),
+      ...(M.run.stars?[{ico:'🌟',c:'#ffd76a',t:`Star Orb ${M.run.stars}/3`,n:M.run.stars}]:[])].filter(Boolean);
+    b=it.map((x,i)=>`<button class="wi" data-wi="${i}" style="color:${x.c}" title="${escH(x.t)}">${icHTML(x.ico)||x.ico}${x.n?`<small>${x.n}</small>`:''}</button>`).join('');
+    w._items=it; }
+  const key=a+'|'+b; if(key===lastSB) return; lastSB=key;
+  $('wRun').innerHTML=a; $('wIcons').innerHTML=b; w.classList.toggle('isrun',!!run);
+  w.querySelectorAll('[data-wi]').forEach(el=>el.onclick=e=>{ e.stopPropagation(); const x=(w._items||[])[+el.dataset.wi]; if(x) toast(x.t); });
+  requestAnimationFrame(()=>document.documentElement.style.setProperty('--wh',w.offsetHeight+'px')); }
 function hud(){
   const ch=chapHTML(); if(ch!==lastChap){ lastChap=ch; $('chap').innerHTML=ch; }
+  statusBar();
   $('money').textContent=f(M.money); const wn=$('walletN'); if(wn){ wn.textContent=f(M.money); $('walletS').textContent=M.soul; $('walletS').parentElement.style.display=M.soul||M.prestiges?'':'none'; $('wallet').classList.toggle('show',$('ov').classList.contains('show')); } $('round').textContent=Math.max(1,M.round); $('pity').textContent=`${M.pity}/${pityN()}`;
   { const eb=$('endB'), on=!!(G&&G.packs&&!G.ended&&running); if(eb.style.visibility!==(on?'visible':'hidden')){ eb.style.visibility=on?'visible':'hidden'; if(!on){ delete eb.dataset.c; eb.textContent='⏹ End'; eb.style.color=''; } } }
   if(G&&G.packs){ $('earned').textContent='+'+f(G.earned);
@@ -2212,7 +2241,7 @@ const deckF={sch:'all',sort:'rar'};
 const TRIG={launch:'On launch',hit:'On hit',open:'On pack open,',wall:'On wall hit',peg:'On rivet hit',passive:'Passive'};
 const trigOf=c=>c.launch?'launch':c.hit?'hit':c.open?'open':c.wall?'wall':c.peg?'peg':'passive';
 // 页签分组：5 个大类，大类下面再分小页
-const TGROUPS=[{id:'loot',name:'Results',subs:['loot']},{id:'build',name:'Build',subs:['up','deck','book','bag']},{id:'goal',name:'Goal',subs:['daily','goals','rank']},{id:'more',name:'More',subs:['manual','legacy','sys','fb']}];
+const TGROUPS=[{id:'loot',name:'Route',subs:['loot']},{id:'build',name:'Build',subs:['up','deck','book','bag']},{id:'goal',name:'Goal',subs:['daily','goals','rank']},{id:'more',name:'More',subs:['manual','legacy','sys','fb']}];
 const TLAST={};
 const tGroupOf=t=>(TGROUPS.find(g=>g.subs.includes(t))||TGROUPS[0]).id;
 const tSubs=(g,canP)=>g.subs.filter(k=>k!=='legacy'&&(k!=='bag'||unl('routes'))&&(k!=='daily'||M.round>=DAILY_MIN_ROUND));
@@ -2228,7 +2257,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.3';
+const GAME_V='2026-11-11.4';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -3024,8 +3053,8 @@ function showBetween(){
   const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b> Daily Challenge</b>: opened <b style="color:var(--gold2)">${G.opened}</b> packs ${G.dailyPB?' <b style="color:var(--green)"> New best today!</b>':''} · best today ${M.daily.best} packs · try #${M.daily.tries}${G.dailyFirst?` · first clear today, <b style="color:var(--gold2)"> Gold Souls +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · streak ${M.daily.streak} days`:''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 Again</button><button class="ghost" id="dailyRank"> Today’s board</button><span class="sub">${M.lbName?'':'Pick a nickname to join today’s board'}</span></div></div>`:'';
   const chalMsg=chalC?`<div class="chap" style="margin-top:12px;border-color:${G.chalWin?'var(--green)':'var(--line)'}">${chalC.ico} Challenge “<b>${chalC.name}</b>” ${G.chalWin?`<b style="color:var(--green)"> complete!</b>${G.chalFirst?` First clear, Gold Souls +${chalC.soul}`:''}`:`not complete (${chalC.prog(G)}). Try a different build.`}</div>`:'';
-  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="resbar"><div><div class="rb-t"> Goal reached <b>${G.opened}/${G.goal}</b></div><div class="rb-s"> streak ${M.streak} · streak bonus +${f(G.goalBonus)} · Next goal ${M.goal}${G.route==='elite'?` · Elite reward: relic, sigil, <span style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</span>`:''}</div></div><div class="rb-c">+${f(G.earned)}<small> Coins</small></div></div>`
-      :`<div class="resbar bad"><div><div class="rb-t"> Missed <b>${G.opened}/${G.goal}</b></div><div class="rb-s">${G.heartLost==='Goal missed'?`Lost 1 heart, ${Math.max(0,(M.map||{}).hearts||0)} left · `:G.wardSaved?'The charm took the hit · ':''}${G.lostStreak?`${G.lostStreak} streak broken · `:''} Next goal ${M.goal}</div></div><div class="rb-c">+${f(G.earned)}<small> Coins</small></div></div>`):'';
+  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="resbar"><div><div class="rb-t"> Goal reached <b>${G.opened}/${G.goal}</b></div><div class="rb-s"> streak ${M.streak} · streak bonus +${f(G.goalBonus)} · Next goal ${M.goal}${G.route==='elite'?` · Elite reward: relic, sigil, <span style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</span>`:''}</div></div><div class="rb-c"><span class="countup" data-to="${G.earned}">+${f(G.earned)}</span><small> Coins</small></div></div>`
+      :`<div class="resbar bad"><div><div class="rb-t"> Missed <b>${G.opened}/${G.goal}</b></div><div class="rb-s">${G.heartLost==='Goal missed'?`Lost 1 heart, ${Math.max(0,(M.map||{}).hearts||0)} left · `:G.wardSaved?'The charm took the hit · ':''}${G.lostStreak?`${G.lostStreak} streak broken · `:''} Next goal ${M.goal}</div></div><div class="rb-c"><span class="countup" data-to="${G.earned}">+${f(G.earned)}</span><small> Coins</small></div></div>`):'';
   if(!M.routes||(!unl('routes')&&M.routes.length>1)) M.routes=genRoutes();
   const mapNodes=mapOn()?mapReach():null; if(mapOn()) ensureMap();
   const newU=UNL.filter(u=>u.ok()&&!(M.unl||(M.unl={}))[u.id]); newU.forEach(u=>M.unl[u.id]=1); if(newU.length) save();
@@ -3060,10 +3089,17 @@ function showBetween(){
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ This round ended early; orbs still in flight didn’t pay out.</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ Blessings: ${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
   const oneTip=[soulMsg,()=>bkMsg,()=>lbAskHTML,()=>a2hsHTML,()=>manTip].reduce((a,fn)=>a||fn(),''); // 提示一次只放一条
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':M.run&&M.round===0?'🧭 Expedition begins':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+earlyMsg+roundMsg+nextBoss+(learnHTML||stageHTML?'':oneTip)+(mapOn()&&!G.daily&&!G.chal?mapHTML():''):''}${learnHTML}${stageHTML}
-    ${G.packs&&tab==='loot'&&!goalMsg?`<div class="sub" style="margin-top:10px"> Round <b style="color:var(--gold2)">+${f(G.earned)}</b> coins · opened ${G.opened} packs · ${Object.keys(G.newIds).length} new cards</div>`:''}
+  const resView=tab==='loot'&&!!G.packs&&!G.resDone&&!!M.run&&!G.daily&&!G.chal, mapView=tab==='loot'&&!resView;
+  const resTitle=G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:G.route==='delve'?`The Deep Vault · Depth ${G.delveLayer||1}`:`Round ${M.round} · Results`;
+  const plainRes=G.packs&&!goalMsg?`<div class="resbar${G.isBoss&&!G.bossWin?' bad':''}"><div><div class="rb-t"> Opened <b>${G.opened}</b> packs</div><div class="rb-s">${Object.keys(G.newIds).length} new cards · hits: ${G.hits} </div></div><div class="rb-c"><span class="countup" data-to="${G.earned}">+${f(G.earned)}</span><small> Coins</small></div></div>`:'';
+  const newN=Object.keys(G.newIds||{}).length;
+  if(resView){ $('box').innerHTML=`<h2 class="serif goldtxt">${resTitle}</h2>${unlHTML}${delveMsg}${runMsg}${bossMsg}${goalMsg}${plainRes}${relicMsg}${earlyMsg}${roundMsg}${oneTip}
+    <div class="h3" style="margin-top:16px"><span> Loot ${total}</span>${newN?`<span class="sub">${newN} new cards</span>`:''}</div><div id="tabBody"></div>
+    <div class="foot"><span></span><div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${M.delve?delveBtns:`<button class="btn" id="resGo">${M.run.over?'See expedition results ▶':'Continue ▶'}</button>`}</div></div>`; $('box').classList.remove('learning'); }
+  else $('box').innerHTML=`<h2 class="serif goldtxt">${G.delveOut?'The Deep Vault · Extracted':M.run&&M.round===0?'🧭 Expedition begins':M.run?`Chapter ${M.ch} · ${chInfo(M.ch).name}`:'Welcome back'}</h2>
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
+    ${unlHTML}${migHTML}${mapView?(G.delveOut?delveMsg:'')+relicSwapHTML()+nextBoss+learnHTML+stageHTML+(mapOn()&&!G.daily&&!G.chal?mapHTML(true):''):''}
     <div id="tabBody"></div>
     <div class="foot"><div class="fmeta" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${upLv('auto')?`<label class="tg"><input type="checkbox" id="autoT" ${M.autoOn?'checked':''}> Auto Fire <span style="font-size:11px"> (cleared chapters only)</span></label>`:''}${M.routes.length>1?'<span class="sub" style="font-size:12px"> Where next?</span>':''}</div>
       <div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${ready?`<button class="btn boss" id="bossGo">👑 Challenge the boss</button>`:''}${routeBtns}</div></div>
@@ -3102,6 +3138,8 @@ function showBetween(){
     box.querySelectorAll('[data-node]').forEach(b=>{ const k=b.dataset.node; ['pointerenter','focus'].forEach(e=>b.addEventListener(e,()=>hl(k,true))); ['pointerleave','blur'].forEach(e=>b.addEventListener(e,()=>hl(k,false))); });
     box.querySelectorAll('.mnode.can[data-mr]').forEach(d=>{ const k=d.dataset.mr+','+d.dataset.mi; d.addEventListener('pointerenter',()=>hl(k,true)); d.addEventListener('pointerleave',()=>hl(k,false)); }); }
   bindMap($('box')); if($('bossGo')) $('bossGo').onclick=()=>startRound(true);
+  if($('resGo')) $('resGo').onclick=()=>{ G.resDone=1; showBetween(); $('ov').scrollTop=0; };
+  countUp($('box'));
   if(!M.run){ const ft=$('box').querySelector('.foot'); if(ft){ ft.innerHTML='<span></span><button class="btn" id="toCamp"> Back to camp ▶</button>'; $('toCamp').onclick=()=>{ G={loot:{}}; showCamp(); }; } } // 每日挑战（不在远征里）结束后回营地
   if(M.run&&M.recruit>0&&!running&&!offerSigil.busy&&!$('boonPop').classList.contains('show')){ const rs=M.run.sch; setTimeout(()=>{ if(running||!(M.recruit>0)||$('boonPop').classList.contains('show')) return; openPick({minRar:'N',sch:rs||undefined,recruit:1,title:`🎴 Opening recruit (${M.recruit} left)`},()=>{ M.recruit--; save(); showBetween(); }); },300); }
   else if(mapOn()&&M.map&&M.map.ch===M.ch&&!M.map.sig0&&!M.delve){ M.map.sig0=1; M.sigQ.push('start'); save(); }
@@ -3112,7 +3150,8 @@ function showBetween(){
     setTimeout(tryOffer,450); }
   if($('autoT')) $('autoT').onchange=e=>{ M.autoOn=e.target.checked; save(); };
   let body=$('tabBody');
-  if(tab==='loot'){
+  if(mapView){ body.innerHTML=''; }
+  else if(tab==='loot'){
     body.innerHTML=ids.length?`<div class="grid">${ids.map((id,i)=>cardHTML(id,{pop:1,delay:i*.07,count:G.loot[id],isNew:G.newIds[id],up:G.upIds[id],foilNew:G.foilIds&&G.foilIds[id]})).join('')}</div>`:G.reborn?`<div class="chap" style="margin-top:0;border-color:var(--gold3)">🔥 <b> Smelting complete</b>: gained <b style="color:var(--gold2)">${G.reborn}</b> Gold Souls. You’re back at Chapter 1 — your cards, foils and Codex are all still here. <br><span class="sub"> Head to “More → Legacy” to spend Gold Souls on permanent bonuses, then start the next round.</span></div>`:'<p class="sub"> No cards this round. Try aiming where packs are clustered!</p>';
   } else if(tab==='bag'){
     body.innerHTML=`<p class="sub"> At the start of each round, special orbs from your Orb Bag are shuffled in with regular Gold Orbs (any beyond this round’s orb count sit out). The next three are shown beside the launcher and fire in order. <br> New special orbs come at random from cleared Elite rounds and from the Orbsmith encounter.</p>`+ORB_SPECIAL.map(k=>{ const o=ORBS[k],n=M.orbs[k]||0; return `<div class="ach ${n?'yes':'no'}"><div class="ico" style="color:${o.c}">${o.ico}</div><div><div style="font-weight:800;color:${o.c}">${o.name}</div><div class="sub">${o.desc}</div></div><div class="rw">× ${n}</div></div>`; }).join('');
