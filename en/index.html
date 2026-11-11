@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:97b8e0d5a16a6e9fd46a7e6913e138109ca3e014 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:3d85db83a8145bb1595590f97dd88dd09a1445dd -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -468,7 +468,7 @@
     #box .deckgrid .card .in,#box .bookgrid .card .in{min-height:0!important;padding:5px 5px 7px}
     #box .deckgrid .card .cd,#box .bookgrid .card .cd,#box .bookgrid .card .cp{display:none}
     #box .deckgrid .card .ci,#box .bookgrid .card .ci{height:44px;margin-top:14px} #box .deckgrid .card .ci svg,#box .bookgrid .card .ci svg{max-height:44px}
-    #box .deckgrid .card .cn,#box .bookgrid .card .cn{font-size:12px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #box .deckgrid .card .cn{padding:0 18px} #box .deckgrid .card .cn,#box .bookgrid .card .cn{font-size:12px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #box .deckgrid .card .cs,#box .bookgrid .card .cs{font-size:10px}
     #box .deckgrid .card-detail{position:absolute;top:auto;bottom:4px;right:4px;margin:0;min-height:0;width:26px;height:26px;padding:0;border-radius:50%;font-size:0;display:flex;align-items:center;justify-content:center}
     #box .deckgrid .card-detail::before{content:'i';font-size:13px;font-weight:700;font-family:Georgia,serif;color:var(--gold2)}
@@ -486,6 +486,20 @@
   .coach .cdot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--gold2);box-shadow:0 0 0 0 #d9b45a88;animation:cpulse 1.6s infinite}
   @keyframes cpulse{70%{box-shadow:0 0 0 10px #d9b45a00}100%{box-shadow:0 0 0 0 #d9b45a00}}
   body.calm .coach .cdot{animation:none}
+  /* ---- 二级标签：一行等宽分段 ---- */
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;margin:0 0 14px;background:#0c0907;border:1px solid var(--line);border-radius:10px}
+  .seg button{background:transparent;border:0;border-radius:7px;color:var(--dim);font:inherit;font-size:13px;padding:8px 4px;min-height:38px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seg button.on{background:linear-gradient(180deg,#3a2e19,#241c10);color:var(--gold2);box-shadow:inset 0 0 0 1px #d9b45a55}
+  .seg.scroll{display:flex;overflow-x:auto;scrollbar-width:none} .seg.scroll button{flex:none;padding:8px 12px}
+  .seg.mini{display:inline-grid;margin:0;width:auto} .seg.mini button{padding:6px 12px;min-height:32px}
+  .sgroup{margin:0 0 14px} .sgh{font-size:12px;color:var(--dim);margin:0 2px 4px}
+  .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#0c0907;margin-bottom:6px;cursor:pointer}
+  .srow .sl{flex:1;font-size:14px} .srow .sl small{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+  input.sw{appearance:none;-webkit-appearance:none;flex:none;width:46px;height:26px;border-radius:13px;background:#2e2821;position:relative;cursor:pointer;transition:background .2s;margin:0}
+  input.sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#8f877a;transition:transform .2s,background .2s}
+  input.sw:checked{background:#8a6d2f} input.sw:checked::after{transform:translateX(20px);background:var(--gold2)}
+  input.sw:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+  details.fold .srow{background:transparent}
 </style>
 </head>
 <body>
@@ -2262,7 +2276,7 @@ function hud(){
   if(G&&G.packs){ $('earned').textContent='+'+f(G.earned);
     const key=G.ammo+'/'+G.maxAmmo; if(key!==lastAmmo){ lastAmmo=key; const tot=Math.max(G.maxAmmo,G.ammo); let h=''; for(let i=0;i<tot;i++) h+=`<i class="${i<G.ammo?'':'used'}"></i>`; $('ammo').innerHTML=h; } }
 }
-function refreshTabs(){ document.querySelectorAll('#box .subtabs button[data-t]').forEach(b=>{ const t=tName(b.dataset.t,lastLootTotal); if(t&&b.textContent!==t) b.textContent=t; }); }
+function refreshTabs(){ document.querySelectorAll('#box .seg button[data-t]').forEach(b=>{ const t=tName(b.dataset.t,lastLootTotal); if(t&&b.textContent!==t) b.textContent=t; }); }
 let lastLootTotal=0;
 function renderSide(){ setTimeout(refreshTabs);
   const eq=equipped(); let h='';
@@ -2304,12 +2318,12 @@ const deckF={sch:'all',sort:'rar',open:false};
 const TRIG={launch:'On launch',hit:'On hit',open:'On pack open,',wall:'On wall hit',peg:'On rivet hit',passive:'Passive'};
 const trigOf=c=>c.launch?'launch':c.hit?'hit':c.open?'open':c.wall?'wall':c.peg?'peg':'passive';
 // 页签分组：5 个大类，大类下面再分小页
-const TGROUPS=[{id:'loot',name:'Route',subs:['loot']},{id:'build',name:'Build',subs:['up','deck','book','bag']},{id:'goal',name:'Goal',subs:['daily','goals','rank']},{id:'more',name:'More',subs:['manual','legacy','sys','fb']}];
+const TGROUPS=[{id:'loot',name:'Route',subs:['loot']},{id:'build',name:'Build',subs:['deck','up','bag','book']},{id:'goal',name:'Goal',subs:['goals','rank','daily']},{id:'more',name:'More',subs:['sys','manual','fb','legacy']}];
 const TLAST={};
 const tGroupOf=t=>(TGROUPS.find(g=>g.subs.includes(t))||TGROUPS[0]).id;
-const tSubs=(g,canP)=>g.subs.filter(k=>k!=='legacy'&&(k!=='bag'||unl('routes'))&&(k!=='daily'||M.round>=DAILY_MIN_ROUND));
-function tName(k,total){ return {loot:`Loot ${total}`,deck:`Skill slots ${equipped().length}/${maxSlots()}`,book:`Codex ${Object.keys(M.owned).length}/${CARDS.length}`,up:unl('tree')?'Upgrades · Star Chart':'Upgrade',goals:unl('chal')?'Challenges · Achievements':'Achievements',rank:'Leaderboard',bag:`Orb Bag ${orbCount()}`,
-  chal:`Challenges ${badgeN()}/${CHAL.length}`,ach:`Achievements ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'Legacy',sys:'Settings',fb:'Feedback',daily:'📅 Daily',manual:'📖 Manual'}[k]; }
+const tSubs=(g,canP)=>g.subs.filter(k=>k!=='legacy'&&(k!=='bag'||unl('routes'))&&(k!=='daily'||!M.run)); // 远征中不放「每日」：每日远征从营地开
+function tName(k,total){ return {loot:`Loot ${total}`,deck:`Deck ${equipped().length}/${maxSlots()}`,book:`Codex ${Object.keys(M.owned).length}/${CARDS.length}`,up:'Upgrade',goals:'Achievements',rank:'Ranks',bag:`Orb Bag ${orbCount()}`,
+  chal:`Challenges ${badgeN()}/${CHAL.length}`,ach:`Achievements ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'Legacy',sys:'Settings',fb:'Feedback',daily:'Daily',manual:'Manual'}[k]; }
 function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.ended=true; running=false; $('boonPop').classList.remove('show');
   ROUND_EQ=null; if(G.chal) chalEnd(); if(G.daily) dailyEnd();
   M.best.opened=Math.max(M.best.opened,G.opened); if(G.opened>=30&&!G.basketIn) M.best.nobask=true;
@@ -2320,7 +2334,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.8';
+const GAME_V='2026-11-11.9';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2357,7 +2371,7 @@ function renderRank(body){
       <input id="lbName" maxlength="12" value="${escH(M.lbName||'')}" placeholder="Pick a name to join the leaderboard" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
       <button class="btn" id="lbSave" style="padding:7px 16px;font-size:14px;letter-spacing:0">${M.lbName?'Rename':'Join'}</button></div>
     <div class="sub" style="margin-top:6px"> Your nickname is shown publicly on the leaderboard; nothing else is collected. New personal bests upload automatically after each round.</div></div>
-    <div class="subtabs" style="margin-top:10px">${Object.entries(LB).map(([k,v])=>`<button class="${k===lbBoard?'on':''}" data-lb="${k}">${v.ico} ${v.name}</button>`).join('')}</div>
+    <div class="seg scroll" style="margin-top:10px">${Object.entries(LB).map(([k,v])=>`<button class="${k===lbBoard?'on':''}" data-lb="${k}">${v.ico} ${v.name}</button>`).join('')}</div>
     <div class="sub">${LB[lbBoard].how} · My best: <b style="color:var(--gold2)">${mine?LB[lbBoard].fmt(mine.value,mine.tb):'none yet'}</b></div>
     <div id="lbList" style="margin-top:10px"><p class="sub"> Loading……</p></div>`;
   body.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ lbBoard=b.dataset.lb; renderRank(body); });
@@ -3194,14 +3208,14 @@ function showBetween(){
     <div class="foot"><span></span><div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${M.delve?delveBtns:`<button class="btn" id="resGo">${M.run.over?'See expedition results ▶':'Continue ▶'}</button>`}</div></div>`; $('box').classList.remove('learning'); }
   else $('box').innerHTML=`<h2 class="serif goldtxt">${G.delveOut?'The Deep Vault · Extracted':M.run&&M.round===0?'🧭 Expedition begins':M.run?`Chapter ${M.ch} · ${chInfo(M.ch).name}`:'Welcome back'}</h2>
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
-    ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
-    ${unlHTML}${migHTML}${mapView?(G.delveOut?delveMsg:'')+relicSwapHTML()+nextBoss+learnHTML+stageHTML+(M.run&&!M.runs&&!(M.recruit>0)?(bossReady()?coach('cBoss','You’ve reached the top: tap the <b> boss</b> button below. Beat it to move to the next chapter — there are 3.'):coach('cMap','This is the chapter map. <b> Tap a glowing node</b>, then “Go here”. Each stop is one round; the boss waits at the top.')):'')+(mapOn()&&!G.daily&&!G.chal?mapHTML(true):''):''}
+    ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="seg">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
+    ${mapView?unlHTML+migHTML+(G.delveOut?delveMsg:'')+relicSwapHTML()+nextBoss+learnHTML+stageHTML+(M.run&&!M.runs&&!(M.recruit>0)?(bossReady()?coach('cBoss','You’ve reached the top: tap the <b> boss</b> button below. Beat it to move to the next chapter — there are 3.'):coach('cMap','This is the chapter map. <b> Tap a glowing node</b>, then “Go here”. Each stop is one round; the boss waits at the top.')):'')+(mapOn()&&!G.daily&&!G.chal?mapHTML(true):''):''}
     <div id="tabBody"></div>
     <div class="foot"><div class="fmeta" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${upLv('auto')?`<label class="tg"><input type="checkbox" id="autoT" ${M.autoOn?'checked':''}> Auto Fire <span style="font-size:11px"> (cleared chapters only)</span></label>`:''}${M.routes.length>1?'<span class="sub" style="font-size:12px"> Where next?</span>':''}</div>
       <div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${ready?`<button class="btn boss" id="bossGo">👑 Challenge the boss</button>`:''}${routeBtns}</div></div>
 `;
   document.querySelectorAll('#box .tab').forEach(b=>b.onclick=()=>{ const g=TGROUPS.find(x=>x.id===b.dataset.g),subs=tSubs(g,canP); tab=subs.includes(TLAST[g.id])?TLAST[g.id]:subs[0]; showBetween(); });
-  document.querySelectorAll('#box .subtabs button').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; TLAST[tGroupOf(tab)]=tab; showBetween(); });
+  document.querySelectorAll('#box .seg button[data-t]').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; TLAST[tGroupOf(tab)]=tab; showBetween(); });
   if($('manTipB')) $('manTipB').onclick=openManual;
   if($('dailyAgain')) $('dailyAgain').onclick=()=>startRound(false,{daily:1});
   if($('dailyRank')) $('dailyRank').onclick=()=>{ tab='daily'; TLAST.goal='daily'; showBetween(); };
@@ -3310,21 +3324,27 @@ function showBetween(){
   } else if(tab==='fb'){
     renderFB(body);
   } else if(tab==='sys'){
-    body.innerHTML=`${PLAY_HELP}<div class="chap">🌐 Language · Language <span style="display:inline-flex;gap:6px;margin-left:10px"><button class="ghost" data-lang="zh" ${LANG==='zh'?'disabled':''}>中文</button><button class="ghost" data-lang="en" ${LANG==='en'?'disabled':''}>English</button></span></div><div class="chap">🔊 Sound <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}> On</label> <span class="sub"> (hotkey M)</span></div>
-      <div class="chap">🎵 Music <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMusic" ${M.music===false?'':'checked'}> On</label> <span class="sub"> A live-synthesized soundtrack that shifts with Fever and boss fights. Muting sound also stops the music.</span></div>
-      <div class="chap">📳 Vibration ${navigator.vibrate?`<label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sVibe" ${M.vibe===false?'':'checked'}> On</label> <span class="sub"> (light buzz on rare packs, ×5 jackpots, frenzy and bosses)</span>`:'<span class="sub"> This device’s browser doesn’t support vibration</span>'}</div>
-      <div class="chap">🌀 Reduce motion <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sCalm" ${calm()?'checked':''}> On</label> <span class="sub"> Turns off screen shake, full-screen flashes, Fever slow-motion and boss close-ups, and reduces particles. Follows your system’s reduce-motion setting by default.</span></div>
-      <div class="chap">📊 Anonymous stats <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sStats" ${M.stats===false?'':'checked'}> On</label> <span class="sub"> After each round, anonymously send the schools and cards used, chapter and round results to help balance the game. Only a random id is sent — no nickname or other personal info.</span></div>
-      <details class="chap"><summary style="cursor:pointer">🔒 Privacy</summary><div class="sub" style="line-height:1.8;margin-top:6px">· <b> Saves</b> live only in this device’s browser — use “Export save” below to move devices. <br>· <b> Anonymous stats</b> (optional): one record per round with a random id, the cards and schools you used, your chapter, and the round’s results and length — used for balancing. <br>· <b> Leaderboard</b> (opt-in): you only appear after picking a nickname; your nickname and scores are public. <br>· No accounts, phone numbers, location or other personal info are collected. No ads, no third-party tracking. <br>· This is a <b> Beta</b>: numbers change often and there may be bugs — feedback is very welcome.</div></details>
-      <div class="sub" style="text-align:right;font-size:11px"> Beta · ${GAME_V}</div>
-      <div class="chap">🛠 Developer mode <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sDev" ${M.dev?'checked':''}> On</label> <span class="sub"> For the developer’s own testing: this device sends no stats and no leaderboard scores.</span></div>
-      <div class="chap"><b>📤 Export save</b><div class="sub" style="margin:4px 0 6px"> Copy this save code to restore your progress on another device or after clearing your cache.</div>
-        <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy"> Copy</button></div></div>
-      <div class="chap"><b>📥 Import save</b><div class="sub" style="margin:4px 0 6px"> Paste a save code. This overwrites your current progress.</div>
-        <textarea class="code" id="sIn" placeholder="JZMC1.…"></textarea><div style="margin-top:6px"><button class="ghost" id="sImp"> Import</button></div></div>
-      <div class="chap"><b> Restore last valid backup</b><div class="sub"> The last valid save is kept automatically. Restoring replaces your current progress.</div><button class="ghost" id="sRestore" ${backupSave()?'':'disabled'}> Restore backup</button></div>
-       <div class="chap"><b>⚠️ Full reset</b><div class="sub" style="margin:4px 0 6px"> Erase all progress, including cards, Myth cards and achievements.</div><button class="ghost" id="reset"> Full reset</button></div>`;
+    const sw=(id,on,label,sub)=>`<label class="srow"><span class="sl">${label}${sub?`<small>${sub}</small>`:''}</span><input type="checkbox" class="sw" id="${id}" ${on?'checked':''}></label>`;
+    body.innerHTML=`<div class="sgroup"><div class="sgh"> Sound & display</div>
+      <div class="srow"><span class="sl">🌐 ${LANG==='zh'?'\u8bed\u8a00 · Language':'Language · \u8bed\u8a00'}</span><span class="seg mini"><button data-lang="zh" class="${LANG==='zh'?'on':''}">中文</button><button data-lang="en" class="${LANG==='en'?'on':''}">English</button></span></div>
+      ${sw('sMute',!M.mute,'🔊 Sound','Shortcut: M')}
+      ${sw('sMusic',M.music!==false,'🎵 Music','Muting sound also stops music')}
+      ${navigator.vibrate?sw('sVibe',M.vibe!==false,'📳 Vibration','Light buzz on big wins, Frenzy and bosses'):''}
+      ${sw('sCalm',calm(),'🌀 Reduce motion','Turns off shake, flashes and slow-mo')}</div>
+      <div class="sgroup"><div class="sgh"> Save & data</div>
+      ${sw('sStats',M.stats!==false,'📊 Anonymous stats','Helps balance the game; no name or personal info')}
+      <details class="fold"><summary><span>💾 Export / import save</span><span class="sub"> For switching devices</span></summary>
+        <div class="sub" style="margin:8px 0 6px"> Copy this save code to restore your progress on another device or after clearing your cache.</div>
+        <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy"> Copy save code</button></div>
+        <div class="sub" style="margin:12px 0 6px"> Paste a save code to import (replaces current progress):</div>
+        <textarea class="code" id="sIn" placeholder="JZMC1.…"></textarea><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="sImp"> Import</button><button class="ghost" id="sRestore" ${backupSave()?'':'disabled'}> Restore last auto-backup</button></div></details>
+      <details class="fold"><summary><span>🔒 Privacy</span></summary><div class="sub" style="line-height:1.8;margin-top:6px">· <b> Saves</b> lives only in this device’s browser; use “Export save” above to switch devices. <br>· <b> Anonymous stats</b> (optional): one record per round with a random id, the cards and schools you used, your chapter, and the round’s results and length — used for balancing. <br>· <b> Leaderboard</b> only uploads your name and score after you set a nickname.</div></details></div>
+      <details class="fold" style="margin-top:14px"><summary><span>⚠️ Advanced</span><span class="sub"> Developer mode · full reset</span></summary>
+        ${sw('sDev',M.dev,'🛠 Developer mode','Scores from this device skip stats and leaderboards')}
+        <div class="srow"><span class="sl"> Full reset <small> Wipes all progress, including cards, myth cards and achievements</small></span><button class="ghost" id="reset"> Reset</button></div></details>
+      <div class="sub" style="text-align:right;font-size:11px;margin-top:8px"> Beta · ${GAME_V}</div>`;
     $('sMute').onchange=e=>{ M.mute=!e.target.checked; save(); syncMute(); };
+    body.querySelectorAll('[data-lang]').forEach(b=>{ if(b.classList.contains('on')) b.disabled=true; });
     if($('sMusic')) $('sMusic').onchange=e=>{ M.music=e.target.checked; save(); SFX.init(); };
     $('sDev').onchange=e=>{ M.dev=e.target.checked; save(); toast(M.dev?'Developer mode on: no stats or leaderboard uploads':'Developer mode off'); };
     $('sStats').onchange=e=>{ M.stats=e.target.checked; save(); toast(M.stats?'Anonymous stats on':'Anonymous stats off'); };

@@ -467,7 +467,7 @@
     #box .deckgrid .card .in,#box .bookgrid .card .in{min-height:0!important;padding:5px 5px 7px}
     #box .deckgrid .card .cd,#box .bookgrid .card .cd,#box .bookgrid .card .cp{display:none}
     #box .deckgrid .card .ci,#box .bookgrid .card .ci{height:44px;margin-top:14px} #box .deckgrid .card .ci svg,#box .bookgrid .card .ci svg{max-height:44px}
-    #box .deckgrid .card .cn,#box .bookgrid .card .cn{font-size:12px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #box .deckgrid .card .cn{padding:0 18px} #box .deckgrid .card .cn,#box .bookgrid .card .cn{font-size:12px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #box .deckgrid .card .cs,#box .bookgrid .card .cs{font-size:10px}
     #box .deckgrid .card-detail{position:absolute;top:auto;bottom:4px;right:4px;margin:0;min-height:0;width:26px;height:26px;padding:0;border-radius:50%;font-size:0;display:flex;align-items:center;justify-content:center}
     #box .deckgrid .card-detail::before{content:'i';font-size:13px;font-weight:700;font-family:Georgia,serif;color:var(--gold2)}
@@ -485,6 +485,20 @@
   .coach .cdot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--gold2);box-shadow:0 0 0 0 #d9b45a88;animation:cpulse 1.6s infinite}
   @keyframes cpulse{70%{box-shadow:0 0 0 10px #d9b45a00}100%{box-shadow:0 0 0 0 #d9b45a00}}
   body.calm .coach .cdot{animation:none}
+  /* ---- 二级标签：一行等宽分段 ---- */
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;margin:0 0 14px;background:#0c0907;border:1px solid var(--line);border-radius:10px}
+  .seg button{background:transparent;border:0;border-radius:7px;color:var(--dim);font:inherit;font-size:13px;padding:8px 4px;min-height:38px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seg button.on{background:linear-gradient(180deg,#3a2e19,#241c10);color:var(--gold2);box-shadow:inset 0 0 0 1px #d9b45a55}
+  .seg.scroll{display:flex;overflow-x:auto;scrollbar-width:none} .seg.scroll button{flex:none;padding:8px 12px}
+  .seg.mini{display:inline-grid;margin:0;width:auto} .seg.mini button{padding:6px 12px;min-height:32px}
+  .sgroup{margin:0 0 14px} .sgh{font-size:12px;color:var(--dim);margin:0 2px 4px}
+  .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#0c0907;margin-bottom:6px;cursor:pointer}
+  .srow .sl{flex:1;font-size:14px} .srow .sl small{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+  input.sw{appearance:none;-webkit-appearance:none;flex:none;width:46px;height:26px;border-radius:13px;background:#2e2821;position:relative;cursor:pointer;transition:background .2s;margin:0}
+  input.sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#8f877a;transition:transform .2s,background .2s}
+  input.sw:checked{background:#8a6d2f} input.sw:checked::after{transform:translateX(20px);background:var(--gold2)}
+  input.sw:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+  details.fold .srow{background:transparent}
 </style>
 </head>
 <body>
@@ -2261,7 +2275,7 @@ function hud(){
   if(G&&G.packs){ $('earned').textContent='+'+f(G.earned);
     const key=G.ammo+'/'+G.maxAmmo; if(key!==lastAmmo){ lastAmmo=key; const tot=Math.max(G.maxAmmo,G.ammo); let h=''; for(let i=0;i<tot;i++) h+=`<i class="${i<G.ammo?'':'used'}"></i>`; $('ammo').innerHTML=h; } }
 }
-function refreshTabs(){ document.querySelectorAll('#box .subtabs button[data-t]').forEach(b=>{ const t=tName(b.dataset.t,lastLootTotal); if(t&&b.textContent!==t) b.textContent=t; }); }
+function refreshTabs(){ document.querySelectorAll('#box .seg button[data-t]').forEach(b=>{ const t=tName(b.dataset.t,lastLootTotal); if(t&&b.textContent!==t) b.textContent=t; }); }
 let lastLootTotal=0;
 function renderSide(){ setTimeout(refreshTabs);
   const eq=equipped(); let h='';
@@ -2303,12 +2317,12 @@ const deckF={sch:'all',sort:'rar',open:false};
 const TRIG={launch:'发射时',hit:'命中时',open:'开包时',wall:'撞墙时',peg:'撞铆钉时',passive:'常驻'};
 const trigOf=c=>c.launch?'launch':c.hit?'hit':c.open?'open':c.wall?'wall':c.peg?'peg':'passive';
 // 页签分组：5 个大类，大类下面再分小页
-const TGROUPS=[{id:'loot',name:'路线',subs:['loot']},{id:'build',name:'构筑',subs:['up','deck','book','bag']},{id:'goal',name:'目标',subs:['daily','goals','rank']},{id:'more',name:'更多',subs:['manual','legacy','sys','fb']}];
+const TGROUPS=[{id:'loot',name:'路线',subs:['loot']},{id:'build',name:'构筑',subs:['deck','up','bag','book']},{id:'goal',name:'目标',subs:['goals','rank','daily']},{id:'more',name:'更多',subs:['sys','manual','fb','legacy']}];
 const TLAST={};
 const tGroupOf=t=>(TGROUPS.find(g=>g.subs.includes(t))||TGROUPS[0]).id;
-const tSubs=(g,canP)=>g.subs.filter(k=>k!=='legacy'&&(k!=='bag'||unl('routes'))&&(k!=='daily'||M.round>=DAILY_MIN_ROUND));
-function tName(k,total){ return {loot:`战利品 ${total}`,deck:`技能槽 ${equipped().length}/${maxSlots()}`,book:`图鉴 ${Object.keys(M.owned).length}/${CARDS.length}`,up:unl('tree')?'升级 · 星盘':'升级',goals:unl('chal')?'挑战 · 成就':'成就',rank:'排行榜',bag:`珠袋 ${orbCount()}`,
-  chal:`挑战 ${badgeN()}/${CHAL.length}`,ach:`成就 ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'传承',sys:'设置',fb:'反馈',daily:'📅 每日',manual:'📖 手册'}[k]; }
+const tSubs=(g,canP)=>g.subs.filter(k=>k!=='legacy'&&(k!=='bag'||unl('routes'))&&(k!=='daily'||!M.run)); // 远征中不放「每日」：每日远征从营地开
+function tName(k,total){ return {loot:`战利品 ${total}`,deck:`卡组 ${equipped().length}/${maxSlots()}`,book:`图鉴 ${Object.keys(M.owned).length}/${CARDS.length}`,up:'升级',goals:'成就',rank:'排行',bag:`珠袋 ${orbCount()}`,
+  chal:`挑战 ${badgeN()}/${CHAL.length}`,ach:`成就 ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'传承',sys:'设置',fb:'反馈',daily:'每日',manual:'手册'}[k]; }
 function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.ended=true; running=false; $('boonPop').classList.remove('show');
   ROUND_EQ=null; if(G.chal) chalEnd(); if(G.daily) dailyEnd();
   M.best.opened=Math.max(M.best.opened,G.opened); if(G.opened>=30&&!G.basketIn) M.best.nobask=true;
@@ -2319,7 +2333,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.8';
+const GAME_V='2026-11-11.9';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2356,7 +2370,7 @@ function renderRank(body){
       <input id="lbName" maxlength="12" value="${escH(M.lbName||'')}" placeholder="起个名字才能上榜" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
       <button class="btn" id="lbSave" style="padding:7px 16px;font-size:14px;letter-spacing:0">${M.lbName?'改名':'上榜'}</button></div>
     <div class="sub" style="margin-top:6px">昵称会公开显示在排行榜上，不收集其他信息。每轮结算时自动上传刷新的最好成绩。</div></div>
-    <div class="subtabs" style="margin-top:10px">${Object.entries(LB).map(([k,v])=>`<button class="${k===lbBoard?'on':''}" data-lb="${k}">${v.ico} ${v.name}</button>`).join('')}</div>
+    <div class="seg scroll" style="margin-top:10px">${Object.entries(LB).map(([k,v])=>`<button class="${k===lbBoard?'on':''}" data-lb="${k}">${v.ico} ${v.name}</button>`).join('')}</div>
     <div class="sub">${LB[lbBoard].how}　·　我的最好：<b style="color:var(--gold2)">${mine?LB[lbBoard].fmt(mine.value,mine.tb):'还没有'}</b></div>
     <div id="lbList" style="margin-top:10px"><p class="sub">加载中……</p></div>`;
   body.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ lbBoard=b.dataset.lb; renderRank(body); });
@@ -3193,14 +3207,14 @@ function showBetween(){
     <div class="foot"><span></span><div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${M.delve?delveBtns:`<button class="btn" id="resGo">${M.run.over?'查看远征结果 ▶':'继续 ▶'}</button>`}</div></div>`; $('box').classList.remove('learning'); }
   else $('box').innerHTML=`<h2 class="serif goldtxt">${G.delveOut?'深入金库 · 撤离成功':M.run&&M.round===0?'🧭 远征开始':M.run?`第 ${M.ch} 章 · ${chInfo(M.ch).name}`:'欢迎回来'}</h2>
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
-    ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
-    ${unlHTML}${migHTML}${mapView?(G.delveOut?delveMsg:'')+relicSwapHTML()+nextBoss+learnHTML+stageHTML+(M.run&&!M.runs&&!(M.recruit>0)?(bossReady()?coach('cBoss','走到顶了：点下面的<b>首领</b>按钮。打败它就进下一章，一共 3 章。'):coach('cMap','这是本章的地图。<b>点一个发光的点</b>，再点「去这里」。每走一站打一轮，走到顶是首领。')):'')+(mapOn()&&!G.daily&&!G.chal?mapHTML(true):''):''}
+    ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="seg">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
+    ${mapView?unlHTML+migHTML+(G.delveOut?delveMsg:'')+relicSwapHTML()+nextBoss+learnHTML+stageHTML+(M.run&&!M.runs&&!(M.recruit>0)?(bossReady()?coach('cBoss','走到顶了：点下面的<b>首领</b>按钮。打败它就进下一章，一共 3 章。'):coach('cMap','这是本章的地图。<b>点一个发光的点</b>，再点「去这里」。每走一站打一轮，走到顶是首领。')):'')+(mapOn()&&!G.daily&&!G.chal?mapHTML(true):''):''}
     <div id="tabBody"></div>
     <div class="foot"><div class="fmeta" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${upLv('auto')?`<label class="tg"><input type="checkbox" id="autoT" ${M.autoOn?'checked':''}>自动发射<span style="font-size:11px">（只在已通关章节）</span></label>`:''}${M.routes.length>1?'<span class="sub" style="font-size:12px">下一轮去哪？</span>':''}</div>
       <div class="routes" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${ready?`<button class="btn boss" id="bossGo">👑 挑战首领</button>`:''}${routeBtns}</div></div>
 `;
   document.querySelectorAll('#box .tab').forEach(b=>b.onclick=()=>{ const g=TGROUPS.find(x=>x.id===b.dataset.g),subs=tSubs(g,canP); tab=subs.includes(TLAST[g.id])?TLAST[g.id]:subs[0]; showBetween(); });
-  document.querySelectorAll('#box .subtabs button').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; TLAST[tGroupOf(tab)]=tab; showBetween(); });
+  document.querySelectorAll('#box .seg button[data-t]').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; TLAST[tGroupOf(tab)]=tab; showBetween(); });
   if($('manTipB')) $('manTipB').onclick=openManual;
   if($('dailyAgain')) $('dailyAgain').onclick=()=>startRound(false,{daily:1});
   if($('dailyRank')) $('dailyRank').onclick=()=>{ tab='daily'; TLAST.goal='daily'; showBetween(); };
@@ -3309,21 +3323,27 @@ function showBetween(){
   } else if(tab==='fb'){
     renderFB(body);
   } else if(tab==='sys'){
-    body.innerHTML=`${PLAY_HELP}<div class="chap">🌐 语言 · Language <span style="display:inline-flex;gap:6px;margin-left:10px"><button class="ghost" data-lang="zh" ${LANG==='zh'?'disabled':''}>中文</button><button class="ghost" data-lang="en" ${LANG==='en'?'disabled':''}>English</button></span></div><div class="chap">🔊 音效 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMute" ${M.mute?'':'checked'}>开启</label> <span class="sub">（快捷键 M）</span></div>
-      <div class="chap">🎵 背景音乐 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sMusic" ${M.music===false?'':'checked'}>开启</label> <span class="sub">实时合成的配乐，打的时候会跟着狂热、首领变化。关掉音效时音乐也会停。</span></div>
-      <div class="chap">📳 震动 ${navigator.vibrate?`<label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sVibe" ${M.vibe===false?'':'checked'}>开启</label> <span class="sub">（开出稀有包、×5 大奖、狂热、首领时轻震）</span>`:'<span class="sub">这台设备的浏览器不支持震动</span>'}</div>
-      <div class="chap">🌀 减少动态效果 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sCalm" ${calm()?'checked':''}>开启</label> <span class="sub">关掉震屏、全屏闪光、狂热慢放和首领特写，粒子减少。默认跟随系统的「减少动态效果」设置。</span></div>
-      <div class="chap">📊 匿名统计 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sStats" ${M.stats===false?'':'checked'}>开启</label> <span class="sub">每轮结算时匿名上传用的流派和卡、章节、这一轮的成绩，帮作者调平衡。只带一个随机 id，不带昵称和其他个人信息。</span></div>
-      <details class="chap"><summary style="cursor:pointer">🔒 隐私说明</summary><div class="sub" style="line-height:1.8;margin-top:6px">· <b>存档</b>只存在你这台设备的浏览器里，换设备请用下面的「导出存档」。<br>· <b>匿名统计</b>（可以关）：每轮上传一条记录，只有一个随机 id、用的卡和流派、章节、这一轮的成绩和时长，用来调平衡。<br>· <b>排行榜</b>（自愿）：起了昵称才会上榜，昵称和成绩会公开显示。<br>· 不收集账号、手机号、位置等任何个人信息，没有广告和第三方追踪。<br>· 这是<b>测试版</b>：数值还会经常调整，偶尔可能有 bug，遇到问题欢迎反馈。</div></details>
-      <div class="sub" style="text-align:right;font-size:11px">测试版 · ${GAME_V}</div>
-      <div class="chap">🛠 开发者模式 <label class="tg" style="display:inline-flex;margin-left:10px"><input type="checkbox" id="sDev" ${M.dev?'checked':''}>开启</label> <span class="sub">作者自己测试时打开：这台设备的成绩不上传统计、不上排行榜。</span></div>
-      <div class="chap"><b>📤 导出存档</b><div class="sub" style="margin:4px 0 6px">复制这段存档码，换设备或清缓存后可以用它恢复进度。</div>
-        <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy">复制</button></div></div>
-      <div class="chap"><b>📥 导入存档</b><div class="sub" style="margin:4px 0 6px">粘贴存档码。会覆盖当前进度。</div>
-        <textarea class="code" id="sIn" placeholder="JZMC1.…"></textarea><div style="margin-top:6px"><button class="ghost" id="sImp">导入</button></div></div>
-      <div class="chap"><b>恢复上一份有效备份</b><div class="sub">自动保留上一次有效保存。恢复会替换当前进度。</div><button class="ghost" id="sRestore" ${backupSave()?'':'disabled'}>恢复备份</button></div>
-       <div class="chap"><b>⚠️ 完全重置</b><div class="sub" style="margin:4px 0 6px">清空所有进度，包括卡牌、秘卡和成就。</div><button class="ghost" id="reset">完全重置</button></div>`;
+    const sw=(id,on,label,sub)=>`<label class="srow"><span class="sl">${label}${sub?`<small>${sub}</small>`:''}</span><input type="checkbox" class="sw" id="${id}" ${on?'checked':''}></label>`;
+    body.innerHTML=`<div class="sgroup"><div class="sgh">声音与画面</div>
+      <div class="srow"><span class="sl">🌐 ${LANG==='zh'?'\u8bed\u8a00 · Language':'Language · \u8bed\u8a00'}</span><span class="seg mini"><button data-lang="zh" class="${LANG==='zh'?'on':''}">中文</button><button data-lang="en" class="${LANG==='en'?'on':''}">English</button></span></div>
+      ${sw('sMute',!M.mute,'🔊 音效','快捷键 M')}
+      ${sw('sMusic',M.music!==false,'🎵 背景音乐','关掉音效时音乐也会停')}
+      ${navigator.vibrate?sw('sVibe',M.vibe!==false,'📳 震动','大奖、狂热、首领时轻震'):''}
+      ${sw('sCalm',calm(),'🌀 减少动态效果','关掉震屏、闪光和慢放')}</div>
+      <div class="sgroup"><div class="sgh">存档与数据</div>
+      ${sw('sStats',M.stats!==false,'📊 匿名统计','帮作者调平衡，不含昵称和个人信息')}
+      <details class="fold"><summary><span>💾 导出 / 导入存档</span><span class="sub">换设备用</span></summary>
+        <div class="sub" style="margin:8px 0 6px">复制这段存档码，换设备或清缓存后可以用它恢复进度。</div>
+        <textarea class="code" id="sCode" readonly>${exportCode()}</textarea><div style="margin-top:6px"><button class="ghost" id="sCopy">复制存档码</button></div>
+        <div class="sub" style="margin:12px 0 6px">粘贴存档码导入（会覆盖当前进度）：</div>
+        <textarea class="code" id="sIn" placeholder="JZMC1.…"></textarea><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="sImp">导入</button><button class="ghost" id="sRestore" ${backupSave()?'':'disabled'}>恢复上一份自动备份</button></div></details>
+      <details class="fold"><summary><span>🔒 隐私说明</span></summary><div class="sub" style="line-height:1.8;margin-top:6px">· <b>存档</b>只存在你这台设备的浏览器里，换设备请用上面的「导出存档」。<br>· <b>匿名统计</b>（可以关）：每轮上传一条记录，只有一个随机 id、用的卡和流派、章节、这一轮的成绩和时长，用来调平衡。<br>· <b>排行榜</b>只在你起了昵称之后才会上传昵称和成绩。</div></details></div>
+      <details class="fold" style="margin-top:14px"><summary><span>⚠️ 高级</span><span class="sub">开发者模式 · 完全重置</span></summary>
+        ${sw('sDev',M.dev,'🛠 开发者模式','这台设备的成绩不上传统计和排行榜')}
+        <div class="srow"><span class="sl">完全重置<small>清空所有进度，包括卡牌、秘卡和成就</small></span><button class="ghost" id="reset">重置</button></div></details>
+      <div class="sub" style="text-align:right;font-size:11px;margin-top:8px">测试版 · ${GAME_V}</div>`;
     $('sMute').onchange=e=>{ M.mute=!e.target.checked; save(); syncMute(); };
+    body.querySelectorAll('[data-lang]').forEach(b=>{ if(b.classList.contains('on')) b.disabled=true; });
     if($('sMusic')) $('sMusic').onchange=e=>{ M.music=e.target.checked; save(); SFX.init(); };
     $('sDev').onchange=e=>{ M.dev=e.target.checked; save(); toast(M.dev?'开发者模式已开：不上传统计和排行榜':'开发者模式已关'); };
     $('sStats').onchange=e=>{ M.stats=e.target.checked; save(); toast(M.stats?'已开启匿名统计':'已关闭匿名统计'); };
