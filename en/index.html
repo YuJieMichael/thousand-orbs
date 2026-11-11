@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:5ae1adcdcdc2fa413f01d3df499fad4ee5b49d5f -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:0bf78fc7c00dec31c90091734ac48de0d8e07ca9 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -396,6 +396,34 @@
   @keyframes stDust{from{transform:translateY(0);opacity:0}15%{opacity:.8}to{transform:translateY(-60vh);opacity:0}}
   @keyframes stEye{0%,100%{opacity:0}50%{opacity:1}}
   @media (prefers-reduced-motion:reduce){ #story .sp.on .si img,#story .dust{animation:none} }
+  /* ---- 2026-11 UI 精简：结果条、标签、营地分页 ---- */
+  .resbar{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;background:#0c0907}
+  .resbar.bad{border-left-color:#c8584a}
+  .resbar .rb-t{font-family:'Noto Serif SC','Noto Serif CJK SC',serif;font-size:17px;color:var(--ink);line-height:1.3}
+  .resbar .rb-t b{font-size:22px;color:var(--green);font-variant-numeric:tabular-nums}
+  .resbar.bad .rb-t b{color:#e8a090}
+  .resbar .rb-s{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.5}
+  .resbar .rb-c{margin-left:auto;text-align:right;font-size:20px;color:var(--gold2);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .resbar .rb-c small{display:block;font-size:11px;color:var(--dim);font-weight:400}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-size:12px;line-height:1.4;padding:3px 9px;border:1px solid var(--line);border-radius:999px;background:#0c0907;color:var(--dim);max-width:100%}
+  .chip b{font-weight:600}
+  .maph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .maph .mh-t{font-family:'Noto Serif SC','Noto Serif CJK SC',serif;font-size:15px;color:var(--gold2)}
+  .maph .mh-r{margin-left:auto;font-size:12px;color:var(--dim)}
+  .tipbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .ctabs{display:flex;gap:6px;margin:14px 0 4px;border-bottom:1px solid var(--line);padding-bottom:8px}
+  .sqlist{display:grid;gap:6px;margin-top:8px}
+  .sq{display:flex;gap:10px;align-items:flex-start;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#0c0907;min-height:44px}
+  .sq.on{border-color:var(--gold);background:#d9b45a14}
+  .sq .sq-n{font-weight:600;white-space:nowrap}
+  .sq .sq-d{font-size:12px;color:var(--dim);line-height:1.5}
+  .lockline{font-size:12px;color:var(--dim);margin-top:6px}
+  .lockline summary{cursor:pointer}
+  .soulpill{display:inline-flex;gap:6px;align-items:baseline;padding:4px 12px;border:1px solid var(--gold3);border-radius:999px;color:var(--gold2);font-size:14px}
+  .soulpill b{font-size:18px}
+  .h3{gap:10px;align-items:baseline} .h3 .sub{letter-spacing:0;text-align:right}
+  summary.h3{list-style:none} summary.h3::-webkit-details-marker{display:none} summary.h3>span:first-child::before{content:'▸ ';color:var(--dim)} details[open]>summary.h3>span:first-child::before{content:'▾ '}
 </style>
 </head>
 <body>
@@ -1088,11 +1116,11 @@ function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(
     return `<button class="mnode${can?' can':''}${cur?' cur':''}${past?' past':''}" data-mr="${r}" data-mi="${i}" style="left:${o.x*100}%;top:${yOf(r)}px${o.t==='gate'?';border-color:#ffd76a;color:#ffd76a;box-shadow:0 0 12px #ffd76a66':''}" title="${info.name}">${info.ico}</button>`; };
   const nodes=m.rows.map((row,r)=>row.map((o,i)=>node(r,i,o)).join('')).join('')+`<button class="mnode boss${mapAtBoss()?' can':''}" data-mboss="1" style="left:50%;top:${yOf(MAP_ROWS)}px" title="boss">👑</button>`;
   const hearts='❤️'.repeat(Math.max(0,m.hearts))+'<span style="opacity:.25">'+'❤️'.repeat(Math.max(0,MAP_HEARTS-m.hearts))+'</span>';
-  return `<div class="chap" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>🗺️ Chapter ${M.ch} Route</b><span>${hearts} <span class="sub">stop ${Math.max(0,m.r+1)}/${MAP_ROWS}</span></span></div>${sigilsHTML()}${relicsHTML()}${tokensHTML()}
-    <div class="sub" style="margin-top:4px"> Climb from the bottom up, picking a node connected to where you are (glowing nodes are reachable). Missing a goal or losing a boss fight costs 1 ❤️. Run out of hearts and the expedition ends (${M.run?M.run.hearts:MAP_HEARTS}  in total, shared across the whole expedition; campfires restore them).</div>
+  return `<div class="chap" style="margin-top:12px"><div class="maph"><span class="mh-t">Chapter ${M.ch} · ${chInfo(M.ch).name}</span><span>${hearts}</span><span class="mh-r">stop ${Math.max(0,m.r+1)}/${MAP_ROWS}</span></div>
+    <div class="chips">${sigilsHTML()}${relicsHTML()}${tokensHTML()}</div>
     <div class="map" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
-    <div id="mapInfo" class="sub" style="min-height:2.4em;margin-top:6px"> Tap a node on the map to see what it is.</div>
-    <details style="margin-top:6px"><summary class="sub" style="cursor:pointer"> What is each node?</summary><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).filter(x=>!x.hidden).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>: ${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
+    <div id="mapInfo" class="sub" style="min-height:1.6em;margin-top:6px"> Tap a node to see what it is.</div>
+    <details style="margin-top:4px"><summary class="sub" style="cursor:pointer"> How does the map work?</summary><div class="sub" style="margin-top:6px;line-height:1.7"> Climb from bottom to top, one connected node at a time (glowing nodes are reachable). The boss waits at the top. Missing a goal or losing a boss fight costs 1 heart; run out and the expedition ends.</div><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).filter(x=>!x.hidden).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>: ${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
 function bindMap(root){ root.querySelectorAll('.mnode').forEach(b=>b.onclick=()=>{ const info=$('mapInfo'); if(!info) return;
   if(b.dataset.mboss){ const go=mapAtBoss(); info.innerHTML=`👑 <b> boss</b>: ${NODE_INFO.boss.tip()}${go?' <button class="btn boss" id="mapGo" style="padding:4px 12px;font-size:13px"> Challenges</button>':' <span> (reach the top stop first)</span>'}`; if(go) $('mapGo').onclick=()=>startRound(true); return; }
   const r=+b.dataset.mr, i=+b.dataset.mi, o=M.map.rows[r][i], can=b.classList.contains('can'), x=NODE_INFO[o.t];
@@ -1209,12 +1237,12 @@ function saveLoad(k){ M.loads=M.loads||{}; M.loads[k]={deck:equipped().slice(),k
 function applyLoad(k,quiet){ const d=loadDeck(k); if(!d||loadOn(k)) return false;
   M.deck=d; M.ksOff=Object.assign({},M.loads[k].ks||{}); recalcTree(); save(); if(!quiet) toast(`${LOADS[k].ico} Switched to “${LOADS[k].name}” loadout`); return true; }
 function loadBar(){ const L=M.loads||{};
-  return `<div class="chap" style="margin:0 0 10px"><b> Loadouts</b> <span class="sub"> Save your equipped skill cards (and keystone toggles) as a set</span>
+  return `<details class="chap" style="margin:0 0 10px"${M.loadAuto||Object.keys(L).length?' open':''}><summary style="cursor:pointer"><b>🧩 Loadouts</b> <span class="sub"> Advanced: save decks and auto-swap before each fight</span></summary>
     <div class="loads">${Object.entries(LOADS).map(([k,o])=>{ const d=loadDeck(k), on=loadOn(k);
       return `<div class="lrow${on?' on':''}"><div class="lnm">${o.ico} <b>${o.name}</b> <span class="sub">${o.when}</span></div>
         <div class="lcards">${d?(d.length?d.map(id=>`<span title="${byId[id].name}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico}</span>`).join(''):'<span class="sub"> empty</span>'):'<span class="sub"> not saved</span>'}</div>
         <div class="lbtn"><button class="ghost" data-lsave="${k}">${d?'Overwrite with current':'Save current'}</button>${d?`<button class="ghost" data-luse="${k}" ${on?'disabled style="border-color:var(--gold);color:var(--gold2)"':''}>${on?'In use':'Equip'}</button>`:''}</div></div>`; }).join('')}</div>
-    <label class="sub" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="lAuto" ${M.loadAuto?'checked':''}> Auto-switch loadout before each round by round type (types with no saved set are unchanged)</label></div>`; }
+    <label class="sub" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="lAuto" ${M.loadAuto?'checked':''}> Auto-switch loadout before each round by round type (types with no saved set are unchanged)</label></details>`; }
 function bindLoadBar(body){
   body.querySelectorAll('[data-lsave]').forEach(b=>b.onclick=()=>{ const k=b.dataset.lsave; saveLoad(k); SFX.play('buy'); toast(`${LOADS[k].ico} Saved as “${LOADS[k].name}” loadout`); showBetween(); });
   body.querySelectorAll('[data-luse]').forEach(b=>b.onclick=()=>{ applyLoad(b.dataset.luse); renderSide(); hud(); showBetween(); });
@@ -1586,19 +1614,19 @@ const mkOff=()=>(hasSigil('patron')||runSquad()==='rich'?.8:1)*(hasRelic('purse'
 const schPickCost=()=>Math.ceil(packValue(1)*10*mkOff());
 const srPickCost=()=>Math.ceil(packValue(1)*25*mkOff()); // 原来的精英奖励「SR 以上三选一」挪到黑市
 function leaveDetour(){ M.detour=null; M.routes=genRoutes(true); save(); G={loot:{}}; tab='loot'; showBetween(); }
-function showMarket(){ const box=$('box');
+function showMarket(){ const box=$('box'); if(!(M.detour&&M.detour.t==='shop')) M.mkBanOpen=0;
   const banPool=CARDS.filter(c=>c.rar!=='UR'&&(c.ch||1)<=M.maxCh), nb=Object.keys(M.banned).length;
-  box.innerHTML=`<h2 class="serif goldtxt">🏮 Black Market</h2><div class="sub" style="margin-top:4px"> Skip a round and browse: buy packs, pick cards by school, seal cards you don’t want.</div>
+  box.innerHTML=`<h2 class="serif goldtxt">🏮 Black Market</h2><div class="sub" style="margin-top:4px"> No fight here. Spend coins to get stronger.</div>
     <div class="h3" style="margin-top:16px"><span>🎴 Packs</span></div><div id="mkPacks"></div>
-    <div class="h3" style="margin-top:16px"><span>🎴 School pick</span></div><div class="sub"> Pay to pick 1 of 3 from one school — build resonance faster.</div>
+    <div class="h3" style="margin-top:16px"><span>🎴 School pick</span><span class="sub"> Pick 1 of 3 from one school</span></div>
     <div class="res" style="margin:8px 0">${SCH5.map(s=>`<button class="ghost" data-sch="${s}" style="color:${SCH[s].color}">${SCH[s].ico} ${SCH[s].name} ✦ ${f(schPickCost())}</button>`).join('')}</div>
-    <div class="sub"> Or any school, SR and up only: <button class="ghost" id="mkSR">⚔️ Curated · pick 1 of 3 (SR+) ✦ ${f(srPickCost())}</button></div>
-    <div class="h3" style="margin-top:16px"><span>🚫 Seal cards (free)</span><span class="sub">${nb}/${BAN_MAX}</span></div><div class="sub"> Sealed cards stop appearing in packs, the shop and picks, so you get your school more often. Tap a card to toggle.</div>
-    <div class="grid" style="margin-top:8px">${banPool.map(c=>`<div data-ban="${c.id}" style="position:relative;${M.banned[c.id]?'opacity:.45;filter:grayscale(1)':''}">${cardHTML(c.id,{unknown:!M.owned[c.id]})}${M.banned[c.id]?'<span class="badge" style="top:-6px;left:-4px;right:auto"> Sealed</span>':''}</div>`).join('')}</div>
-    <div class="foot"><span class="sub"> Choose your next route after leaving</span><button class="btn" id="mkLeave"> Leave the Black Market ▶</button></div>`;
+    <div><button class="ghost" id="mkSR">⚔️ SR or better only ✦ ${f(srPickCost())}</button></div>
+    <details style="margin-top:16px"${M.mkBanOpen?' open':''} id="mkBan"><summary class="h3" style="cursor:pointer"><span>🚫 Seal cards ${nb}/${BAN_MAX}</span><span class="sub"> Free · sealed cards won’t show up again</span></summary>
+    <div class="grid" style="margin-top:8px">${banPool.map(c=>`<div data-ban="${c.id}" style="position:relative;${M.banned[c.id]?'opacity:.45;filter:grayscale(1)':''}">${cardHTML(c.id,{unknown:!M.owned[c.id]})}${M.banned[c.id]?'<span class="badge" style="top:-6px;left:-4px;right:auto"> Sealed</span>':''}</div>`).join('')}</div></details>
+    <div class="foot"><span></span><button class="btn" id="mkLeave"> Leave the Black Market ▶</button></div>`;
   $('mkSR').onclick=e=>{ if(!spend(srPickCost(),e.currentTarget)) return; openPick({minRar:'SR',title:'⚔️ Curated · pick 1 of 3 (SR+)'},showMarket); };
   box.querySelectorAll('[data-sch]').forEach(b=>b.onclick=()=>{ if(!spend(schPickCost(),b)) return; openPick({sch:b.dataset.sch,title:`${SCH[b.dataset.sch].ico} ${SCH[b.dataset.sch].name} · Pick 1 of 3`},showMarket); });
-  box.querySelectorAll('[data-ban]').forEach(el=>el.onclick=()=>{ const id=el.dataset.ban; if(M.banned[id]) delete M.banned[id]; else { if(Object.keys(M.banned).length>=BAN_MAX) return toast(`Seal up to ${BAN_MAX} cards`); M.banned[id]=1; } save(); showMarket(); });
+  box.querySelectorAll('[data-ban]').forEach(el=>el.onclick=()=>{ const id=el.dataset.ban; M.mkBanOpen=1; if(M.banned[id]) delete M.banned[id]; else { if(Object.keys(M.banned).length>=BAN_MAX) return toast(`Seal up to ${BAN_MAX} cards`); M.banned[id]=1; } save(); showMarket(); });
   renderShop($('mkPacks')); $('mkLeave').onclick=leaveDetour; $('ov').classList.add('show'); $('ov').scrollTop=0; }
 // 奇遇的负面结果：下一轮开局生效一次
 const CURSES={
@@ -2200,7 +2228,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.2';
+const GAME_V='2026-11-11.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2297,7 +2325,7 @@ const trueReady=()=>{ const r=M.run, e=M.endings||{}; return !!(r&&!r.daily&&r.g
 function addStar(src,why){ const r=M.run; if(!r) return; r.starSrc=r.starSrc||{}; if(r.starSrc[src]||(r.stars||0)>=3) return; r.starSrc[src]=1; r.stars=(r.stars||0)+1;
   toast(`🌟 Star Orb ${r.stars}/3: ${why}`); SFX.play('SSR'); save(); }
 function giveKey(why){ const r=M.run; if(!r||r.key) return; r.key=1; toast(`🗝️ Brass Key: ${why}`); SFX.play('SSR'); save(); }
-function tokensHTML(){ const r=M.run; if(!r||!(r.key||r.stars)) return ''; return `<div class="sub" style="margin-top:4px">🎐 Tokens: ${r.key?'🗝️ <b style="color:var(--gold2)"> Brass Key</b>':''}${r.key&&r.stars?' · ':''}${r.stars?`🌟 <b style="color:var(--gold2)"> Star Orb ${r.stars}/3</b>`:''}</div>`; }
+function tokensHTML(){ const r=M.run; if(!r||!(r.key||r.stars)) return ''; return (r.key?'<span class="chip" style="border-color:var(--gold3)">🗝️ <b style="color:var(--gold2)"> Brass Key</b></span>':'')+(r.stars?`<span class="chip" style="border-color:var(--gold3)">🌟 <b style="color:var(--gold2)"> Star Orb ${r.stars}/3</b></span>`:''); }
 function endingsHTML(){ const e=M.endings||{}, n=Object.keys(ENDINGS).filter(k=>e[k]).length;
   return `<div class="h3" style="margin-top:16px"><span>📜 Ending ${n}/4</span></div><div style="display:grid;gap:6px">${Object.entries(ENDINGS).map(([k,x])=>{ const got=e[k], showHint=got||k!=='e4'||(e.e2&&e.e3);
     return `<div class="row" style="cursor:default;${got?'border-color:var(--gold3)':'opacity:.75'}">${got?x.ico:'❔'} <div style="flex:1"><b> Ending ${x.n} · ${got?x.name:'???'}</b><div class="sub">${showHint?x.hint:'See the other endings first.'}${got?'':` · First time 🔥 ${x.soul}`}</div></div></div>`; }).join('')}</div>`; }
@@ -2363,42 +2391,47 @@ function showRunEnd(){ const L=finishRun(); if(!L) return showCamp(); const q=SQ
     <div class="sub" style="margin-top:12px"> Cards, coins, upgrades, Sigils and Relics stay with this run; Gold Souls, Legacy, the Collection and achievements are kept forever.</div>
     <div class="foot"><span></span><button class="btn" id="toCamp"> Back to camp ▶</button></div>`;
   $('toCamp').onclick=()=>{ M.run=null; M.money=0; M.sigils=[]; M.sigQ=[]; M.relicQ=[]; M.detour=null; M.recruitPicks=null; M.sigPend=null; M.deck=[]; save(); hud(); renderSide(); showCamp(); }; $('ov').classList.add('show'); $('ov').scrollTop=0; SFX.play(L.win?'ach':'end'); }
-let campSel={sq:'std',d:0,sch:'combo'};
+let campSel={sq:'std',d:0,sch:'combo',tab:'go'};
 function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
   if(!SQUADS.find(q=>q.id===campSel.sq&&squadOk(q))) campSel.sq='std'; campSel.d=Math.min(campSel.d,M.dangerMax||0);
   const legRow=x=>{ const l=M.legacy[x.id]||0, mx=x.max&&l>=x.max, c=x.cost(l); return `<div class="row" style="cursor:default">${x.ico} <div style="flex:1"><b>${x.name}</b> <span class="sub">Lv${l}</span><div class="sub">${x.desc(l)}</div></div><button class="ghost" data-leg="${x.id}" ${mx||M.soul<c?'disabled style="opacity:.45"':''}>${mx?'Maxed':`🔥 ${c}`}</button></div>`; };
-  $('box').innerHTML=`<h2 class="serif goldtxt">⛺ Camp</h2>
-    <div class="sub" style="margin-top:6px">🔥 Gold Souls <b style="color:var(--gold2)">${M.soul}</b> · Expeditions ${M.runs||0}  · Cleared ${M.wins||0}  · Best score ${M.bestScore||0} · Codex ${Object.keys(M.seen||{}).length}/${CARDS.length}</div>
-    <div class="h3" style="margin-top:16px"><span>🧭 Choose a squad</span></div>
-    <div class="dgrid">${SQUADS.map(q=>{ const ok=squadOk(q), on=campSel.sq===q.id; return `<button class="dcard" data-sq="${q.id}" ${ok?'':'disabled'} style="text-align:left;font:inherit;color:inherit;cursor:${ok?'pointer':'default'};${on?'border-color:var(--gold);background:#d9b45a14':''}${ok?'':'opacity:.45'}"><b>${q.ico} ${q.name}</b>${on?' ✓':''}<br><span class="sub">${ok?q.desc:`🔒 ${q.need}`}</span></button>`; }).join('')}</div>
+  const ct=campSel.tab||'go', okSq=SQUADS.filter(squadOk), lockSq=SQUADS.filter(q=>!squadOk(q)), today=M.dailyRun&&M.dailyRun.day===dayKey()?M.dailyRun:null;
+  const eN=Object.keys(ENDINGS).filter(k=>(M.endings||{})[k]).length;
+  const goTab=`<div class="sqlist">${okSq.map(q=>`<button class="sq${campSel.sq===q.id?' on':''}" data-sq="${q.id}"><span class="sq-n">${q.ico} ${q.name}</span><span class="sq-d">${q.desc}</span></button>`).join('')}</div>
+    ${lockSq.length?`<details class="lockline"><summary>🔒  ${lockSq.length} more squads locked</summary><div style="margin-top:4px;line-height:1.8">${lockSq.map(q=>`${q.ico} ${q.name}: ${q.need}`).join('<br>')}</div></details>`:''}
     ${campSel.sq==='spec'?`<div class="res" style="margin-top:8px">${SCH5.map(k=>`<button class="ghost" data-csch="${k}" style="${campSel.sch===k?'border-color:var(--gold)':''};color:${SCH[k].color}">${SCH[k].ico} ${SCH[k].name}</button>`).join('')}</div>`:''}
-    <div class="h3" style="margin-top:16px"><span>🔥 Danger level</span><span class="sub"> Clear your highest level to unlock the next</span></div>
-    <div class="res" style="margin-top:6px">${Array.from({length:(M.dangerMax||0)+1},(_,d)=>`<button class="ghost" data-dg="${d}" style="${campSel.d===d?'border-color:var(--gold);color:var(--gold2)':''}"> Danger ${d}</button>`).join('')}</div>
-    <div class="sub" style="margin-top:4px">${campSel.d?`Goal +${Math.round(campSel.d*DANGER.goal*100)}%, pack HP +${Math.round(campSel.d*DANGER.hp*100)}%, boss HP +${Math.round(campSel.d*DANGER.boss*100)}%; score ×${(1+.25*campSel.d).toFixed(2)}<div style="margin-top:4px;line-height:1.7">${dangerRulesHTML(campSel.d)}</div>`:'Standard difficulty'}</div>
-    ${endingsHTML()}
-    <div class="chap" style="margin-top:12px">📅 <b> Daily Expedition</b>: today everyone walks the same map with the same picks (Vault Expedition · Danger  ${DAILY_RUN_DANGER}) — compete on score. ${M.dailyRun&&M.dailyRun.day===dayKey()?`best today <b>${M.dailyRun.best}</b>  pts (played ${M.dailyRun.tries} left)`:'Not played today'} <button class="ghost" id="campRank"> Today’s board</button></div>
-    <div class="h3" style="margin-top:16px"><span>🗝️ Treasury</span><span class="sub"> Spend Gold Souls to add new Sigils and Relics to the pool</span></div>
-    <div class="dgrid">${VAULT.map(v=>{ const it=v.k==='s'?sigilOf(v.id):relicOf(v.id), own=(M.unlocked||{})[v.k+':'+v.id], col=v.k==='s'?TIER[it.t].c:RARE[it.r].c, nm=v.k==='s'?sigilName(it):it.name, ds=v.k==='s'?sigilDesc(it):it.desc;
-      return `<div class="dcard" style="${own?'border-color:'+col:''}"><b style="color:${col}">${v.k==='s'?'🔷':'🏺'} ${nm}</b> <span class="sub">${v.k==='s'?TIER[it.t].name+'Sigil':RARE[it.r].name+'Relics'}</span><div class="sub" style="margin-top:3px">${ds}</div><div style="margin-top:6px">${own?'<span class="sub">✓ In the pool</span>':`<button class="ghost" data-vault="${v.k}:${v.id}" ${M.soul<v.cost?'disabled style="opacity:.45"':''}>🔥 ${v.cost} Unlock</button>`}</div></div>`; }).join('')}</div>
-    <div class="h3" style="margin-top:16px"><span>🏛️ Legacy</span><span class="sub"> Bought with Gold Souls, permanent</span></div>
+    <div class="h3" style="margin-top:16px"><span>🔥 Danger level</span>${M.dangerMax?'':'<span class="sub"> Clear a run to unlock Danger 1</span>'}</div>
+    ${M.dangerMax?`<div class="res" style="margin-top:6px">${Array.from({length:(M.dangerMax||0)+1},(_,d)=>`<button class="ghost" data-dg="${d}" style="${campSel.d===d?'border-color:var(--gold);color:var(--gold2)':''}">${d}</button>`).join('')}</div>`:''}
+    <div class="sub" style="margin-top:6px;line-height:1.7">${campSel.d?`Goal +${Math.round(campSel.d*DANGER.goal*100)}% · Pack HP +${Math.round(campSel.d*DANGER.hp*100)}% · boss +${Math.round(campSel.d*DANGER.boss*100)}% · Score ×${(1+.25*campSel.d).toFixed(2)}<br>${dangerRulesHTML(campSel.d)}`:'Standard difficulty'}</div>
+    <div class="chap tipbar" style="margin-top:14px"><span>📅 <b> Daily Expedition</b> <span class="sub">${today?`best today ${today.best}  pts`:'Same map for everyone, best score wins'}</span></span><span style="display:flex;gap:6px"><button class="ghost" id="campRank"> Today’s Board</button><button class="ghost" id="campDaily"> Start</button></span></div>`;
+  const vaultTab=`<div class="h3" style="margin-top:6px"><span>🏛️ Legacy</span><span class="sub"> Permanent bonuses</span></div>
     ${LEGACY.map(legRow).join('')}
-    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan">📖 Manual</button><button class="ghost" id="campDaily">📅 Daily Expedition</button><button class="ghost" id="campMute">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campSet">⚙️ Settings</button><button class="ghost" id="campLang">${LANG==='zh'?'English':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
+    <div class="h3" style="margin-top:16px"><span>🗝️ Treasury</span><span class="sub"> Unlock to add them to future runs</span></div>
+    <div class="dgrid">${VAULT.map(v=>{ const it=v.k==='s'?sigilOf(v.id):relicOf(v.id), own=(M.unlocked||{})[v.k+':'+v.id], col=v.k==='s'?TIER[it.t].c:RARE[it.r].c, nm=v.k==='s'?sigilName(it):it.name, ds=v.k==='s'?sigilDesc(it):it.desc;
+      return `<div class="dcard" style="display:flex;gap:8px;align-items:center;${own?'border-color:'+col:''}"><div style="flex:1"><b style="color:${col}">${v.k==='s'?'🔷':'🏺'} ${nm}</b><div class="sub">${ds}</div></div>${own?'<span class="sub">✓</span>':`<button class="ghost" data-vault="${v.k}:${v.id}" ${M.soul<v.cost?'disabled style="opacity:.45"':''}>🔥 ${v.cost}</button>`}</div>`; }).join('')}</div>`;
+  const endTab=`${endingsHTML()}<div class="sub" style="margin-top:14px"> Expeditions ${M.runs||0}  · Cleared ${M.wins||0}  · Best score ${M.bestScore||0} · Codex ${Object.keys(M.seen||{}).length}/${CARDS.length}</div>`;
+  $('box').innerHTML=`<h2 class="serif goldtxt">⛺ Camp</h2>
+    <div style="margin-top:8px"><span class="soulpill">🔥 Gold Souls <b>${M.soul}</b></span></div>
+    <div class="ctabs">${[['go','Setting out'],['vault','Legacy & Vault'],['end',`Ending ${eN}/4`]].map(([k,n])=>`<button class="tab ${ct===k?'on':''}" data-ct="${k}">${n}</button>`).join('')}</div>
+    ${ct==='vault'?vaultTab:ct==='end'?endTab:goTab}
+    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan" title="Manual">📖</button><button class="ghost" id="campMute" title="Sound">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campSet" title="Settings">⚙️</button><button class="ghost" id="campLang">${LANG==='zh'?'EN':'中文'}</button></span><button class="btn" id="campGo"> Set out ▶</button></div>`;
   const box=$('box');
   box.querySelectorAll('[data-sq]').forEach(b=>b.onclick=()=>{ campSel.sq=b.dataset.sq; showCamp(); });
+  box.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ campSel.tab=b.dataset.ct; showCamp(); });
   box.querySelectorAll('[data-csch]').forEach(b=>b.onclick=()=>{ campSel.sch=b.dataset.csch; showCamp(); });
   box.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{ campSel.d=+b.dataset.dg; showCamp(); });
   box.querySelectorAll('[data-leg]').forEach(b=>b.onclick=()=>{ const x=LEGACY.find(y=>y.id===b.dataset.leg), l=M.legacy[x.id]||0, c=x.cost(l); if(M.soul<c||(x.max&&l>=x.max)) return; M.soul-=c; M.legacy[x.id]=l+1; SFX.play('buy'); save(); showCamp(); });
   $('campGo').onclick=()=>startRun(campSel.sq,campSel.d,campSel.sch);
   box.querySelectorAll('[data-vault]').forEach(b=>b.onclick=()=>{ const v=VAULT.find(x=>x.k+':'+x.id===b.dataset.vault); if(!v||M.soul<v.cost) return; M.soul-=v.cost; (M.unlocked=M.unlocked||{})[b.dataset.vault]=1; SFX.play('ach'); save(); showCamp(); });
-  $('campRank').onclick=()=>{ G={loot:{}}; tab='daily'; showBetween(); };
-  $('campMan').onclick=openManual; $('campDaily').onclick=()=>startRun('std',DAILY_RUN_DANGER,null,dayKey());
+  if($('campRank')) $('campRank').onclick=()=>{ G={loot:{}}; tab='daily'; showBetween(); };
+  $('campMan').onclick=openManual; if($('campDaily')) $('campDaily').onclick=()=>startRun('std',DAILY_RUN_DANGER,null,dayKey());
   $('campMute').onclick=()=>{ M.mute=!M.mute; save(); syncMute(); showCamp(); }; $('campSet').onclick=()=>{ G={loot:{}}; tab='sys'; showBetween(); }; $('campLang').onclick=()=>setLang(LANG==='zh'?'en':'zh');
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
 // 营火：回一颗心，或者磨练一张装备中的卡
 function showCampfire(){ const box=$('box'), eq=equipped(), r=M.run;
-  box.innerHTML=`<h2 class="serif goldtxt">🔥 Campfire</h2><div class="sub" style="margin-top:6px"> The fire is warm. No fight here — choose one thing to do.</div>
-    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=heartCap()||dangerLv()>=3?'disabled':''}><b>❤️ Rest</b><br><span class="sub"> Recover 1 heart (up to your starting ${heartCap()} hearts; now ${r.hearts}/${heartCap()}) ${dangerLv()>=3?'<br>🔥 Dying Embers: no resting from Danger 3':''}</span></button>
-    <button class="dcard" id="cfTrain" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${eq.length?'':'disabled'}><b>🔨 Train</b><br><span class="sub">+2 copies of every equipped card (levels up faster)</span></button></div>
+  box.innerHTML=`<h2 class="serif goldtxt">🔥 Campfire</h2><div class="sub" style="margin-top:6px"> No fight here. Pick one.</div>
+    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=heartCap()||dangerLv()>=3?'disabled':''}><b>❤️ Rest</b><br><span class="sub"> Recover 1 heart (${r.hearts}/${heartCap()}) ${dangerLv()>=3?'<br>🔥 Dying Embers: no resting from Danger 3':''}</span></button>
+    <button class="dcard" id="cfTrain" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${eq.length?'':'disabled'}><b>🔨 Train</b><br><span class="sub">+2 copies of each equipped card</span></button></div>
     <div class="foot"><span></span><button class="ghost" id="cfLeave"> Just leave</button></div>`;
   $('cfRest').onclick=()=>{ r.hearts=Math.min(heartCap(),r.hearts+1); if(M.map) M.map.hearts=r.hearts; SFX.play('ach'); toast('❤️ Recovered 1 heart'); leaveDetour(); };
   $('cfLeave').onclick=leaveDetour; $('cfTrain').onclick=()=>{ eq.forEach(id=>M.owned[id]=(M.owned[id]||0)+2); SFX.play('buy'); toast('🔨 Equipped cards +2 each'); recalcTree(); leaveDetour(); };
@@ -2467,7 +2500,7 @@ function offerSigil(src,after){ M.sigils=M.sigils||[];
     const r=$('sigRoll'); if(r) r.onclick=()=>{ if(!spend(sigRerollCost(),r)) return; rolled=true; const np=sigilPicks(t); if(np.length) picks=np; keep(); SFX.play('buy'); draw(); }; };
   draw(); el.classList.add('show'); SFX.play('raise'); }
 function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigilOf).filter(Boolean);
-  return `<div class="sub" style="margin-top:6px">🔷 Sigil ${cs.length}/${sigilMax()}: ${cs.length?cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join(' · '):'pick one when you set out'}</div>`; }
+  return `<span class="chip">🔷 Sigil ${cs.length}/${sigilMax()}${cs.length?': '+cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join(', '):''}</span>`; }
 
 // ================= 🏺 遗珍：精英、首领、黑金秘藏掉落的整局宝物 =================
 // 3 个栏位，满了可以换掉旧的。整局有效：进下一章也保留，命用完或转生时清空。
@@ -2517,7 +2550,7 @@ function relicsRound(G){ if(G.chal||G.daily) return;
   if(hasRelic('giant')){ G.ammo=Math.max(2,Math.ceil(G.ammo/2)); G.maxAmmo=Math.max(2,Math.ceil(G.maxAmmo/2)); G.bo.dmg*=2.5; G.R.size*=1.45; } }
 const relicTag=r=>`<b style="color:${RARE[r.r].c}" title="${r.desc}">${r.name}</b>`;
 function relicsHTML(){ if(!mapOn()) return ''; const rs=(M.relics||[]).map(relicOf).filter(Boolean);
-  return `<div class="sub" style="margin-top:4px">🏺 Relics ${rs.length}/${RELIC_MAX}: ${rs.length?rs.map(relicTag).join(' · '):'drop from elites, bosses and Black-Gold Vaults'}</div>`; }
+  return `<span class="chip">🏺 Relics ${rs.length}/${RELIC_MAX}${rs.length?': '+rs.map(relicTag).join(', '):''}</span>`; }
 // 栏位满了：结算页上选择换掉哪一件
 function relicSwapHTML(){ const id=(M.relicQ||[])[0]; if(!id) return ''; const n=relicOf(id);
   return `<div class="chap" id="relicSwap" style="margin-top:12px;border-color:${RARE[n.r].c}">🏺 <b> New Relic: </b>${relicTag(n)} (${RARE[n.r].name}) <br><span class="sub">${n.desc}</span><br><span class="sub"> Your Relic slots are full — replace which one?</span>
@@ -2597,16 +2630,16 @@ let shopLast=null;
 function renderShop(body){
   const packs=[1,2,3].map(t=>{ const P=PT[t],p1=shopPrice(t); let p10=0; for(let k=0;k<10;k++) p10+=shopPrice(t,k);
     const od=packOdds(t).map((o,i)=>o?`<span style="color:${RCOL[RO[i]]}">${RO[i]} ${o}%</span>`:'').filter(Boolean).join(' · ');
-    return `<div class="chap" style="margin:0;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center">
-      <div style="width:52px;height:72px;border-radius:7px;background:${t===3?`url(${ART.pack}) center/cover`:`linear-gradient(135deg,${P.a},${P.b},${P.a})`};border:2px solid ${t===3?'#d9b45a':P.b};box-shadow:0 0 ${t*6}px ${t===3?'#d9b45a':P.a}88"></div>
-      <b style="font-size:15px">${P.name}</b><div class="sub" style="font-size:11px">${od}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
-        <button class="btn" data-buy="${t}" data-n="1" style="padding:7px 12px;font-size:13px;letter-spacing:0;${M.money<p1?'opacity:.55;filter:grayscale(.6)':''}">×1 ✦ ${f(p1)}</button>
-        <button class="btn alt" data-buy="${t}" data-n="10" style="padding:7px 12px;font-size:13px;letter-spacing:0">10× ✦ ${f(p10)}</button></div>
-      ${M.shopN[t]?`<div class="sub" style="font-size:11px"> Bought ${M.shopN[t]} packs recently, price +${Math.round((Math.pow(1.06,M.shopN[t])-1)*100)}% (drops one step per round played)</div>`:''}</div>`; }).join('');
+    return `<div class="chap" style="margin:0;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:10px 6px">
+      <div style="width:38px;height:52px;border-radius:7px;background:${t===3?`url(${ART.pack}) center/cover`:`linear-gradient(135deg,${P.a},${P.b},${P.a})`};border:2px solid ${t===3?'#d9b45a':P.b};box-shadow:0 0 ${t*6}px ${t===3?'#d9b45a':P.a}88"></div>
+      <b style="font-size:14px">${P.name}</b><div class="sub" style="font-size:10px;line-height:1.4">${od}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;width:100%">
+        <button class="btn" data-buy="${t}" data-n="1" style="padding:7px 4px;font-size:12px;letter-spacing:0;width:100%;${M.money<p1?'opacity:.55;filter:grayscale(.6)':''}">×1 ✦ ${f(p1)}</button>
+        <button class="btn alt" data-buy="${t}" data-n="10" style="padding:7px 4px;font-size:12px;letter-spacing:0;width:100%">10× ✦ ${f(p10)}</button></div>
+      ${M.shopN[t]?`<div class="sub" style="font-size:10px" title="Drops one step after each round"> Markup +${Math.round((Math.pow(1.06,M.shopN[t])-1)*100)}%</div>`:''}</div>`; }).join('');
   const last=shopLast?`<div class="h3" style="margin-top:14px"><span> Just opened · ${shopLast.total} cards</span></div><div class="grid">${Object.keys(shopLast.got).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar)).map((id,i)=>cardHTML(id,{pop:1,delay:i*.05,count:shopLast.got[id],isNew:shopLast.isNew[id],up:shopLast.up[id]})).join('')}</div>`:'';
-  body.innerHTML=`<p class="sub"> Buy packs with coins. Duplicates level cards up (2 / 4 / 8 / 16 / 26 / 41… copies per level), so there’s always something to spend on. Prices rise with your Vault Level.</p>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">${packs}</div>${last}`;
+  body.innerHTML=`<p class="sub"> Duplicates level cards up, so nothing goes to waste.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${packs}</div>${last}`;
   body.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>buyPacks(+b.dataset.buy,+b.dataset.n,b,body));
 }
 function buyPacks(t,n,btn,body){
@@ -2640,7 +2673,7 @@ function bindKs(body){ body.querySelectorAll('[data-ks]').forEach(b=>b.onclick=(
 function renderTree(body){
   if(!TV) TV=tvHome();
   const reps=REP.map(u=>{ const l=M.up[u.id]||0,c=u.cost(l),lock=u.need&&!u.need();
-    return `<div class="row ${lock||M.money<c?'off':''}" data-rep="${u.id}"><div class="ico">${u.ico}</div><div class="info"><div class="nm">${u.name} <span class="lvl">Lv${l}</span></div><div class="sub">${u.desc(l)} → ${u.desc(l+1)}</div></div><div class="cost">${lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c)}</div></div>`; }).join('');
+    return `<div class="row ${lock||M.money<c?'off':''}" data-rep="${u.id}"><div class="ico">${u.ico}</div><div class="info"><div class="nm">${u.name} <span class="lvl">Lv${l}</span></div><div class="sub">${lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):`${u.desc(l)} → ${u.desc(l+1)}`}</div></div><div class="cost">${lock?'🔒':'✦ '+f(c)}</div></div>`; }).join('');
   const n=tCount(), refund=Math.floor((M.treeSpent||0)*.8), teach=firstUpgradeReady();
   body.innerHTML=`${teach?'<div class="learn-step" id="firstUpgradeGuide"> Tap “Orb Polish” below to spend coins on more damage next round. You’ll stay on this page after upgrading.</div>':''}<div id="workshopUpgrades" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 8px">${reps}</div>${ksBar()}
     <div class="sub" style="margin:8px 0 6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>🌌 Star Chart: start from the center ✦ and you can only light nodes <b style="color:var(--gold2)"> connected to lit nodes</b>. Lit: <b id="tNodeCount" style="color:var(--gold2)">${n}</b> — each one makes the next more expensive. Drag to pan; scroll or pinch to zoom.</span>
@@ -2722,7 +2755,7 @@ function refreshTreeView(body){
       el.classList.toggle('off',!!lock||M.money<c);
       el.querySelector('.lvl').textContent=`Lv${l}`;
       el.querySelector('.sub').innerHTML=`${u.desc(l)} → ${u.desc(l+1)}`;
-      el.querySelector('.cost').textContent=lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c);
+      el.querySelector('.cost').textContent=lock?'🔒':'✦ '+f(c);
     });
     if(!firstUpgradeReady()){
       const guide=$('firstUpgradeGuide'); if(guide){ const h=guide.getBoundingClientRect().height; guide.textContent='Polished! Base damage is higher next round. Keep polishing or start the next round.'; guide.style.minHeight=h+'px'; }
@@ -2991,8 +3024,8 @@ function showBetween(){
   const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b> Daily Challenge</b>: opened <b style="color:var(--gold2)">${G.opened}</b> packs ${G.dailyPB?' <b style="color:var(--green)"> New best today!</b>':''} · best today ${M.daily.best} packs · try #${M.daily.tries}${G.dailyFirst?` · first clear today, <b style="color:var(--gold2)"> Gold Souls +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · streak ${M.daily.streak} days`:''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 Again</button><button class="ghost" id="dailyRank"> Today’s board</button><span class="sub">${M.lbName?'':'Pick a nickname to join today’s board'}</span></div></div>`:'';
   const chalMsg=chalC?`<div class="chap" style="margin-top:12px;border-color:${G.chalWin?'var(--green)':'var(--line)'}">${chalC.ico} Challenge “<b>${chalC.name}</b>” ${G.chalWin?`<b style="color:var(--green)"> complete!</b>${G.chalFirst?` First clear, Gold Souls +${chalC.soul}`:''}`:`not complete (${chalC.prog(G)}). Try a different build.`}</div>`:'';
-  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)"> Goal reached</b> ${G.opened}/${G.goal} packs ${G.realOpened&&G.realOpened!==G.opened?`<span class="sub"> (actually opened ${G.realOpened}  — some packs count as several)</span>`:''} · streak <b>${M.streak}</b> · <br> Coins this round: packs & pockets ${f(G.earned-G.goalBonus)} + streak bonus <b style="color:var(--gold2)">${f(G.goalBonus)}</b> (${pct(G.goalK)} of this round’s coins — grows with your streak)= <b style="color:var(--gold2)">${f(G.earned)}</b>${G.route==='elite'?`<br>⚔️ Elite reward: a Relic, a Sigil pick, and a new orb in your bag: <b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub">${mapOn()?'':'Boss progress +1 · '} Next goal ${M.goal} packs</span></div>`
-      :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090"> Goal missed</b> ${G.opened}/${G.goal} packs ${G.realOpened&&G.realOpened!==G.opened?`<span class="sub"> (actually opened ${G.realOpened})</span>`:''}${G.lostStreak?` · ${G.lostStreak} streak broken`:''}<br><span class="sub">${mapOn()?'':'This round doesn’t count toward the boss. '} Next goal ${M.goal} packs. ${M.up.stage<2&&M.ch>=2?'<br> Not opening enough? Upgrade “Vault Level” and “Tally” — each pack then counts as several.':''}</span></div>`):'';
+  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="resbar"><div><div class="rb-t"> Goal reached <b>${G.opened}/${G.goal}</b></div><div class="rb-s"> streak ${M.streak} · streak bonus +${f(G.goalBonus)} · Next goal ${M.goal}${G.route==='elite'?` · Elite reward: relic, sigil, <span style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</span>`:''}</div></div><div class="rb-c">+${f(G.earned)}<small> Coins</small></div></div>`
+      :`<div class="resbar bad"><div><div class="rb-t"> Missed <b>${G.opened}/${G.goal}</b></div><div class="rb-s">${G.heartLost==='Goal missed'?`Lost 1 heart, ${Math.max(0,(M.map||{}).hearts||0)} left · `:G.wardSaved?'The charm took the hit · ':''}${G.lostStreak?`${G.lostStreak} streak broken · `:''} Next goal ${M.goal}</div></div><div class="rb-c">+${f(G.earned)}<small> Coins</small></div></div>`):'';
   if(!M.routes||(!unl('routes')&&M.routes.length>1)) M.routes=genRoutes();
   const mapNodes=mapOn()?mapReach():null; if(mapOn()) ensureMap();
   const newU=UNL.filter(u=>u.ok()&&!(M.unl||(M.unl={}))[u.id]); newU.forEach(u=>M.unl[u.id]=1); if(newU.length) save();
@@ -3013,21 +3046,22 @@ function showBetween(){
   const delveBtns=M.delve?`<button class="btn" id="dvOut" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>🏃 Extract</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px"> take the bag</small></button><button class="btn alt" id="dvGo" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>🕳️ Continue ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">Depth ${M.delve.layer+1} · Open ${delveGoal(M.delve.layer+1)} packs</small></button>`:'';
   const routeBtns=delveBtns||(mapNodes?mapNodes.map(([r,i],k)=>{ const t=M.map.rows[r][i].t; return `<button class="btn ${k?'alt':''}" data-node="${r},${i}" title="${NODE_INFO[t].tip(M.goal)}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>${NODE_INFO[t].ico} ${NODE_INFO[t].name}${mapNodes.length>1?` · ${sideName(M.map.rows[r][i].x)}`:''} ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[t]}</small></button>`; }).join(''):M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'; ')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`Round ${M.round+1}`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join(''));
-  const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 Not sure what something is? <span class="sub"> It’s all in the manual — open it any time, even mid-round (“📖 Manual” at the top right).</span></span><button class="ghost" id="manTipB"> Open manual</button></div>`:'';
+  const manTip=G.packs&&M.round<=3?`<div class="chap tipbar" style="margin-top:12px"><span>📖 Not sure what something does? It’s all in the manual.</span><button class="ghost" id="manTipB"> Open manual</button></div>`:'';
   // 存档只在这个浏览器里：每次走到更远的章节或转生后，提醒备份一次
   const bkNeed=tab==='loot'&&G.packs&&(M.maxCh+M.prestiges*100)>(M.bkCh||0)&&(M.maxCh>=2||M.prestiges>0);
   const bkMsg=bkNeed?`<div class="chap" id="bkBox" style="margin-top:12px;border-color:var(--gold3)">💾 <b> Back up your save</b><br><span class="sub"> Your save lives only in this browser — clearing data or switching phones loses it. Download a save file or copy the save code into your notes; restore it any time under “More → Settings → Import”.</span>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="ghost" id="bkDl"> Download save file</button><button class="ghost" id="bkCopy"> Copy save code</button><button class="ghost" id="bkLater"> Not now</button></div></div>`:'';
   const relicMsg=tab==='loot'&&G.relicGot&&G.relicGot.length?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🏺 <b> Relic found</b>: ${G.relicGot.map(id=>{ const r=relicOf(id); return `${relicTag(r)} (${RARE[r.r].name}) <span class="sub">${r.desc}</span>`; }).join('<br>')}</div>`:'';
-  const soulMsg=tab==='loot'&&M.soul>0&&!M.guide.soul?(M.guide.soul=1,save(),`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🔥 <b> Your first Gold Soul</b><br><span class="sub"> Every expedition pays Gold Souls based on its score; myth cards and achievements give some too. Back at camp, spend them on Legacy for permanent bonuses that apply to every run.</span></div>`):'';
-  const runMsg=G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090"> Run over</b>: you’re out of hearts, so the Chapter ${M.ch} map starts over. <br><span class="sub">${G.runLoss?`You dropped <b style="color:#e8a090">${f(G.runLoss)}</b> coins.`:''} Cards and upgrades are kept; your streak, Sigils and Relics reset.</span></div>`:G.wardSaved?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🛡️ ${G.heartLost} — no heart lost.</div>`:G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}, lost 1 heart. Left: ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}.</div>`:'';
+  const soulMsg=()=>tab==='loot'&&M.soul>0&&!M.guide.soul?(M.guide.soul=1,save(),`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🔥 <b> Your first Gold Soul</b><br><span class="sub"> Every expedition pays Gold Souls based on its score; myth cards and achievements give some too. Back at camp, spend them on Legacy for permanent bonuses that apply to every run.</span></div>`):'';
+  const runMsg=G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090"> Run over</b>: you’re out of hearts, so the Chapter ${M.ch} map starts over. <br><span class="sub">${G.runLoss?`You dropped <b style="color:#e8a090">${f(G.runLoss)}</b> coins.`:''} Cards and upgrades are kept; your streak, Sigils and Relics reset.</span></div>`:G.wardSaved&&!goalMsg?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🛡️ ${G.heartLost} — no heart lost.</div>`:G.heartLost&&!(goalMsg&&G.heartLost==='Goal missed')?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}, lost 1 heart. Left: ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}.</div>`:'';
   const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)"> Extracted!</b> Brought out: ${delveBagHTML(G.delveOut)}</div>`
     :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">Trapped on layer ${G.delveLayer}</b>: missed the goal (${G.opened}/${G.goal} packs) and lost the whole bag: ${delveBagHTML(G.delveLost)}</div>`
     :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>The Deep Vault · Layer ${G.delveLayer} cleared</b> (${G.opened}/${G.goal} packs)${G.delveScore?` · expedition score +${G.delveScore}`:''}<br>Bag: ${delveBagHTML(M.delve)}<br><span class="sub">Extract: take everything home. Push on: layer ${G.delveLayer+1}, goal ${delveGoal(G.delveLayer+1)} packs, pack HP ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}; miss it and you lose it all. ${(G.delveLayer+1)%2===0?'Clearing the next layer adds a special orb. ':''}${G.delveLayer+1>=3?`Clearing it also adds ${G.delveLayer-1} Gold Souls.`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ This round ended early; orbs still in flight didn’t pay out.</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ Blessings: ${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':M.run&&M.round===0?'🧭 Expedition begins':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+soulMsg+bkMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${stageHTML}${a2hsHTML}${lbAskHTML}
-    ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span> Coins this round</span></div><div class="stat"><b>${G.opened}</b><span> Packs opened</span></div><div class="stat"><b>${G.hits}</b><span> Hits</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span> New</span></div></div>`:''}
+  const oneTip=[soulMsg,()=>bkMsg,()=>lbAskHTML,()=>a2hsHTML,()=>manTip].reduce((a,fn)=>a||fn(),''); // 提示一次只放一条
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'Daily Challenge · Results':G.chal?`Challenges · ${G.chalWin?'Complete':'Results'}`:G.isBoss?`Boss fights · ${G.bossWin?'Victory':'Results'}`:`Round ${M.round} · Results`):(G.reborn?'Smelting Complete':G.delveOut?'The Deep Vault · Extracted':M.run&&M.round===0?'🧭 Expedition begins':'Welcome back')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+earlyMsg+roundMsg+nextBoss+(learnHTML||stageHTML?'':oneTip)+(mapOn()&&!G.daily&&!G.chal?mapHTML():''):''}${learnHTML}${stageHTML}
+    ${G.packs&&tab==='loot'&&!goalMsg?`<div class="sub" style="margin-top:10px"> Round <b style="color:var(--gold2)">+${f(G.earned)}</b> coins · opened ${G.opened} packs · ${Object.keys(G.newIds).length} new cards</div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
     <div id="tabBody"></div>

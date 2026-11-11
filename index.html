@@ -395,6 +395,34 @@
   @keyframes stDust{from{transform:translateY(0);opacity:0}15%{opacity:.8}to{transform:translateY(-60vh);opacity:0}}
   @keyframes stEye{0%,100%{opacity:0}50%{opacity:1}}
   @media (prefers-reduced-motion:reduce){ #story .sp.on .si img,#story .dust{animation:none} }
+  /* ---- 2026-11 UI 精简：结果条、标签、营地分页 ---- */
+  .resbar{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;background:#0c0907}
+  .resbar.bad{border-left-color:#c8584a}
+  .resbar .rb-t{font-family:'Noto Serif SC','Noto Serif CJK SC',serif;font-size:17px;color:var(--ink);line-height:1.3}
+  .resbar .rb-t b{font-size:22px;color:var(--green);font-variant-numeric:tabular-nums}
+  .resbar.bad .rb-t b{color:#e8a090}
+  .resbar .rb-s{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.5}
+  .resbar .rb-c{margin-left:auto;text-align:right;font-size:20px;color:var(--gold2);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .resbar .rb-c small{display:block;font-size:11px;color:var(--dim);font-weight:400}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-size:12px;line-height:1.4;padding:3px 9px;border:1px solid var(--line);border-radius:999px;background:#0c0907;color:var(--dim);max-width:100%}
+  .chip b{font-weight:600}
+  .maph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .maph .mh-t{font-family:'Noto Serif SC','Noto Serif CJK SC',serif;font-size:15px;color:var(--gold2)}
+  .maph .mh-r{margin-left:auto;font-size:12px;color:var(--dim)}
+  .tipbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .ctabs{display:flex;gap:6px;margin:14px 0 4px;border-bottom:1px solid var(--line);padding-bottom:8px}
+  .sqlist{display:grid;gap:6px;margin-top:8px}
+  .sq{display:flex;gap:10px;align-items:flex-start;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#0c0907;min-height:44px}
+  .sq.on{border-color:var(--gold);background:#d9b45a14}
+  .sq .sq-n{font-weight:600;white-space:nowrap}
+  .sq .sq-d{font-size:12px;color:var(--dim);line-height:1.5}
+  .lockline{font-size:12px;color:var(--dim);margin-top:6px}
+  .lockline summary{cursor:pointer}
+  .soulpill{display:inline-flex;gap:6px;align-items:baseline;padding:4px 12px;border:1px solid var(--gold3);border-radius:999px;color:var(--gold2);font-size:14px}
+  .soulpill b{font-size:18px}
+  .h3{gap:10px;align-items:baseline} .h3 .sub{letter-spacing:0;text-align:right}
+  summary.h3{list-style:none} summary.h3::-webkit-details-marker{display:none} summary.h3>span:first-child::before{content:'▸ ';color:var(--dim)} details[open]>summary.h3>span:first-child::before{content:'▾ '}
 </style>
 </head>
 <body>
@@ -1087,11 +1115,11 @@ function mapHTML(){ const m=ensureMap(); if(!m) return ''; const reach=mapReach(
     return `<button class="mnode${can?' can':''}${cur?' cur':''}${past?' past':''}" data-mr="${r}" data-mi="${i}" style="left:${o.x*100}%;top:${yOf(r)}px${o.t==='gate'?';border-color:#ffd76a;color:#ffd76a;box-shadow:0 0 12px #ffd76a66':''}" title="${info.name}">${info.ico}</button>`; };
   const nodes=m.rows.map((row,r)=>row.map((o,i)=>node(r,i,o)).join('')).join('')+`<button class="mnode boss${mapAtBoss()?' can':''}" data-mboss="1" style="left:50%;top:${yOf(MAP_ROWS)}px" title="首领">👑</button>`;
   const hearts='❤️'.repeat(Math.max(0,m.hearts))+'<span style="opacity:.25">'+'❤️'.repeat(Math.max(0,MAP_HEARTS-m.hearts))+'</span>';
-  return `<div class="chap" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>🗺️ 第 ${M.ch} 章路线</b><span>${hearts} <span class="sub">第 ${Math.max(0,m.r+1)}/${MAP_ROWS} 站</span></span></div>${sigilsHTML()}${relicsHTML()}${tokensHTML()}
-    <div class="sub" style="margin-top:4px">从下往上走，每次选一个和当前位置连着的点（发光的就是能去的）。没达成目标、首领战失败都会掉 1 颗 ❤️，心用完，这次远征就结束了（一共 ${M.run?M.run.hearts:MAP_HEARTS} 颗，整次远征共用，营火可以回心）。</div>
+  return `<div class="chap" style="margin-top:12px"><div class="maph"><span class="mh-t">第 ${M.ch} 章 · ${chInfo(M.ch).name}</span><span>${hearts}</span><span class="mh-r">第 ${Math.max(0,m.r+1)}/${MAP_ROWS} 站</span></div>
+    <div class="chips">${sigilsHTML()}${relicsHTML()}${tokensHTML()}</div>
     <div class="map" style="height:${H0}px"><svg viewBox="0 0 100 ${H0}" preserveAspectRatio="none">${lines.join('')}</svg>${nodes}</div>
-    <div id="mapInfo" class="sub" style="min-height:2.4em;margin-top:6px">点地图上的点查看说明。</div>
-    <details style="margin-top:6px"><summary class="sub" style="cursor:pointer">每种点是什么？</summary><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).filter(x=>!x.hidden).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>：${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
+    <div id="mapInfo" class="sub" style="min-height:1.6em;margin-top:6px">点一个点，看看它是什么。</div>
+    <details style="margin-top:4px"><summary class="sub" style="cursor:pointer">地图怎么走？</summary><div class="sub" style="margin-top:6px;line-height:1.7">从下往上，每次走到一个连着的点（发光的就是能去的），走到顶就是首领。没达成目标或输了首领战会掉 1 颗心，心用完这次远征就结束。</div><div style="display:grid;gap:4px;margin-top:6px">${Object.values(NODE_INFO).filter(x=>!x.hidden).map(x=>`<div class="sub">${x.ico} <b style="color:var(--ink)">${x.name}</b>：${x.tip(M.goal)}</div>`).join('')}</div></details></div>`; }
 function bindMap(root){ root.querySelectorAll('.mnode').forEach(b=>b.onclick=()=>{ const info=$('mapInfo'); if(!info) return;
   if(b.dataset.mboss){ const go=mapAtBoss(); info.innerHTML=`👑 <b>首领</b>：${NODE_INFO.boss.tip()}${go?' <button class="btn boss" id="mapGo" style="padding:4px 12px;font-size:13px">挑战</button>':' <span>（走到最上面一站后才能打）</span>'}`; if(go) $('mapGo').onclick=()=>startRound(true); return; }
   const r=+b.dataset.mr, i=+b.dataset.mi, o=M.map.rows[r][i], can=b.classList.contains('can'), x=NODE_INFO[o.t];
@@ -1208,12 +1236,12 @@ function saveLoad(k){ M.loads=M.loads||{}; M.loads[k]={deck:equipped().slice(),k
 function applyLoad(k,quiet){ const d=loadDeck(k); if(!d||loadOn(k)) return false;
   M.deck=d; M.ksOff=Object.assign({},M.loads[k].ks||{}); recalcTree(); save(); if(!quiet) toast(`${LOADS[k].ico} 已换上「${LOADS[k].name}」配装`); return true; }
 function loadBar(){ const L=M.loads||{};
-  return `<div class="chap" style="margin:0 0 10px"><b>提前配装</b> <span class="sub">把现在装备的技能卡（连同基石开关）存成一套</span>
+  return `<details class="chap" style="margin:0 0 10px"${M.loadAuto||Object.keys(L).length?' open':''}><summary style="cursor:pointer"><b>🧩 提前配装</b> <span class="sub">进阶：存几套卡组，开打前自动换</span></summary>
     <div class="loads">${Object.entries(LOADS).map(([k,o])=>{ const d=loadDeck(k), on=loadOn(k);
       return `<div class="lrow${on?' on':''}"><div class="lnm">${o.ico} <b>${o.name}</b> <span class="sub">${o.when}</span></div>
         <div class="lcards">${d?(d.length?d.map(id=>`<span title="${byId[id].name}" style="color:${RCOL[byId[id].rar]}">${byId[id].ico}</span>`).join(''):'<span class="sub">空</span>'):'<span class="sub">还没存</span>'}</div>
         <div class="lbtn"><button class="ghost" data-lsave="${k}">${d?'覆盖为当前':'存为当前'}</button>${d?`<button class="ghost" data-luse="${k}" ${on?'disabled style="border-color:var(--gold);color:var(--gold2)"':''}>${on?'使用中':'换上'}</button>`:''}</div></div>`; }).join('')}</div>
-    <label class="sub" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="lAuto" ${M.loadAuto?'checked':''}> 开打前按关卡自动换装（没存的那种关卡不换）</label></div>`; }
+    <label class="sub" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="lAuto" ${M.loadAuto?'checked':''}> 开打前按关卡自动换装（没存的那种关卡不换）</label></details>`; }
 function bindLoadBar(body){
   body.querySelectorAll('[data-lsave]').forEach(b=>b.onclick=()=>{ const k=b.dataset.lsave; saveLoad(k); SFX.play('buy'); toast(`${LOADS[k].ico} 已存为「${LOADS[k].name}」配装`); showBetween(); });
   body.querySelectorAll('[data-luse]').forEach(b=>b.onclick=()=>{ applyLoad(b.dataset.luse); renderSide(); hud(); showBetween(); });
@@ -1585,19 +1613,19 @@ const mkOff=()=>(hasSigil('patron')||runSquad()==='rich'?.8:1)*(hasRelic('purse'
 const schPickCost=()=>Math.ceil(packValue(1)*10*mkOff());
 const srPickCost=()=>Math.ceil(packValue(1)*25*mkOff()); // 原来的精英奖励「SR 以上三选一」挪到黑市
 function leaveDetour(){ M.detour=null; M.routes=genRoutes(true); save(); G={loot:{}}; tab='loot'; showBetween(); }
-function showMarket(){ const box=$('box');
+function showMarket(){ const box=$('box'); if(!(M.detour&&M.detour.t==='shop')) M.mkBanOpen=0;
   const banPool=CARDS.filter(c=>c.rar!=='UR'&&(c.ch||1)<=M.maxCh), nb=Object.keys(M.banned).length;
-  box.innerHTML=`<h2 class="serif goldtxt">🏮 黑市</h2><div class="sub" style="margin-top:4px">这一轮不打，来逛逛：买卡包、按流派选卡、封印不想要的卡。</div>
+  box.innerHTML=`<h2 class="serif goldtxt">🏮 黑市</h2><div class="sub" style="margin-top:4px">这一站不打，花金币变强。</div>
     <div class="h3" style="margin-top:16px"><span>🎴 卡包</span></div><div id="mkPacks"></div>
-    <div class="h3" style="margin-top:16px"><span>🎴 定向选卡</span></div><div class="sub">付钱从一个流派里三选一，凑共鸣更快。</div>
+    <div class="h3" style="margin-top:16px"><span>🎴 定向选卡</span><span class="sub">从一个流派里三选一</span></div>
     <div class="res" style="margin:8px 0">${SCH5.map(s=>`<button class="ghost" data-sch="${s}" style="color:${SCH[s].color}">${SCH[s].ico} ${SCH[s].name} ✦ ${f(schPickCost())}</button>`).join('')}</div>
-    <div class="sub">或者不限流派，只出 SR 以上的卡：<button class="ghost" id="mkSR">⚔️ 精选 · SR 以上三选一 ✦ ${f(srPickCost())}</button></div>
-    <div class="h3" style="margin-top:16px"><span>🚫 封印卡牌（免费）</span><span class="sub">${nb}/${BAN_MAX}</span></div><div class="sub">被封印的卡不会再从卡包、商店和三选一里出来，想要的流派更容易开到。点卡牌切换。</div>
-    <div class="grid" style="margin-top:8px">${banPool.map(c=>`<div data-ban="${c.id}" style="position:relative;${M.banned[c.id]?'opacity:.45;filter:grayscale(1)':''}">${cardHTML(c.id,{unknown:!M.owned[c.id]})}${M.banned[c.id]?'<span class="badge" style="top:-6px;left:-4px;right:auto">已封印</span>':''}</div>`).join('')}</div>
-    <div class="foot"><span class="sub">离开后再选下一轮去哪</span><button class="btn" id="mkLeave">离开黑市 ▶</button></div>`;
+    <div><button class="ghost" id="mkSR">⚔️ 只出 SR 以上 ✦ ${f(srPickCost())}</button></div>
+    <details style="margin-top:16px"${M.mkBanOpen?' open':''} id="mkBan"><summary class="h3" style="cursor:pointer"><span>🚫 封印卡牌 ${nb}/${BAN_MAX}</span><span class="sub">免费 · 封印的卡不会再出现</span></summary>
+    <div class="grid" style="margin-top:8px">${banPool.map(c=>`<div data-ban="${c.id}" style="position:relative;${M.banned[c.id]?'opacity:.45;filter:grayscale(1)':''}">${cardHTML(c.id,{unknown:!M.owned[c.id]})}${M.banned[c.id]?'<span class="badge" style="top:-6px;left:-4px;right:auto">已封印</span>':''}</div>`).join('')}</div></details>
+    <div class="foot"><span></span><button class="btn" id="mkLeave">离开黑市 ▶</button></div>`;
   $('mkSR').onclick=e=>{ if(!spend(srPickCost(),e.currentTarget)) return; openPick({minRar:'SR',title:'⚔️ 精选 · SR 以上三选一'},showMarket); };
   box.querySelectorAll('[data-sch]').forEach(b=>b.onclick=()=>{ if(!spend(schPickCost(),b)) return; openPick({sch:b.dataset.sch,title:`${SCH[b.dataset.sch].ico} ${SCH[b.dataset.sch].name} · 三选一`},showMarket); });
-  box.querySelectorAll('[data-ban]').forEach(el=>el.onclick=()=>{ const id=el.dataset.ban; if(M.banned[id]) delete M.banned[id]; else { if(Object.keys(M.banned).length>=BAN_MAX) return toast(`最多封印 ${BAN_MAX} 张`); M.banned[id]=1; } save(); showMarket(); });
+  box.querySelectorAll('[data-ban]').forEach(el=>el.onclick=()=>{ const id=el.dataset.ban; M.mkBanOpen=1; if(M.banned[id]) delete M.banned[id]; else { if(Object.keys(M.banned).length>=BAN_MAX) return toast(`最多封印 ${BAN_MAX} 张`); M.banned[id]=1; } save(); showMarket(); });
   renderShop($('mkPacks')); $('mkLeave').onclick=leaveDetour; $('ov').classList.add('show'); $('ov').scrollTop=0; }
 // 奇遇的负面结果：下一轮开局生效一次
 const CURSES={
@@ -2199,7 +2227,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.2';
+const GAME_V='2026-11-11.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2296,7 +2324,7 @@ const trueReady=()=>{ const r=M.run, e=M.endings||{}; return !!(r&&!r.daily&&r.g
 function addStar(src,why){ const r=M.run; if(!r) return; r.starSrc=r.starSrc||{}; if(r.starSrc[src]||(r.stars||0)>=3) return; r.starSrc[src]=1; r.stars=(r.stars||0)+1;
   toast(`🌟 星珠 ${r.stars}/3：${why}`); SFX.play('SSR'); save(); }
 function giveKey(why){ const r=M.run; if(!r||r.key) return; r.key=1; toast(`🗝️ 黄铜钥匙：${why}`); SFX.play('SSR'); save(); }
-function tokensHTML(){ const r=M.run; if(!r||!(r.key||r.stars)) return ''; return `<div class="sub" style="margin-top:4px">🎐 信物：${r.key?'🗝️ <b style="color:var(--gold2)">黄铜钥匙</b>':''}${r.key&&r.stars?' · ':''}${r.stars?`🌟 <b style="color:var(--gold2)">星珠 ${r.stars}/3</b>`:''}</div>`; }
+function tokensHTML(){ const r=M.run; if(!r||!(r.key||r.stars)) return ''; return (r.key?'<span class="chip" style="border-color:var(--gold3)">🗝️ <b style="color:var(--gold2)">黄铜钥匙</b></span>':'')+(r.stars?`<span class="chip" style="border-color:var(--gold3)">🌟 <b style="color:var(--gold2)">星珠 ${r.stars}/3</b></span>`:''); }
 function endingsHTML(){ const e=M.endings||{}, n=Object.keys(ENDINGS).filter(k=>e[k]).length;
   return `<div class="h3" style="margin-top:16px"><span>📜 结局 ${n}/4</span></div><div style="display:grid;gap:6px">${Object.entries(ENDINGS).map(([k,x])=>{ const got=e[k], showHint=got||k!=='e4'||(e.e2&&e.e3);
     return `<div class="row" style="cursor:default;${got?'border-color:var(--gold3)':'opacity:.75'}">${got?x.ico:'❔'} <div style="flex:1"><b>结局 ${x.n} · ${got?x.name:'???'}</b><div class="sub">${showHint?x.hint:'先去看看其他结局吧。'}${got?'':` · 第一次达成 🔥 ${x.soul}`}</div></div></div>`; }).join('')}</div>`; }
@@ -2362,42 +2390,47 @@ function showRunEnd(){ const L=finishRun(); if(!L) return showCamp(); const q=SQ
     <div class="sub" style="margin-top:12px">卡牌、金币、升级、秘符和遗珍都留在了这一局；金魂、传承、图鉴和成就会一直保留。</div>
     <div class="foot"><span></span><button class="btn" id="toCamp">回到营地 ▶</button></div>`;
   $('toCamp').onclick=()=>{ M.run=null; M.money=0; M.sigils=[]; M.sigQ=[]; M.relicQ=[]; M.detour=null; M.recruitPicks=null; M.sigPend=null; M.deck=[]; save(); hud(); renderSide(); showCamp(); }; $('ov').classList.add('show'); $('ov').scrollTop=0; SFX.play(L.win?'ach':'end'); }
-let campSel={sq:'std',d:0,sch:'combo'};
+let campSel={sq:'std',d:0,sch:'combo',tab:'go'};
 function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
   if(!SQUADS.find(q=>q.id===campSel.sq&&squadOk(q))) campSel.sq='std'; campSel.d=Math.min(campSel.d,M.dangerMax||0);
   const legRow=x=>{ const l=M.legacy[x.id]||0, mx=x.max&&l>=x.max, c=x.cost(l); return `<div class="row" style="cursor:default">${x.ico} <div style="flex:1"><b>${x.name}</b> <span class="sub">Lv${l}</span><div class="sub">${x.desc(l)}</div></div><button class="ghost" data-leg="${x.id}" ${mx||M.soul<c?'disabled style="opacity:.45"':''}>${mx?'已满':`🔥 ${c}`}</button></div>`; };
-  $('box').innerHTML=`<h2 class="serif goldtxt">⛺ 营地</h2>
-    <div class="sub" style="margin-top:6px">🔥 金魂 <b style="color:var(--gold2)">${M.soul}</b> · 远征 ${M.runs||0} 次 · 打通 ${M.wins||0} 次 · 最高分 ${M.bestScore||0} · 图鉴 ${Object.keys(M.seen||{}).length}/${CARDS.length}</div>
-    <div class="h3" style="margin-top:16px"><span>🧭 选择探险队</span></div>
-    <div class="dgrid">${SQUADS.map(q=>{ const ok=squadOk(q), on=campSel.sq===q.id; return `<button class="dcard" data-sq="${q.id}" ${ok?'':'disabled'} style="text-align:left;font:inherit;color:inherit;cursor:${ok?'pointer':'default'};${on?'border-color:var(--gold);background:#d9b45a14':''}${ok?'':'opacity:.45'}"><b>${q.ico} ${q.name}</b>${on?' ✓':''}<br><span class="sub">${ok?q.desc:`🔒 ${q.need}`}</span></button>`; }).join('')}</div>
+  const ct=campSel.tab||'go', okSq=SQUADS.filter(squadOk), lockSq=SQUADS.filter(q=>!squadOk(q)), today=M.dailyRun&&M.dailyRun.day===dayKey()?M.dailyRun:null;
+  const eN=Object.keys(ENDINGS).filter(k=>(M.endings||{})[k]).length;
+  const goTab=`<div class="sqlist">${okSq.map(q=>`<button class="sq${campSel.sq===q.id?' on':''}" data-sq="${q.id}"><span class="sq-n">${q.ico} ${q.name}</span><span class="sq-d">${q.desc}</span></button>`).join('')}</div>
+    ${lockSq.length?`<details class="lockline"><summary>🔒 还有 ${lockSq.length} 支探险队没解锁</summary><div style="margin-top:4px;line-height:1.8">${lockSq.map(q=>`${q.ico} ${q.name}：${q.need}`).join('<br>')}</div></details>`:''}
     ${campSel.sq==='spec'?`<div class="res" style="margin-top:8px">${SCH5.map(k=>`<button class="ghost" data-csch="${k}" style="${campSel.sch===k?'border-color:var(--gold)':''};color:${SCH[k].color}">${SCH[k].ico} ${SCH[k].name}</button>`).join('')}</div>`:''}
-    <div class="h3" style="margin-top:16px"><span>🔥 危险等级</span><span class="sub">打通当前最高一级解锁下一级</span></div>
-    <div class="res" style="margin-top:6px">${Array.from({length:(M.dangerMax||0)+1},(_,d)=>`<button class="ghost" data-dg="${d}" style="${campSel.d===d?'border-color:var(--gold);color:var(--gold2)':''}">危险 ${d}</button>`).join('')}</div>
-    <div class="sub" style="margin-top:4px">${campSel.d?`目标 +${Math.round(campSel.d*DANGER.goal*100)}%，卡包血量 +${Math.round(campSel.d*DANGER.hp*100)}%，首领血量 +${Math.round(campSel.d*DANGER.boss*100)}%；分数 ×${(1+.25*campSel.d).toFixed(2)}<div style="margin-top:4px;line-height:1.7">${dangerRulesHTML(campSel.d)}</div>`:'标准难度'}</div>
-    ${endingsHTML()}
-    <div class="chap" style="margin-top:12px">📅 <b>每日远征</b>：今天所有人走同一张地图、拿同样的三选一（金库远征队 · 危险 ${DAILY_RUN_DANGER}），比分数。${M.dailyRun&&M.dailyRun.day===dayKey()?`今天最好 <b>${M.dailyRun.best}</b> 分（打了 ${M.dailyRun.tries} 次）`:'今天还没打'} <button class="ghost" id="campRank">看今日榜</button></div>
-    <div class="h3" style="margin-top:16px"><span>🗝️ 宝库</span><span class="sub">用金魂把新的秘符和遗珍加入奖池</span></div>
-    <div class="dgrid">${VAULT.map(v=>{ const it=v.k==='s'?sigilOf(v.id):relicOf(v.id), own=(M.unlocked||{})[v.k+':'+v.id], col=v.k==='s'?TIER[it.t].c:RARE[it.r].c, nm=v.k==='s'?sigilName(it):it.name, ds=v.k==='s'?sigilDesc(it):it.desc;
-      return `<div class="dcard" style="${own?'border-color:'+col:''}"><b style="color:${col}">${v.k==='s'?'🔷':'🏺'} ${nm}</b> <span class="sub">${v.k==='s'?TIER[it.t].name+'秘符':RARE[it.r].name+'遗珍'}</span><div class="sub" style="margin-top:3px">${ds}</div><div style="margin-top:6px">${own?'<span class="sub">✓ 已加入奖池</span>':`<button class="ghost" data-vault="${v.k}:${v.id}" ${M.soul<v.cost?'disabled style="opacity:.45"':''}>🔥 ${v.cost} 解锁</button>`}</div></div>`; }).join('')}</div>
-    <div class="h3" style="margin-top:16px"><span>🏛️ 传承</span><span class="sub">用金魂买，永久有效</span></div>
+    <div class="h3" style="margin-top:16px"><span>🔥 危险等级</span>${M.dangerMax?'':'<span class="sub">打通一次解锁危险 1</span>'}</div>
+    ${M.dangerMax?`<div class="res" style="margin-top:6px">${Array.from({length:(M.dangerMax||0)+1},(_,d)=>`<button class="ghost" data-dg="${d}" style="${campSel.d===d?'border-color:var(--gold);color:var(--gold2)':''}">${d}</button>`).join('')}</div>`:''}
+    <div class="sub" style="margin-top:6px;line-height:1.7">${campSel.d?`目标 +${Math.round(campSel.d*DANGER.goal*100)}% · 卡包血量 +${Math.round(campSel.d*DANGER.hp*100)}% · 首领 +${Math.round(campSel.d*DANGER.boss*100)}% · 分数 ×${(1+.25*campSel.d).toFixed(2)}<br>${dangerRulesHTML(campSel.d)}`:'标准难度'}</div>
+    <div class="chap tipbar" style="margin-top:14px"><span>📅 <b>每日远征</b> <span class="sub">${today?`今天最好 ${today.best} 分`:'所有人同一张地图，比分数'}</span></span><span style="display:flex;gap:6px"><button class="ghost" id="campRank">今日榜</button><button class="ghost" id="campDaily">开始</button></span></div>`;
+  const vaultTab=`<div class="h3" style="margin-top:6px"><span>🏛️ 传承</span><span class="sub">永久加成</span></div>
     ${LEGACY.map(legRow).join('')}
-    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan">📖 手册</button><button class="ghost" id="campDaily">📅 每日远征</button><button class="ghost" id="campMute">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campSet">⚙️ 设置</button><button class="ghost" id="campLang">${LANG==='zh'?'English':'中文'}</button></span><button class="btn" id="campGo">出发远征 ▶</button></div>`;
+    <div class="h3" style="margin-top:16px"><span>🗝️ 宝库</span><span class="sub">解锁后才会出现在这一局里</span></div>
+    <div class="dgrid">${VAULT.map(v=>{ const it=v.k==='s'?sigilOf(v.id):relicOf(v.id), own=(M.unlocked||{})[v.k+':'+v.id], col=v.k==='s'?TIER[it.t].c:RARE[it.r].c, nm=v.k==='s'?sigilName(it):it.name, ds=v.k==='s'?sigilDesc(it):it.desc;
+      return `<div class="dcard" style="display:flex;gap:8px;align-items:center;${own?'border-color:'+col:''}"><div style="flex:1"><b style="color:${col}">${v.k==='s'?'🔷':'🏺'} ${nm}</b><div class="sub">${ds}</div></div>${own?'<span class="sub">✓</span>':`<button class="ghost" data-vault="${v.k}:${v.id}" ${M.soul<v.cost?'disabled style="opacity:.45"':''}>🔥 ${v.cost}</button>`}</div>`; }).join('')}</div>`;
+  const endTab=`${endingsHTML()}<div class="sub" style="margin-top:14px">远征 ${M.runs||0} 次 · 打通 ${M.wins||0} 次 · 最高分 ${M.bestScore||0} · 图鉴 ${Object.keys(M.seen||{}).length}/${CARDS.length}</div>`;
+  $('box').innerHTML=`<h2 class="serif goldtxt">⛺ 营地</h2>
+    <div style="margin-top:8px"><span class="soulpill">🔥 金魂 <b>${M.soul}</b></span></div>
+    <div class="ctabs">${[['go','出发'],['vault','传承与宝库'],['end',`结局 ${eN}/4`]].map(([k,n])=>`<button class="tab ${ct===k?'on':''}" data-ct="${k}">${n}</button>`).join('')}</div>
+    ${ct==='vault'?vaultTab:ct==='end'?endTab:goTab}
+    <div class="foot"><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" id="campMan" title="手册">📖</button><button class="ghost" id="campMute" title="声音">${M.mute?'🔇':'🔊'}</button><button class="ghost" id="campSet" title="设置">⚙️</button><button class="ghost" id="campLang">${LANG==='zh'?'EN':'中文'}</button></span><button class="btn" id="campGo">出发远征 ▶</button></div>`;
   const box=$('box');
   box.querySelectorAll('[data-sq]').forEach(b=>b.onclick=()=>{ campSel.sq=b.dataset.sq; showCamp(); });
+  box.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ campSel.tab=b.dataset.ct; showCamp(); });
   box.querySelectorAll('[data-csch]').forEach(b=>b.onclick=()=>{ campSel.sch=b.dataset.csch; showCamp(); });
   box.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{ campSel.d=+b.dataset.dg; showCamp(); });
   box.querySelectorAll('[data-leg]').forEach(b=>b.onclick=()=>{ const x=LEGACY.find(y=>y.id===b.dataset.leg), l=M.legacy[x.id]||0, c=x.cost(l); if(M.soul<c||(x.max&&l>=x.max)) return; M.soul-=c; M.legacy[x.id]=l+1; SFX.play('buy'); save(); showCamp(); });
   $('campGo').onclick=()=>startRun(campSel.sq,campSel.d,campSel.sch);
   box.querySelectorAll('[data-vault]').forEach(b=>b.onclick=()=>{ const v=VAULT.find(x=>x.k+':'+x.id===b.dataset.vault); if(!v||M.soul<v.cost) return; M.soul-=v.cost; (M.unlocked=M.unlocked||{})[b.dataset.vault]=1; SFX.play('ach'); save(); showCamp(); });
-  $('campRank').onclick=()=>{ G={loot:{}}; tab='daily'; showBetween(); };
-  $('campMan').onclick=openManual; $('campDaily').onclick=()=>startRun('std',DAILY_RUN_DANGER,null,dayKey());
+  if($('campRank')) $('campRank').onclick=()=>{ G={loot:{}}; tab='daily'; showBetween(); };
+  $('campMan').onclick=openManual; if($('campDaily')) $('campDaily').onclick=()=>startRun('std',DAILY_RUN_DANGER,null,dayKey());
   $('campMute').onclick=()=>{ M.mute=!M.mute; save(); syncMute(); showCamp(); }; $('campSet').onclick=()=>{ G={loot:{}}; tab='sys'; showBetween(); }; $('campLang').onclick=()=>setLang(LANG==='zh'?'en':'zh');
   $('ov').classList.add('show'); $('ov').scrollTop=0; }
 // 营火：回一颗心，或者磨练一张装备中的卡
 function showCampfire(){ const box=$('box'), eq=equipped(), r=M.run;
-  box.innerHTML=`<h2 class="serif goldtxt">🔥 营火</h2><div class="sub" style="margin-top:6px">火光很暖。这一站不打，选一件事做。</div>
-    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=heartCap()||dangerLv()>=3?'disabled':''}><b>❤️ 休息</b><br><span class="sub">回 1 颗心（最多回到开局的 ${heartCap()} 颗，现在 ${r.hearts}/${heartCap()}）${dangerLv()>=3?'<br>🔥 营火将熄：危险 3 起不能休息':''}</span></button>
-    <button class="dcard" id="cfTrain" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${eq.length?'':'disabled'}><b>🔨 磨练</b><br><span class="sub">装备中的每张卡 +2 张（升级更快）</span></button></div>
+  box.innerHTML=`<h2 class="serif goldtxt">🔥 营火</h2><div class="sub" style="margin-top:6px">这一站不打，选一件事。</div>
+    <div class="dgrid" style="margin-top:12px"><button class="dcard" id="cfRest" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${r.hearts>=heartCap()||dangerLv()>=3?'disabled':''}><b>❤️ 休息</b><br><span class="sub">回 1 颗心（${r.hearts}/${heartCap()}）${dangerLv()>=3?'<br>🔥 营火将熄：危险 3 起不能休息':''}</span></button>
+    <button class="dcard" id="cfTrain" style="text-align:left;font:inherit;color:inherit;cursor:pointer" ${eq.length?'':'disabled'}><b>🔨 磨练</b><br><span class="sub">装备的卡各 +2 张</span></button></div>
     <div class="foot"><span></span><button class="ghost" id="cfLeave">直接离开</button></div>`;
   $('cfRest').onclick=()=>{ r.hearts=Math.min(heartCap(),r.hearts+1); if(M.map) M.map.hearts=r.hearts; SFX.play('ach'); toast('❤️ 回了 1 颗心'); leaveDetour(); };
   $('cfLeave').onclick=leaveDetour; $('cfTrain').onclick=()=>{ eq.forEach(id=>M.owned[id]=(M.owned[id]||0)+2); SFX.play('buy'); toast('🔨 装备中的卡都 +2 张'); recalcTree(); leaveDetour(); };
@@ -2466,7 +2499,7 @@ function offerSigil(src,after){ M.sigils=M.sigils||[];
     const r=$('sigRoll'); if(r) r.onclick=()=>{ if(!spend(sigRerollCost(),r)) return; rolled=true; const np=sigilPicks(t); if(np.length) picks=np; keep(); SFX.play('buy'); draw(); }; };
   draw(); el.classList.add('show'); SFX.play('raise'); }
 function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigilOf).filter(Boolean);
-  return `<div class="sub" style="margin-top:6px">🔷 秘符 ${cs.length}/${sigilMax()}：${cs.length?cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join(' · '):'出发时可以选一个'}</div>`; }
+  return `<span class="chip">🔷 秘符 ${cs.length}/${sigilMax()}${cs.length?'：'+cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join('、'):''}</span>`; }
 
 // ================= 🏺 遗珍：精英、首领、黑金秘藏掉落的整局宝物 =================
 // 3 个栏位，满了可以换掉旧的。整局有效：进下一章也保留，命用完或转生时清空。
@@ -2516,7 +2549,7 @@ function relicsRound(G){ if(G.chal||G.daily) return;
   if(hasRelic('giant')){ G.ammo=Math.max(2,Math.ceil(G.ammo/2)); G.maxAmmo=Math.max(2,Math.ceil(G.maxAmmo/2)); G.bo.dmg*=2.5; G.R.size*=1.45; } }
 const relicTag=r=>`<b style="color:${RARE[r.r].c}" title="${r.desc}">${r.name}</b>`;
 function relicsHTML(){ if(!mapOn()) return ''; const rs=(M.relics||[]).map(relicOf).filter(Boolean);
-  return `<div class="sub" style="margin-top:4px">🏺 遗珍 ${rs.length}/${RELIC_MAX}：${rs.length?rs.map(relicTag).join(' · '):'打赢精英、首领，或开出黑金秘藏时掉落'}</div>`; }
+  return `<span class="chip">🏺 遗珍 ${rs.length}/${RELIC_MAX}${rs.length?'：'+rs.map(relicTag).join('、'):''}</span>`; }
 // 栏位满了：结算页上选择换掉哪一件
 function relicSwapHTML(){ const id=(M.relicQ||[])[0]; if(!id) return ''; const n=relicOf(id);
   return `<div class="chap" id="relicSwap" style="margin-top:12px;border-color:${RARE[n.r].c}">🏺 <b>新遗珍：</b>${relicTag(n)}（${RARE[n.r].name}）<br><span class="sub">${n.desc}</span><br><span class="sub">遗珍栏满了，换掉哪一件？</span>
@@ -2596,16 +2629,16 @@ let shopLast=null;
 function renderShop(body){
   const packs=[1,2,3].map(t=>{ const P=PT[t],p1=shopPrice(t); let p10=0; for(let k=0;k<10;k++) p10+=shopPrice(t,k);
     const od=packOdds(t).map((o,i)=>o?`<span style="color:${RCOL[RO[i]]}">${RO[i]} ${o}%</span>`:'').filter(Boolean).join(' · ');
-    return `<div class="chap" style="margin:0;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center">
-      <div style="width:52px;height:72px;border-radius:7px;background:${t===3?`url(${ART.pack}) center/cover`:`linear-gradient(135deg,${P.a},${P.b},${P.a})`};border:2px solid ${t===3?'#d9b45a':P.b};box-shadow:0 0 ${t*6}px ${t===3?'#d9b45a':P.a}88"></div>
-      <b style="font-size:15px">${P.name}</b><div class="sub" style="font-size:11px">${od}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
-        <button class="btn" data-buy="${t}" data-n="1" style="padding:7px 12px;font-size:13px;letter-spacing:0;${M.money<p1?'opacity:.55;filter:grayscale(.6)':''}">单抽 ✦ ${f(p1)}</button>
-        <button class="btn alt" data-buy="${t}" data-n="10" style="padding:7px 12px;font-size:13px;letter-spacing:0">10 连 ✦ ${f(p10)}</button></div>
-      ${M.shopN[t]?`<div class="sub" style="font-size:11px">最近买了 ${M.shopN[t]} 包，价格 +${Math.round((Math.pow(1.06,M.shopN[t])-1)*100)}%（每打一轮回落一档）</div>`:''}</div>`; }).join('');
+    return `<div class="chap" style="margin:0;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:10px 6px">
+      <div style="width:38px;height:52px;border-radius:7px;background:${t===3?`url(${ART.pack}) center/cover`:`linear-gradient(135deg,${P.a},${P.b},${P.a})`};border:2px solid ${t===3?'#d9b45a':P.b};box-shadow:0 0 ${t*6}px ${t===3?'#d9b45a':P.a}88"></div>
+      <b style="font-size:14px">${P.name}</b><div class="sub" style="font-size:10px;line-height:1.4">${od}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;width:100%">
+        <button class="btn" data-buy="${t}" data-n="1" style="padding:7px 4px;font-size:12px;letter-spacing:0;width:100%;${M.money<p1?'opacity:.55;filter:grayscale(.6)':''}">单抽 ✦ ${f(p1)}</button>
+        <button class="btn alt" data-buy="${t}" data-n="10" style="padding:7px 4px;font-size:12px;letter-spacing:0;width:100%">10 连 ✦ ${f(p10)}</button></div>
+      ${M.shopN[t]?`<div class="sub" style="font-size:10px" title="每打一轮回落一档">涨价 +${Math.round((Math.pow(1.06,M.shopN[t])-1)*100)}%</div>`:''}</div>`; }).join('');
   const last=shopLast?`<div class="h3" style="margin-top:14px"><span>刚开出的卡 · ${shopLast.total} 张</span></div><div class="grid">${Object.keys(shopLast.got).sort((a,b)=>RO.indexOf(byId[b].rar)-RO.indexOf(byId[a].rar)).map((id,i)=>cardHTML(id,{pop:1,delay:i*.05,count:shopLast.got[id],isNew:shopLast.isNew[id],up:shopLast.up[id]})).join('')}</div>`:'';
-  body.innerHTML=`<p class="sub">直接花金币买卡包。卡牌重复越多等级越高（2 / 4 / 8 / 16 / 26 / 41…张升一级），所以这里永远花得完。价格跟着「秘藏等级」一起涨。</p>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">${packs}</div>${last}`;
+  body.innerHTML=`<p class="sub">重复的卡会升级，买多少都不浪费。</p>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${packs}</div>${last}`;
   body.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>buyPacks(+b.dataset.buy,+b.dataset.n,b,body));
 }
 function buyPacks(t,n,btn,body){
@@ -2639,7 +2672,7 @@ function bindKs(body){ body.querySelectorAll('[data-ks]').forEach(b=>b.onclick=(
 function renderTree(body){
   if(!TV) TV=tvHome();
   const reps=REP.map(u=>{ const l=M.up[u.id]||0,c=u.cost(l),lock=u.need&&!u.need();
-    return `<div class="row ${lock||M.money<c?'off':''}" data-rep="${u.id}"><div class="ico">${u.ico}</div><div class="info"><div class="nm">${u.name} <span class="lvl">Lv${l}</span></div><div class="sub">${u.desc(l)} → ${u.desc(l+1)}</div></div><div class="cost">${lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c)}</div></div>`; }).join('');
+    return `<div class="row ${lock||M.money<c?'off':''}" data-rep="${u.id}"><div class="ico">${u.ico}</div><div class="info"><div class="nm">${u.name} <span class="lvl">Lv${l}</span></div><div class="sub">${lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):`${u.desc(l)} → ${u.desc(l+1)}`}</div></div><div class="cost">${lock?'🔒':'✦ '+f(c)}</div></div>`; }).join('');
   const n=tCount(), refund=Math.floor((M.treeSpent||0)*.8), teach=firstUpgradeReady();
   body.innerHTML=`${teach?'<div class="learn-step" id="firstUpgradeGuide">点下面的「宝珠打磨」，用金币提高下一轮伤害。升级后仍停在这里。</div>':''}<div id="workshopUpgrades" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 8px">${reps}</div>${ksBar()}
     <div class="sub" style="margin:8px 0 6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>🌌 星盘：从中心 ✦ 出发，只能点亮<b style="color:var(--gold2)">与已点亮节点相连</b>的节点。已点亮 <b id="tNodeCount" style="color:var(--gold2)">${n}</b> 个，每多点一个，下一个就更贵。拖动平移，滚轮/双指缩放。</span>
@@ -2721,7 +2754,7 @@ function refreshTreeView(body){
       el.classList.toggle('off',!!lock||M.money<c);
       el.querySelector('.lvl').textContent=`Lv${l}`;
       el.querySelector('.sub').innerHTML=`${u.desc(l)} → ${u.desc(l+1)}`;
-      el.querySelector('.cost').textContent=lock?(typeof u.needTxt==='function'?u.needTxt():u.needTxt):'✦ '+f(c);
+      el.querySelector('.cost').textContent=lock?'🔒':'✦ '+f(c);
     });
     if(!firstUpgradeReady()){
       const guide=$('firstUpgradeGuide'); if(guide){ const h=guide.getBoundingClientRect().height; guide.textContent='打磨完成！下一轮基础伤害已提高。继续打磨，或开始下一轮。'; guide.style.minHeight=h+'px'; }
@@ -2990,8 +3023,8 @@ function showBetween(){
   const dailyMsg=G.packs&&G.daily&&M.daily?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">📅 <b>每日挑战</b>：开了 <b style="color:var(--gold2)">${G.opened}</b> 包${G.dailyPB?' <b style="color:var(--green)">今天新纪录！</b>':''} · 今天最好 ${M.daily.best} 包 · 第 ${M.daily.tries} 次${G.dailyFirst?` · 今天第一次完成，<b style="color:var(--gold2)">金魂 +${DAILY_SOUL}</b>`:''}${M.daily.streak>1?` · 连续 ${M.daily.streak} 天`:''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn alt" id="dailyAgain" style="padding:6px 14px;font-size:13px;letter-spacing:0">📅 再来一次</button><button class="ghost" id="dailyRank">看今日榜</button><span class="sub">${M.lbName?'':'起个昵称就能上今日榜'}</span></div></div>`:'';
   const chalMsg=chalC?`<div class="chap" style="margin-top:12px;border-color:${G.chalWin?'var(--green)':'var(--line)'}">${chalC.ico} 挑战「<b>${chalC.name}</b>」${G.chalWin?`<b style="color:var(--green)">成功！</b>${G.chalFirst?` 第一次通关，金魂 +${chalC.soul}`:''}`:`未完成（${chalC.prog(G)}）。换个搭配再试试。`}</div>`:'';
-  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="chap" style="margin-top:12px;border-color:var(--green)">🎯 <b style="color:var(--green)">目标达成</b> ${G.opened}/${G.goal} 包${G.realOpened&&G.realOpened!==G.opened?`<span class="sub">（实际打开 ${G.realOpened} 个，有的卡包一个算多个）</span>`:''} · 连胜 <b>${M.streak}</b> · <br>本轮金币：开包和落袋 ${f(G.earned-G.goalBonus)} + 连胜奖励 <b style="color:var(--gold2)">${f(G.goalBonus)}</b>（${pct(G.goalK)}，连胜越长越多）= <b style="color:var(--gold2)">${f(G.earned)}</b>${G.route==='elite'?`<br>⚔️ 精英奖励：一件遗珍、一次秘符三选一，珠袋里多了一颗<b style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</b>`:''}<br><span class="sub">${mapOn()?'':'首领进度 +1 · '}下一轮目标 ${M.goal} 包</span></div>`
-      :`<div class="chap" style="margin-top:12px;border-color:#b3574a">🎯 <b style="color:#e8a090">目标没达成</b> ${G.opened}/${G.goal} 包${G.realOpened&&G.realOpened!==G.opened?`<span class="sub">（实际打开 ${G.realOpened} 个）</span>`:''}${G.lostStreak?` · ${G.lostStreak} 连胜中断`:''}<br><span class="sub">${mapOn()?'':'这一轮不算首领进度。'}下一轮目标 ${M.goal} 包。${M.up.stage<2&&M.ch>=2?'<br>开包数不够？试试升级「秘藏等级」和「清点术」：一个卡包能算好几个。':''}</span></div>`):'';
+  const goalMsg=G.packs&&G.route&&G.route!=='delve'?(G.goalOk?`<div class="resbar"><div><div class="rb-t">目标达成 <b>${G.opened}/${G.goal}</b></div><div class="rb-s">连胜 ${M.streak} · 连胜奖励 +${f(G.goalBonus)} · 下一轮目标 ${M.goal}${G.route==='elite'?` · 精英奖励：遗珍、秘符、<span style="color:${ORBS[G.eliteOrb].c}">${ORBS[G.eliteOrb].name}</span>`:''}</div></div><div class="rb-c">+${f(G.earned)}<small>金币</small></div></div>`
+      :`<div class="resbar bad"><div><div class="rb-t">没达成 <b>${G.opened}/${G.goal}</b></div><div class="rb-s">${G.heartLost==='目标没达成'?`掉了 1 颗心，还剩 ${Math.max(0,(M.map||{}).hearts||0)} 颗 · `:G.wardSaved?'护身符替你挡下了 · ':''}${G.lostStreak?`${G.lostStreak} 连胜中断 · `:''}下一轮目标 ${M.goal}</div></div><div class="rb-c">+${f(G.earned)}<small>金币</small></div></div>`):'';
   if(!M.routes||(!unl('routes')&&M.routes.length>1)) M.routes=genRoutes();
   const mapNodes=mapOn()?mapReach():null; if(mapOn()) ensureMap();
   const newU=UNL.filter(u=>u.ok()&&!(M.unl||(M.unl={}))[u.id]); newU.forEach(u=>M.unl[u.id]=1); if(newU.length) save();
@@ -3012,21 +3045,22 @@ function showBetween(){
   const delveBtns=M.delve?`<button class="btn" id="dvOut" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>🏃 撤离</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">带走背包</small></button><button class="btn alt" id="dvGo" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>🕳️ 继续 ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">第 ${M.delve.layer+1} 层 · 开 ${delveGoal(M.delve.layer+1)} 包</small></button>`:'';
   const routeBtns=delveBtns||(mapNodes?mapNodes.map(([r,i],k)=>{ const t=M.map.rows[r][i].t; return `<button class="btn ${k?'alt':''}" data-node="${r},${i}" title="${NODE_INFO[t].tip(M.goal)}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0"><span>${NODE_INFO[t].ico} ${NODE_INFO[t].name}${mapNodes.length>1?` · ${sideName(M.map.rows[r][i].x)}`:''} ▶</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[t]}</small></button>`; }).join(''):M.routes.map((r,i)=>`<button class="btn ${ready||i?'alt':''}" data-route="${r}" title="${ROUTES[r].desc(M.goal).replace(/<br>/g,'；')}" style="display:flex;flex-direction:column;align-items:center;padding:8px 14px;line-height:1.2;letter-spacing:0">
       <span>${M.routes.length===1?`第 ${M.round+1} 轮`:`${ROUTES[r].ico} ${ROUTES[r].name}`}${r==='normal'||r==='elite'?' ▶':''}</span><small style="font-size:11px;font-weight:600;opacity:.8;margin-top:2px">${RSUB[r]}</small></button>`).join(''));
-  const manTip=G.packs&&M.round<=3?`<div class="chap" style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>📖 不知道某个东西是什么？<span class="sub">手册里都有，打的时候也能随时打开（右上角「📖 手册」）。</span></span><button class="ghost" id="manTipB">打开手册</button></div>`:'';
+  const manTip=G.packs&&M.round<=3?`<div class="chap tipbar" style="margin-top:12px"><span>📖 看不懂哪个东西？手册里都有。</span><button class="ghost" id="manTipB">打开手册</button></div>`:'';
   // 存档只在这个浏览器里：每次走到更远的章节或转生后，提醒备份一次
   const bkNeed=tab==='loot'&&G.packs&&(M.maxCh+M.prestiges*100)>(M.bkCh||0)&&(M.maxCh>=2||M.prestiges>0);
   const bkMsg=bkNeed?`<div class="chap" id="bkBox" style="margin-top:12px;border-color:var(--gold3)">💾 <b>备份一下存档</b><br><span class="sub">存档只在这个浏览器里，清缓存、换手机就没了。下载一份存档文件，或复制存档码存到备忘录里，以后在「更多 → 设置 → 导入」就能恢复。</span>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="ghost" id="bkDl">下载存档文件</button><button class="ghost" id="bkCopy">复制存档码</button><button class="ghost" id="bkLater">这次先不用</button></div></div>`:'';
   const relicMsg=tab==='loot'&&G.relicGot&&G.relicGot.length?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🏺 <b>获得遗珍</b>：${G.relicGot.map(id=>{ const r=relicOf(id); return `${relicTag(r)}（${RARE[r.r].name}）<span class="sub">${r.desc}</span>`; }).join('<br>')}</div>`:'';
-  const soulMsg=tab==='loot'&&M.soul>0&&!M.guide.soul?(M.guide.soul=1,save(),`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🔥 <b>第一次拿到金魂</b><br><span class="sub">每局远征结束按分数发金魂，秘卡和成就也会给。回到营地后在「传承」里买永久加成，以后每一局都有效。</span></div>`):'';
-  const runMsg=G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090">本局结束</b>：心用完了，第 ${M.ch} 章的地图重新开始。<br><span class="sub">${G.runLoss?`逃出来时散落了 <b style="color:#e8a090">${f(G.runLoss)}</b> 金币。`:''}卡牌和升级都保留，连胜、秘符和遗珍清零。</span></div>`:G.wardSaved?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🛡️ ${G.heartLost}，心没有少。</div>`:G.heartLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}，掉了 1 颗心，还剩 ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}。</div>`:'';
+  const soulMsg=()=>tab==='loot'&&M.soul>0&&!M.guide.soul?(M.guide.soul=1,save(),`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🔥 <b>第一次拿到金魂</b><br><span class="sub">每局远征结束按分数发金魂，秘卡和成就也会给。回到营地后在「传承」里买永久加成，以后每一局都有效。</span></div>`):'';
+  const runMsg=G.runOver?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 <b style="color:#e8a090">本局结束</b>：心用完了，第 ${M.ch} 章的地图重新开始。<br><span class="sub">${G.runLoss?`逃出来时散落了 <b style="color:#e8a090">${f(G.runLoss)}</b> 金币。`:''}卡牌和升级都保留，连胜、秘符和遗珍清零。</span></div>`:G.wardSaved&&!goalMsg?`<div class="chap" style="margin-top:12px;border-color:var(--gold3)">🛡️ ${G.heartLost}，心没有少。</div>`:G.heartLost&&!(goalMsg&&G.heartLost==='目标没达成')?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💔 ${G.heartLost}，掉了 1 颗心，还剩 ${'❤️'.repeat(Math.max(0,(M.map||{}).hearts||0))}。</div>`:'';
   const delveMsg=G.delveOut?`<div class="chap" style="margin-top:0;border-color:var(--green)">🕳️ <b style="color:var(--green)">成功撤离！</b>带出来：${delveBagHTML(G.delveOut)}</div>`
     :G.packs&&G.delveLost?`<div class="chap" style="margin-top:12px;border-color:#b3574a">💀 <b style="color:#e8a090">被困在第 ${G.delveLayer} 层</b>：目标 ${G.opened}/${G.goal} 包没达成，背包全丢了：${delveBagHTML(G.delveLost)}</div>`
     :G.packs&&G.delveOk&&M.delve?`<div class="chap" style="margin-top:12px;border-color:var(--gold)">🕳️ <b>深入金库 · 第 ${G.delveLayer} 层打通</b>（${G.opened}/${G.goal} 包）${G.delveScore?` · 远征分数 +${G.delveScore}`:''}<br>背包：${delveBagHTML(M.delve)}<br><span class="sub">撤离：全部带走。继续：去第 ${G.delveLayer+1} 层，目标 ${delveGoal(G.delveLayer+1)} 包，卡包血量 ×${f(Math.pow(DELVE_HP,G.delveLayer+1))}；没达成就全丢。${(G.delveLayer+1)%2===0?'打通下一层多一颗特殊宝珠。':''}${G.delveLayer+1>=3?`打通下一层再加 ${G.delveLayer-1} 金魂。`:''}</span></div>`:'';
   const earlyMsg=G.packs&&G.early?'<div class="sub" style="margin-top:8px">⏹ 这一轮提前结束了，台面上还在飞的宝珠没有结算。</div>':'';
   const roundMsg=G.packs&&G.boons&&G.boons.length?`<div class="sub" style="margin-top:8px">${G.boons&&G.boons.length?`✨ 祝福：${G.boons.map(id=>{ const b=BOONS.find(x=>x.id===id); return b.ico+b.name; }).join(' ')}`:''}</div>`:'';
-  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):(G.reborn?'熔金转生完成':G.delveOut?'深入金库 · 撤离成功':M.run&&M.round===0?'🧭 远征开始':'欢迎回来')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+soulMsg+bkMsg+earlyMsg+roundMsg+(mapOn()&&!G.daily&&!G.chal?mapHTML():'')+manTip+nextBoss:''}${learnHTML}${stageHTML}${a2hsHTML}${lbAskHTML}
-    ${G.packs&&tab==='loot'?`<div class="stats"><div class="stat"><b>+${f(G.earned)}</b><span>本轮金币</span></div><div class="stat"><b>${G.opened}</b><span>开启卡包</span></div><div class="stat"><b>${G.hits}</b><span>命中次数</span></div><div class="stat"><b>${Object.keys(G.newIds).length}</b><span>新卡</span></div></div>`:''}
+  const oneTip=[soulMsg,()=>bkMsg,()=>lbAskHTML,()=>a2hsHTML,()=>manTip].reduce((a,fn)=>a||fn(),''); // 提示一次只放一条
+  $('box').innerHTML=`<h2 class="serif goldtxt">${G.packs?(G.daily?'每日挑战 · 结算':G.chal?`挑战 · ${G.chalWin?'成功':'结算'}`:G.isBoss?`首领战 · ${G.bossWin?'胜利':'结算'}`:`第 ${M.round} 轮 · 结算`):(G.reborn?'熔金转生完成':G.delveOut?'深入金库 · 撤离成功':M.run&&M.round===0?'🧭 远征开始':'欢迎回来')}</h2>${unlHTML}${migHTML}${tab==='loot'?delveMsg+runMsg+dailyMsg+chalMsg+bossMsg+goalMsg+relicMsg+(tab==='loot'?relicSwapHTML():'')+earlyMsg+roundMsg+nextBoss+(learnHTML||stageHTML?'':oneTip)+(mapOn()&&!G.daily&&!G.chal?mapHTML():''):''}${learnHTML}${stageHTML}
+    ${G.packs&&tab==='loot'&&!goalMsg?`<div class="sub" style="margin-top:10px">本轮 <b style="color:var(--gold2)">+${f(G.earned)}</b> 金币 · 开了 ${G.opened} 包 · ${Object.keys(G.newIds).length} 张新卡</div>`:''}
     <div class="tabs">${TGROUPS.filter(g=>tSubs(g,canP).length).map(g=>`<button class="tab ${tGroupOf(tab)===g.id?'on':''}" data-g="${g.id}">${g.name}</button>`).join('')}</div>
     ${(()=>{ const g=TGROUPS.find(x=>x.id===tGroupOf(tab)),subs=tSubs(g,canP); return subs.length>1?`<div class="subtabs">${subs.map(k=>`<button class="${tab===k?'on':''}" data-t="${k}">${tName(k,total)}</button>`).join('')}</div>`:''; })()}
     <div id="tabBody"></div>
