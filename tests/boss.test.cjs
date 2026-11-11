@@ -92,7 +92,7 @@ test('retries keep HP stable after upgrades and normal rounds; a new chapter get
 test('legacy first-attempt damage survives migration while its total-damage floor is discarded', () => {
   const f = fixture();
   f.run('M.bossD={ch:1,d:3,dealt:1e12};damage=100;');
-  assert.equal(f.start(), 54); assert.equal(f.state().M.bossD.d, 3);   // 3 × 第 1 章基准 18
+  assert.equal(f.start(), 48); assert.equal(f.state().M.bossD.d, 3);   // 3 × 第 1 章基准 16
 });
 
 test('a saved current boss snapshot survives reload without recalculating stronger HP', () => {

@@ -1381,7 +1381,7 @@ function freeSlots(){ return SLOTS.filter(s=>!(G.isBoss&&s.y===335)&&!G.packs.so
 // 前几章首领更弱：第 1~4 章血量 ×0.35 / ×0.5 / ×0.7 / ×0.85，第 5 章起不变
 const BOSS_EASE=[.3,.5,.7,.85];
 // 前三章参考首次挑战的单发伤害；不参考普通轮群伤或过量伤害。
-const BOSS_HITS=[18,60,120,170,210], BOSS_PLAIN=4.5; // 第 6 章起每章再 +20
+const BOSS_HITS=[16,50,120,170,210], BOSS_PLAIN=4.5; // 第 6 章起每章再 +20
 const bossHits=ch=>BOSS_HITS[ch-1]||BOSS_HITS[BOSS_HITS.length-1]+20*(ch-BOSS_HITS.length); // 基准伤害只看打磨等级和传承，不看当时带的卡：故意弱配装先输一次压不了血
 const dPlain=()=>orbDmg(M.up.dmg)*(1+.3*M.legacy.pow)*(1+TS.dmg)*BOSS_PLAIN;
 // 整体血量最多为上一章首领的 12 倍；首章 / 缺少旧记录时用章节基础血量封顶。
@@ -1396,7 +1396,7 @@ function bossHp(){
   const previous=M.ch>1&&M.lastBossHp>0?M.lastBossHp:base;
   const hp=Math.min(Math.max(base,floor)*(M.ch>=2?BOSS_HARD:1),previous*BOSS_STEP); // 第 2 章起 +25%（统计：第 2 章以后胜率 100%）
   // 整体快照写入原存档；同章重试、刷新、换装或升级都不会重新抬高血量。
-  const hpD=hp*(1+DANGER.boss*dangerLv())*(M.run&&M.ch>=ACTS?FINAL_BOSS:1); M.bossD={ch:M.ch,d,hp:hpD,v:BOSS_HP_V};
+  const hpD=hp*(1+DANGER.boss*dangerLv())*(M.run&&M.ch>=ACTS?FINAL_BOSS*(M.run.gate?.9:1):1); M.bossD={ch:M.ch,d,hp:hpD,v:BOSS_HP_V};
   return hpD;
 }
 const shieldCfg=()=>M.ch<=2?{t:11,n:3}:{t:8,n:6};
@@ -2319,7 +2319,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-11.7';
+const GAME_V='2026-11-11.8';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2405,7 +2405,7 @@ const BOSS_HEAL=.25;
 const squadHearts=q=>q==='iron'?4:q==='gamb'?2:RUN_HEARTS;
 const isFinal=ch=>!!(M&&M.run&&ch===ACTS);
 // ---- 结局与信物：黄铜钥匙打开第 3 章的暗门（结局 2），三颗星珠带去见金库之主（结局 3），两样都带进暗门是真结局 ----
-const STAR_DIRECT=8, TRUE_DANGER=2;
+const STAR_DIRECT=6, TRUE_DANGER=2;
 const ENDINGS={
   e1:{n:1,ico:'👑',name:'封印',soul:3,hint:'打败金库之主。',txt:'最后一颗宝珠落下时，金库之主睁开了眼睛——<br>它看见的，是你。<br><span style="color:var(--gold2)">封印碎了，被吞下的卡牌重新回到了世上。</span>'},
   e2:{n:2,ico:'🚪',name:'另一扇门',soul:8,hint:'有些门，只有钥匙才看得见。',txt:'暗门后面没有金库，只有一条向下的楼梯。<br>守门人倒下时，把钥匙还给了你：<br>「下面的东西，比金库之主更老。」<br><span style="color:var(--gold2)">你没有往下走——至少这一次没有。</span>'},
