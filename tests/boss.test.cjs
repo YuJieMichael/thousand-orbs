@@ -28,7 +28,7 @@ function fixture() {
     fresh: () => ({up: {stage: 0}}), ensureMap() {}, sigilsRound() {}, relicsRound() {}, dropRelic() {}, coachDone() {}, bossKey: () => "p2_0", addScore() {}, gainHeart: () => false, heartCap: () => 3, hasRelic: () => false, hasSigil: () => false, runSquad: () => null, runRand: () => .99, mapStop: () => 0, RELIC_BLACK: 0,
   });
   vm.runInContext(`let G=null, ROUND_EQ=null, running=false, tab='';
-    const D=()=>damage; const orbDmg=()=>damage/4.5; const syncGoal=()=>{ M.goal=10; }; const DANGER={goal:.15,hp:.1,boss:.25}; const dangerLv=()=>0; const ACTS=3; // 首领基准只看 dPlain（打磨等级），测试里用 damage 代表它
+    const D=()=>damage; const orbDmg=()=>damage/4.5; const syncGoal=()=>{ M.goal=10; }; const DANGER={goal:[0],hp:[0],boss:[0]}; const dangerLv=()=>0; const dK=()=>0; const ACTS=3; // 首领基准只看 dPlain（打磨等级），测试里用 damage 代表它
     const setTimeout=(fn,delay)=>timers.push({fn,delay});
     const giveCard=(p,k)=>cards.push(k);
     const enterP2=p=>{p.p2=true;p.hp=p.max*.5;};

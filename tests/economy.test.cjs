@@ -29,7 +29,7 @@ test('卡包补充最快 0.45 秒，补货节点再多也不会更快', () => {
 
 test('固定目标曲线：只看章节和地图第几站，不再追着开包数涨', () => {
   let worth = 1;
-  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, DANGER: {goal: .15}, dangerLv: () => 0, runSquad: () => null, hasRelic: () => false, Math});
+  const ctx = vm.createContext({M: {ch: 1, chRounds: 0, map: null, up: {cnt: 0}}, DAILY: null, MAP_ROWS: 6, mapOn: () => true, packWorth: () => worth, CNT_STEP: .04, DANGER: {goal: [0]}, dangerLv: () => 0, dK: () => 0, runSquad: () => null, hasRelic: () => false, Math});
   vm.runInContext(between('const GOAL_MIN=', 'const ROUTES={') + ';this.g=goalFor;this.s=syncGoal;', ctx);
   assert.equal(ctx.g(1, 0), 20); assert.equal(ctx.g(1, 5), 32);
   assert.equal(ctx.g(2, 0), 30); assert.equal(ctx.g(3, 0), 46); assert.equal(ctx.g(3, 5), 74);

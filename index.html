@@ -1051,7 +1051,7 @@ const packHpBase=t=>PT[t].hp*2*Math.pow(1.6,DAILY?0:M.up.stage);
 // 本章越打越硬：同一章每打一轮，卡包血量和金币 ×1.15（最多 10 轮，约 ×4），打败首领进下一章后重置。玩家反馈第 5 轮左右就变简单了
 const AGE_G=1.07, AGE_MAX=10;
 const ageMult=()=>DAILY?1:Math.pow(AGE_G,Math.min(AGE_MAX,M.chAge||0));
-const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1)*(1+DANGER.hp*dangerLv())*(hasSigil('sunder')?.75:1); // 不再按本章轮数变硬（CCGS 测评：变强被抵消）
+const packHp=t=>packHpBase(t)*Math.pow(CH_HP,(DAILY?1:M.ch)-1)*(1+dK('hp'))*(hasSigil('sunder')?.75:1); // 不再按本章轮数变硬（CCGS 测评：变强被抵消）
 const VAL_G=2; // 每级秘藏等级的金币倍率（原 2.2）
 // 秘藏等级：卡包血量 ×1.6^等级、金币 ×2^等级。2026-11-12 起不再「一包算 N 包」：目标只数真正打开的卡包（玩家反馈：动不动几百几千包，数字膨胀没手感）
 // 上限 10：秘藏等级到后期会到几十级，1.6^等级 会把一包算成上亿包（2026-11-05 玩家截图：一轮 1.97 亿包）
@@ -1116,7 +1116,7 @@ const goalWorth=()=>1; // 旧版目标会乘 √(一包算几包)；现在一包
 // 有地图时 = 第几排（正在打的那一站，或下一站）；没开地图时 = 本章已达成几轮
 const mapStop=(playing=false)=>M.map&&M.map.ch===M.ch&&mapOn()?Math.max(0,Math.min(MAP_ROWS-1,(M.map.r|0)+(playing?0:1))):Math.min(MAP_ROWS,M.chRounds||0);
 const goalBase=ch=>ch<=GOAL_TABLE.length?GOAL_TABLE[Math.max(1,ch)-1]:GOAL_TABLE[GOAL_TABLE.length-1]*Math.pow(GOAL_CH,ch-GOAL_TABLE.length);
-const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)*goalWorth()*(1+DANGER.goal*dangerLv())*(runSquad()==='rich'?1.1:1)*(hasRelic('abacus')?.9:1)));
+const goalFor=(ch=M.ch,stop=mapStop())=>Math.max(GOAL_MIN,Math.round(goalBase(ch)*(1+GOAL_STOP*stop)*goalWorth()*(1+dK('goal'))*(runSquad()==='rich'?1.1:1)*(hasRelic('abacus')?.9:1)));
 function syncGoal(playing=false){ if(!DAILY&&M) M.goal=goalFor(M.ch,mapStop(playing)); }
 const ROUTES={
   normal:{name:'普通',ico:'🎯',desc:g=>`目标：开 ${g} 包`},
@@ -1438,7 +1438,7 @@ function bossHp(){
   const previous=M.ch>1&&M.lastBossHp>0?M.lastBossHp:base;
   const hp=Math.min(Math.max(base,floor)*(M.ch>=2?BOSS_HARD:1),previous*BOSS_STEP); // 第 2 章起 +25%（统计：第 2 章以后胜率 100%）
   // 整体快照写入原存档；同章重试、刷新、换装或升级都不会重新抬高血量。
-  const hpD=hp*(1+DANGER.boss*dangerLv())*(M.run&&M.ch>=ACTS?FINAL_BOSS*(M.run.gate?.9:1):1); M.bossD={ch:M.ch,d,hp:hpD,v:BOSS_HP_V};
+  const hpD=hp*(1+dK('boss'))*(M.run&&M.ch>=ACTS?FINAL_BOSS*(M.run.gate?.9:1):1); M.bossD={ch:M.ch,d,hp:hpD,v:BOSS_HP_V};
   return hpD;
 }
 const shieldCfg=()=>M.ch<=2?{t:11,n:3}:{t:8,n:6};
@@ -2460,7 +2460,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-12.3';
+const GAME_V='2026-11-12.4';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2562,7 +2562,9 @@ function endingsHTML(){ const e=M.endings||{}, n=Object.keys(ENDINGS).filter(k=>
   return `<div class="h3" style="margin-top:16px"><span>📜 结局 ${n}/4</span></div><div style="display:grid;gap:6px">${Object.entries(ENDINGS).map(([k,x])=>{ const got=e[k], showHint=got||k!=='e4'||(e.e2&&e.e3);
     return `<div class="row" style="cursor:default;${got?'border-color:var(--gold3)':'opacity:.75'}">${got?artImg('ending_'+x.n,'endthumb'):'<span class="endthumb q">?</span>'}<div style="flex:1"><b>结局 ${x.n} · ${got?x.name:'???'}</b><div class="sub">${showHint?x.hint:'先去看看其他结局吧。'}${got?'':` · 第一次达成 🔥 ${x.soul}`}</div></div></div>`; }).join('')}</div>`; }
 const ACTS=3, RUN_HEARTS=3, HEART_MAX=5, heartCap=()=>Math.max(1,squadHearts(runSquad())+lg('heart')-(dangerLv()>=5?1:0)), DANGER_MAX=5, FINAL_BOSS=1.05; // 第 3 章首领是终章首领：血量 ×1.15
-const DANGER={goal:.12,hp:.1,boss:.2};
+// 危险等级越高涨得越快（2026-11-12：传承买满的老玩家打危险 5 也能赢 7 成，太松）。危险 1~2 基本不变，3~5 明显变硬
+const DANGER={goal:[0,.12,.24,.36,.5,.65],hp:[0,.1,.2,.35,.55,.8],boss:[0,.2,.4,.7,1.2,1.8]}, DANGER_SCORE=.35;
+const dK=(k,l=dangerLv())=>DANGER[k][Math.max(0,Math.min(5,l|0))];
 // 每级危险除了数值，再加一条规则（累加）
 const DANGER_RULES=[null,
   {ico:'🏮',name:'黑市涨价',desc:'黑市所有东西贵 25%'},
@@ -2597,7 +2599,7 @@ function startRun(sq,danger,sch,daily){ danger=Math.max(0,Math.min(DANGER_MAX,da
   M.recruit=(danger>=2?2:3)+lg('recruit'); recalcTree(); M.map=null; ensureMap(); syncGoal();
   G={loot:{}}; running=false; ROUND_EQ=null; DAILY=null; buildLayout(M.ch,false); buildPockets(); lastChap=''; lastAmmo=''; tab='loot';
   save(); renderSide(); hud(); SFX.play('raise'); showBetween(); }
-function runScore(){ const r=M.run; if(!r) return 0; return Math.round((r.score+(r.over==='win'?500:0))*(1+.25*(r.danger||0))); }
+function runScore(){ const r=M.run; if(!r) return 0; return Math.round((r.score+(r.over==='win'?500:0))*(1+DANGER_SCORE*(r.danger||0))); }
 function finishRun(){ const r=M.run; if(!r||r.awarded) return M.lastRun;
   const win=r.over==='win', score=runScore(), souls=Math.max(1,Math.floor(score/60)), before=SQUADS.filter(squadOk).map(q=>q.id);
   const cleared=win?ACTS:M.ch-1, depth=(r.danger||0)*4+cleared;
@@ -2615,7 +2617,7 @@ function showRunEnd(){ const L=finishRun(); if(!L) return showCamp(); const q=SQ
   const ending=E?`<div class="chap endcard" style="margin-top:12px;border-color:var(--gold)">${artImg('ending_'+E.n,'endart')}
     <div><div class="sub" style="letter-spacing:3px">${E.ico} 结局 ${E.n} · ${E.name}${L.endFirst?` · <b style="color:var(--gold2)">第一次达成 🔥 +${L.endSoul}</b>`:''}</div><div style="font-family:'Noto Serif SC','Noto Serif CJK SC',serif;line-height:1.9;color:#e9dcbc;margin-top:4px">${E.txt}</div></div></div>
     ${L.trueMiss?`<div class="sub" style="margin-top:8px">🌟 星珠和钥匙一起发着光，好像还差了点什么……</div>`:''}`:'';
-  const sc=L.sc||{}, known=(sc.goal||0)+(sc.boss||0)+(sc.delve||0), other=Math.max(0,(L.raw||0)-known), mul=1+.25*L.danger, st=.16;
+  const sc=L.sc||{}, known=(sc.goal||0)+(sc.boss||0)+(sc.delve||0), other=Math.max(0,(L.raw||0)-known), mul=1+DANGER_SCORE*L.danger, st=.16;
   const rows=[
     {ico:'🎯',n:'达成目标',sub:`${L.goals} 次`,v:`+${sc.goal||0}`},
     {ico:'👑',n:'击败首领',sub:`${L.bosses} 个`,v:`+${sc.boss||0}`},
@@ -2645,7 +2647,7 @@ function showCamp(){ running=false; DAILY=null; G=G&&G.daily?G:{loot:{}};
     ${campSel.sq==='spec'?`<div class="res" style="margin-top:8px">${SCH5.map(k=>`<button class="ghost" data-csch="${k}" style="${campSel.sch===k?'border-color:var(--gold)':''};color:${SCH[k].color}">${SCH[k].ico} ${SCH[k].name}</button>`).join('')}</div>`:''}
     <div class="h3" style="margin-top:16px"><span>🔥 危险等级</span>${M.dangerMax?'':'<span class="sub">打通一次解锁危险 1</span>'}</div>
     ${M.dangerMax?`<div class="res" style="margin-top:6px">${Array.from({length:(M.dangerMax||0)+1},(_,d)=>`<button class="ghost" data-dg="${d}" style="${campSel.d===d?'border-color:var(--gold);color:var(--gold2)':''}">${d}</button>`).join('')}</div>`:''}
-    <div class="sub" style="margin-top:6px;line-height:1.7">${campSel.d?`目标 +${Math.round(campSel.d*DANGER.goal*100)}% · 卡包血量 +${Math.round(campSel.d*DANGER.hp*100)}% · 首领 +${Math.round(campSel.d*DANGER.boss*100)}% · 分数 ×${(1+.25*campSel.d).toFixed(2)}<br>${dangerRulesHTML(campSel.d)}`:'标准难度'}</div>
+    <div class="sub" style="margin-top:6px;line-height:1.7">${campSel.d?`目标 +${Math.round(dK('goal',campSel.d)*100)}% · 卡包血量 +${Math.round(dK('hp',campSel.d)*100)}% · 首领 +${Math.round(dK('boss',campSel.d)*100)}% · 分数和金魂 ×${(1+DANGER_SCORE*campSel.d).toFixed(2)}<br>${dangerRulesHTML(campSel.d)}`:'标准难度'}</div>
     <div class="chap tipbar" style="margin-top:14px"><span>📅 <b>每日远征</b> <span class="sub">${today?`今天最好 ${today.best} 分`:'所有人同一张地图，比分数'}</span></span><span style="display:flex;gap:6px"><button class="ghost" id="campRank">今日榜</button><button class="ghost" id="campDaily">开始</button></span></div>`;
   const vaultTab=`<div class="h3" style="margin-top:6px"><span>🏛️ 传承</span><span class="sub">永久加成</span></div>
     ${LEGACY.map(legRow).join('')}
@@ -3192,7 +3194,7 @@ function manualHTML(){
     '<b>精英轮</b>：目标更高，奖励更好，还会附带一个特殊规则。',
     '<b>奇遇 / 黑市</b>：随机事件，或者花钱买卡包、按流派挑卡、封印不想要的卡。',
     '<b>首领战</b>：每章一个首领，各有机关；打到半血进入<b>第二阶段</b>。打输掉 1 颗 ❤️，可以升级之后再挑战。',
-    '<b>🔥 危险等级</b>（营地里选）：打通当前最高一级解锁下一级。每级目标 +15%、卡包血量 +10%、首领血量 +25%，分数也更高。',
+    '<b>🔥 危险等级</b>（营地里选）：打通当前最高一级解锁下一级。越往上越硬：危险 5 时目标 +65%、卡包血量 +80%、首领血量 +180%，每级还多一条规则；分数和金魂每级 +35%。传承买得差不多了，就该去打危险等级了。',
     '<b>📅 每日挑战</b>（从营地进入）：每天所有人用同一套卡组和规则打一轮，比谁开的卡包多，有今日榜。',
     '<b>珠袋</b>：后期宝珠会分成火珠、重珠、裂珠等类型，发射器旁边能看到接下来的三颗。',
   ]))}
