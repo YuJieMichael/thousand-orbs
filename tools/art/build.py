@@ -11,8 +11,9 @@ SRC = sys.argv[1]
 OUT = os.path.join(os.path.dirname(__file__), '..', '..', 'art')
 os.makedirs(OUT, exist_ok=True)
 SIZE = {'boss': (360, 540), 'ending': (960, 540), 'event': (720, 405), 'squad': (192, 192), 'token': (128, 128), 'relic': (128, 128),
-        'sigil': (128, 128), 'node': (96, 96), 'skill': (96, 96), 'mod': (96, 96), 'legacy': (96, 96)}
-CUT = {'boss', 'squad', 'token', 'relic', 'sigil', 'node', 'skill', 'mod', 'legacy'}
+        'sigil': (128, 128), 'node': (96, 96), 'skill': (96, 96), 'mod': (96, 96), 'legacy': (96, 96),
+        'boon': (128, 128), 'curse': (96, 96), 'orb': (96, 96), 'danger': (96, 96)}
+CUT = {'boss', 'squad', 'token', 'relic', 'sigil', 'node', 'skill', 'mod', 'legacy', 'boon', 'curse', 'orb', 'danger'}
 
 def cut_bg(im, outside_only=False):
     a = np.asarray(im.convert('RGB')).astype(np.float32)

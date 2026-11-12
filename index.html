@@ -561,7 +561,7 @@ const IMG={}; const loadImg=(k,src)=>{ const im=new Image(); im.src=src; IMG[k]=
 const ART_DIR=(/\/en\/(index\.html)?$/.test(location.pathname)?'../':'')+'art/', artUrl=n=>ART_DIR+n+'.webp';
 // 补充插画（docs/art-prompts-2.md：秘符、地图节点、技能、台面词条、传承）。画好放进 art/ 后把文件名加进 ART_NEW；没加的继续用小图标
 const ART_NEW=new Set(['sigil_pouch','sigil_thread','sigil_spring','sigil_patron','sigil_heat','sigil_ward','sigil_wide','sigil_sharp','sigil_eye','sigil_split','sigil_tally','sigil_echo','sigil_chain','sigil_rebirth','sigil_storm','sigil_midas','sigil_overload','sigil_sunder','node_normal','node_elite','node_camp','node_shop','node_event','node_delve','node_gate','node_boss','skill_bomb','skill_rain','skill_stop','mod_wind','mod_moon','mod_spring','mod_drift','mod_hole','mod_brittle','mod_pegboom','mod_goldrush','mod_fast','mod_thick','legacy_pow','legacy_rich','legacy_orb','legacy_shine','legacy_start','legacy_relic','legacy_heart','legacy_pack','legacy_recruit','legacy_skill','legacy_sigil']);
-ART_NEW.forEach(n=>{ if(/^(skill|mod)_/.test(n)) loadImg(n,artUrl(n)); });
+ART_NEW.forEach(n=>{ if(/^(skill|mod|curse|boon)_/.test(n)) loadImg(n,artUrl(n)); });
 const artIco=(n,ico,px,cls)=>ART_NEW.has(n)?`<img class="ai ${cls||''}" src="${artUrl(n)}" alt="" style="width:${px}px;height:${px}px;object-fit:contain;vertical-align:middle">`:ico;
 const artImg=(n,cls,alt)=>`<img class="${cls||'art'}" src="${artUrl(n)}" alt="${alt||''}" loading="lazy" decoding="async" onerror="this.style.display='none'">`;
 ['boss_lord_1','boss_lord_2','boss_gate_1','boss_gate_2','boss_thousand'].forEach(n=>loadImg(n,artUrl(n)));
@@ -945,6 +945,10 @@ const ACH=[
   {id:'quick',ico:'⚔️',name:'速斩',desc:'只用不到一半的宝珠击败首领',soul:3,ok:()=>M.best.quick},
   {id:'melt',ico:'🔥',name:'启程',desc:'完成第一次远征',soul:1,ok:()=>(M.runs||0)>=1},
   {id:'myth1',ico:'✦',name:'窥见秘藏',desc:'发现第一张秘卡',soul:3,ok:()=>CARDS.some(c=>c.rar==='UR'&&M.owned[c.id])},
+  {id:'gold3',ico:'🎯',name:'百步穿杨',desc:'一轮里直击打开 3 个金标卡包',soul:2,ok:()=>(M.best.goldR||0)>=3},
+  {id:'mimic10',ico:'🎁',name:'宝箱猎人',desc:'累计打开 10 只宝箱怪',soul:2,ok:()=>(M.best.mimic||0)>=10},
+  {id:'skill4',ico:'⚡',name:'技能连发',desc:'一轮里放出 4 次主动技能',soul:1,ok:()=>(M.best.skillR||0)>=4},
+  {id:'d5',ico:'💀',name:'无上险境',desc:'在危险 5 打通一次远征',soul:8,ok:()=>!!M.best.d5},
   {id:'mythAll',ico:'🗝️',name:'秘藏尽开',desc:'集齐全部 6 张秘卡',soul:10,ok:()=>CARDS.filter(c=>c.rar==='UR').every(c=>M.owned[c.id])},
 ];
 function checkAch(){ const got=ACH.filter(a=>!M.ach[a.id]&&a.ok()); if(!got.length) return;
@@ -1032,6 +1036,11 @@ const SFX={ac:null,last:{},
     case 'devour': this.tone(220,.5,'sawtooth',.08,.25); this.noise(.5,.1,300,'lowpass'); break;
     case 'bossdown': this.noise(1.2,.4,250,'lowpass'); this.tone(55,1.2,'sine',.35,.5); this.arp([392,494,587,784,988,1175],.09,'triangle',.13,.8); break;
     case 'ach': this.arp([784,1047,1568],.09,'sine',.14,.5); break;
+    case 'bull': this.tone(1568,.5,'sine',.16,0); this.tone(2093,.6,'sine',.12,0,.05); this.tone(3136,.4,'triangle',.05,0,.1); this.noise(.12,.12,6000,'highpass'); break; // 金标：清脆的「叮——」
+    case 'mimic': this.arp([330,311,294,277],.07,'square',.07,.14); this.tone(160,.25,'sawtooth',.05,.5,.3); break; // 宝箱怪出现：下行的怪笑
+    case 'mimicwin': this.arp([523,659,784,1047,1319],.05,'triangle',.13,.3); this.noise(.3,.1,3000,'bandpass',.2); break; // 打开宝箱怪：一串金币
+    case 'skill': this.noise(.4,.18,900,'bandpass',0,.7); this.tone(220,.5,'sawtooth',.06,2); this.arp([440,554,659],.04,'triangle',.1,.4); break; // 技能：呼啸 + 和弦
+    case 'stamp': this.tone(120,.25,'sine',.3,.5); this.noise(.12,.25,500,'lowpass'); this.arp([659,784,1047],.07,'sine',.12,.4); break; // 目标达成：盖章
     case 'buy': this.tone(1319,.07,'square',.06); this.tone(1976,.16,'square',.05,0,.06); this.noise(.12,.08,6000,'highpass',.02); break;
     case 'spend': this.tone(2093,.05,'square',.05); this.tone(2637,.2,'triangle',.08,0,.05); this.tone(3136,.25,'sine',.05,0,.1); this.noise(.15,.1,7000,'highpass'); break;
     case 'deny': this.tone(196,.18,'square',.07,.8); this.tone(185,.18,'square',.05,.8,.08); break;
@@ -1397,9 +1406,9 @@ function startRound(boss,opt={}){ if(boss===true) coachDone('cBoss');
   if(G.route){ G.goal=G.route==='elite'?Math.ceil(M.goal*ELITE_GOAL):M.goal; if(G.route==='elite'){ G.mut={hpX:ELITE_HP}; G.bo.coin*=ELITE_COIN; } }
   M.inRound=chal||daily?null:(boss?'boss':G.route); save(); // 刷新/关页面 = 这一轮按失败算
   if(G.route==='delve'){ const L=(M.delve||{layer:1}).layer; G.delveL=L; G.goal=delveGoal(L); G.mut={hpX:Math.pow(DELVE_HP,L)}; G.bo.coin*=1+DELVE_COIN*L; setTimeout(()=>toast(`🕳️ 深入金库 · 第 ${L} 层`),300); }
-  if(M.nextCurse&&!chal&&!daily){ const cu=CURSES[M.nextCurse]; M.nextCurse=null; if(cu&&hasRelic('lamp')) setTimeout(()=>toast(`🏮 矿灯照亮了前路：诅咒「${cu.name}」无效`),700); else if(cu){ cu.go(G); G.curse=cu; setTimeout(()=>toast(`${cu.ico} 诅咒：${cu.name} · ${cu.desc}`),700); } }
+  if(M.nextCurse&&!chal&&!daily){ const cu=CURSES[M.nextCurse]; M.lastCurseK=M.nextCurse; M.nextCurse=null; if(cu&&hasRelic('lamp')) setTimeout(()=>toast(`🏮 矿灯照亮了前路：诅咒「${cu.name}」无效`),700); else if(cu){ cu.go(G); G.curse=cu; setTimeout(()=>toast(`${cu.ico} 诅咒：${cu.name} · ${cu.desc}`,{img:'curse_'+M.lastCurseK}),700); } }
   sigilsRound(G); relicsRound(G);
-  if(M.nextBoon&&!chal&&!daily){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} 奇遇祝福：${nb.name}`),400); } }
+  if(M.nextBoon&&!chal&&!daily){ const nb=BOONS.find(b=>b.id===M.nextBoon); M.nextBoon=null; if(nb){ nb.go(G); G.boons.push(nb.id); setTimeout(()=>toast(`${nb.ico} 奇遇祝福：${nb.name}`,{img:'boon_'+nb.id}),400); } }
   const noB=TS.ks.greed||(mut&&mut.noBasket)||(chal&&chal.noBasket); if(noB){ G.basket=null; G.basket2=null; }
   if(chal&&chal.luck) G.bo.luck=chal.luck; if(mut&&mut.luck) G.bo.luck*=mut.luck;
   if(dRule){ if(dRule.go) dRule.go(G); setTimeout(()=>toast(`📅 每日挑战 · ${dRule.ico} ${dRule.name}`),300); }
@@ -1413,6 +1422,8 @@ function startRound(boss,opt={}){ if(boss===true) coachDone('cBoss');
     if(!quiet){ G.mods=rollBoardMods(n).map(m=>{ m.go(G); return m.id; }); const ms=G.mods.map(id=>BOARD_MODS.find(x=>x.id===id));
       G.modIntro=3; }
     for(let i=0;i<n+(G.goldExtra||0);i++) markGold();
+    if(G.mods) G.mods.forEach(id=>{ const m=BOARD_MODS.find(x=>x.id===id); learnOnce('lMods',artIco('mod_'+id,m.ico,72),'台面词条',`每一轮的台面都可能不一样：普通轮 1 条、精英轮 2 条。<br>这一轮是 <b>${m.name}</b>：${m.desc}。<br><span class="sub">台面左下角一直写着本轮的词条。</span>`); });
+    if(G.packs.some(p=>p.gold)) learnOnce('lGold',icHTML('🎯')||'🎯','金标卡包',`金框的卡包只认<b>直击</b>：宝珠第一下就撞上它（中途不碰铆钉，先撞墙可以）才会开。<br>打开多算 <b>${GOLD_PACK.bonus} 包</b>、金币 <b>×${GOLD_PACK.coin}</b>。<br><span class="sub">瞄准线变成金色、卡包被金框圈住，就是会直击。</span>`);
     if(!G.tut&&runRand()<MIMIC.p) G.mimicAt=Math.max(3,Math.round(am*rnd(.25,.55))); }
   for(let i=0;i<upLv('volley')*2;i++){ const a=rnd(.35,Math.PI-.35); spawnBall(LAUNCH.x,LAUNCH.y,Math.cos(a)*700,Math.sin(a)*700,{mini:true}); }
   M.routes=null; // 章节进度改为「达成目标」才 +1，见 endRound
@@ -1534,7 +1545,7 @@ function dmgPack(p,amt,silent,src){
 const GOLD_PACK={bonus:3,coin:3,every:10};
 function markGold(){ const c=G.packs.filter(p=>!p.boss&&!p.gold&&!p.mimic&&p.slot); if(!c.length) return false; c[Math.floor(Math.random()*c.length)].gold=1; return true; }
 function openGold(p){ G.goldHits=(G.goldHits||0)+1; G.opened+=GOLD_PACK.bonus; p.coinX=GOLD_PACK.coin;
-  G.fx.push({x:p.x,y:p.y-p.hh-26,t:`🎯 金标！+${GOLD_PACK.bonus+1} 包`,c:'#ffd76a',life:1.1,sz:20}); G.parts.push({ring:true,x:p.x,y:p.y,r:8,max:70,life:.45,dur:.45,c:'#ffd76a',lw:3}); burst(p.x,p.y,'#ffd76a',26); shake(4); SFX.play('ach');
+  G.fx.push({x:p.x,y:p.y-p.hh-26,t:`🎯 金标！+${GOLD_PACK.bonus+1} 包`,c:'#ffd76a',life:1.1,sz:20}); G.parts.push({ring:true,x:p.x,y:p.y,r:8,max:70,life:.45,dur:.45,c:'#ffd76a',lw:3}); burst(p.x,p.y,'#ffd76a',26); shake(4); SFX.play('bull');
   G.goldNext=(G.realOpened||0)+GOLD_PACK.every+1; openPack(p); }
 // ② 台面词条：普通轮 1 条、精英轮 2 条（第 1 章第 1 站、教学轮没有）——每一轮的台面都不太一样
 const BOARD_MODS=[
@@ -1564,7 +1575,7 @@ const skillReady=()=>!!(G&&G.skill&&skillPts()>=skillCharge()&&!G.ended&&!G.paus
 const skillHit=(x,y)=>!!(G&&G.skill&&Math.hypot(x-SKILL_BTN.x,y-SKILL_BTN.y)<SKILL_BTN.r+10);
 function useSkill(){ if(!G||!G.skill||G.ended) return;
   if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+120,y:SKILL_BTN.y+44,t:`再开 ${skillCharge()-skillPts()} 包充能`,c:'#c9b48a',life:.9,sz:13}); return; }
-  G.skillBase=G.realOpened||0; G.skillN=(G.skillN||0)+1; const k=G.skill; SFX.play('ach'); shake(5);
+  G.skillBase=G.realOpened||0; G.skillN=(G.skillN||0)+1; const k=G.skill; SFX.play('skill'); shake(5);
   if(k==='bomb'){ G.packs.slice().forEach(p=>{ if(p.gold) return; burst(p.x,p.y,'#ff6b4a',10); dmgPack(p,p.boss?8*D():p.max*.35+3*D(),true,'skill'); });
     G.parts.push({ring:true,x:W/2,y:H/2,r:10,max:W*.75,life:.5,dur:.5,c:'#ff6b4a',lw:5}); }
   else if(k==='stop') G.zeroG=4;
@@ -1583,10 +1594,14 @@ function drawSkill(){ if(!G.skill) return; const s=SKILLS[G.skill], b=SKILL_BTN,
 const MIMIC={p:.45,bonus:4,coin:5,hpX:2.2,sp:72}, OT={t:6,ammo:2,coin:2};
 function spawnMimic(){ const dir=Math.random()<.5?1:-1, y=[397,522][Math.floor(Math.random()*2)], hp=packHp(2)*MIMIC.hpX*(G.mut.hpX||1);
   G.packs.push({mimic:1,slot:null,x:dir>0?-30:W+30,y,vx:dir*MIMIC.sp,hw:PW,hh:PH,t:2,hp,max:hp,hit:0,burn:0,acid:0,grow:1,seed:Math.random(),ballHit:{}});
-  G.fx.push({x:W/2,y:H*.34,t:'🧰 宝箱怪！趁它跑掉之前打开它',c:'#ffd76a',life:1.8,sz:19,slow:1}); SFX.play('raise'); }
+  G.fx.push({x:W/2,y:H*.34,t:'🧰 宝箱怪！趁它跑掉之前打开它',c:'#ffd76a',life:1.8,sz:19,slow:1}); SFX.play('mimic');
+  learnOnce('lMimic',icHTML('🎁')||'🎁','宝箱怪',`长眼睛的卡包会横穿台面，跑出另一边就没了。<br>趁它跑掉之前打开它：多算 <b>${MIMIC.bonus} 包</b>、金币 <b>×${MIMIC.coin}</b>。`); }
 function drawBoardTop(){ // 黑洞、加时、失重、台面词条
   const h=G.mut.hole; if(h){ ctx.save(); const t=performance.now()/400; const g=ctx.createRadialGradient(h.x,h.y,2,h.x,h.y,44); g.addColorStop(0,'#000'); g.addColorStop(.5,'#2a1840aa'); g.addColorStop(1,'#2a184000'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(h.x,h.y,44,0,7); ctx.fill();
     ctx.strokeStyle='#a98bd8aa'; ctx.lineWidth=1.5; for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(h.x,h.y,12+i*9,t+i*2,t+i*2+2.4); ctx.stroke(); } ctx.restore(); }
+  if(G.stamp>0){ G.stamp-=1/60; const t=1.8-G.stamp, k=t<.18?2.2-1.2*t/.18:1, a=Math.min(1,G.stamp*1.6); ctx.save(); ctx.translate(W/2,H*.46); ctx.rotate(-.18); ctx.scale(k,k); ctx.globalAlpha=a;
+    ctx.strokeStyle='#7fe0a0'; ctx.lineWidth=5; rr(-112,-38,224,76,10); ctx.stroke(); ctx.lineWidth=1.5; rr(-104,-30,208,60,7); ctx.stroke();
+    ctx.fillStyle='#7fe0a0'; ctx.font=`900 ${LANG==='en'?30:40}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('目标达成',0,2); ctx.restore(); }
   if(G.zeroG>0){ ctx.save(); ctx.fillStyle='#9de7ff10'; ctx.fillRect(0,0,W,H); ctx.restore(); }
   const txt=[]; if(G.zeroG>0) txt.push(['🪶 失重 '+G.zeroG.toFixed(1)+'s','#9de7ff']); if(G.ot>0) txt.push([`⏱ 加时 · 金币 ×${OT.coin} · ${G.ot.toFixed(1)}s`,'#7fe0a0']);
   txt.forEach(([t,c],i)=>{ ctx.save(); ctx.font=`900 ${Math.round(14*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=4; ctx.strokeStyle='#000c'; const y=H*.5+90+i*22*UIK; ctx.strokeText(t,W/2,y); ctx.fillStyle=c; ctx.fillText(t,W/2,y); ctx.restore(); });
@@ -1650,7 +1665,7 @@ function hitPack(b,p){
 function openPack(p){
   const i=G.packs.indexOf(p); if(i<0) return; G.packs.splice(i,1);
   if(p.boss) return bossDown(p);
-  if(p.mimic){ G.opened+=MIMIC.bonus; p.coinX=MIMIC.coin; G.mimicWin=1; G.fx.push({x:p.x,y:p.y-p.hh-30,t:`🧰 宝箱怪！+${MIMIC.bonus+1} 包`,c:'#ffd76a',life:1.3,sz:22}); burst(p.x,p.y,'#ffd76a',30); SFX.play('ach'); }
+  if(p.mimic){ G.opened+=MIMIC.bonus; p.coinX=MIMIC.coin; G.mimicWin=1; G.fx.push({x:p.x,y:p.y-p.hh-30,t:`🧰 宝箱怪！+${MIMIC.bonus+1} 包`,c:'#ffd76a',life:1.3,sz:22}); burst(p.x,p.y,'#ffd76a',30); SFX.play('mimicwin'); }
   if(p.t===3&&Math.random()<RELIC_BLACK) dropRelic('black',p.x,p.y);
   if(G.tut) tutStep(1);
   G.opened+=packCount()+(G.R.vip&&p.t>=1?1:0); G.realOpened=(G.realOpened||0)+1; M.opened++; if(p.t===3) G.black++; goalCheck(); // 一个卡包算 1 包（清点术 / 祝福有小数加成）
@@ -1723,7 +1738,11 @@ function bossDown(p){
   G.boss=null;
 }
 function refund(x,y,label,col){ if(G.refunds>=G.maxAmmo||G.chal==='one') return false; G.refunds++; G.ammo++; G.fx.push({x,y,t:label,c:col,life:1}); return true; }
-function earn(x,px,py,small){ x*=(G&&G.ot>0?OT.coin:1)*(1+TS.coin)*(TS.ks.greed?2.5:1)*(G&&G.R&&G.R.eight?G.R.eight:1)*(G&&G.bo?G.bo.coin:1)*(G&&G.fever>0?2:1); if(small) SFX.play('coin'); M.money+=x; G.earned+=x; M.life+=x; if(px!==undefined&&!small) G.fx.push({x:px,y:py,t:'+'+f(x),c:G.fever>0?'#ffd76a':'#f3dc9a',life:1}); return x; }
+function earn(x,px,py,small){ x*=(G&&G.ot>0?OT.coin:1)*(1+TS.coin)*(TS.ks.greed?2.5:1)*(G&&G.R&&G.R.eight?G.R.eight:1)*(G&&G.bo?G.bo.coin:1)*(G&&G.fever>0?2:1); if(small) SFX.play('coin'); M.money+=x; G.earned+=x; M.life+=x; if(px!==undefined&&!small) coinFx(x,px,py); return x; }
+// 金币飘字：附近 50px 内已经有一条就加到它上面（局内飘字太多，看不清）
+function coinFx(x,px,py){ const o=G.fx.find(q=>q.coin&&q.life>.45&&Math.abs(q.x-px)<50&&Math.abs(q.y-py)<50);
+  if(o){ o.v+=x; o.t='+'+f(o.v); o.life=Math.max(o.life,.8); return; } if(G.fx.filter(q=>q.coin).length>=7) return;
+  G.fx.push({x:px,y:py,t:'+'+f(x),v:x,coin:1,c:G.fever>0?'#ffd76a':'#f3dc9a',life:1}); }
 // ---- 震动反馈（安卓浏览器支持；iPhone 的浏览器不支持就什么都不做） ----
 function buzz(pat){ if(M.vibe===false||!navigator.vibrate||(navigator.userActivation&&!navigator.userActivation.hasBeenActive)) return; const n=performance.now(); if(n-(buzz.t||0)<90) return; buzz.t=n; try{ navigator.vibrate(pat); }catch(e){} }
 // ---- 连锁倍率 / 特殊铆钉 / 口袋 / 狂热 ----
@@ -1780,14 +1799,19 @@ function explainPop(ico,title,html){ const el=$('boonPop'); if(el.classList.cont
   el.classList.add('show'); setTimeout(()=>{ const b=$('exOk'); if(b) b.disabled=false; },700);
   $('exOk').onclick=e=>{ e.stopPropagation(); el.classList.remove('show'); if(live){ G.paused=false; G.cool=.25; } }; }
 
+// 新机制第一次出现时，暂停讲一句（一次只弹一个，排队）
+const LQ=[];
+function learnOnce(k,ico,title,html){ if(M.guide[k]||(G&&(G.tut||G.daily))||LQ.some(x=>x.k===k)) return; LQ.push({k,ico,title,html}); }
+function pumpLearn(){ if(!LQ.length||!G||G.ended||G.paused||!running||G.time<.6||$('boonPop').classList.contains('show')) return; const x=LQ.shift(); M.guide[x.k]=1; save(); explainPop(x.ico,x.title,x.html); }
 // ---- 珠袋：下一颗 ----
 function nextOrb(take){ if(G.bag&&G.bag.length) return take?G.bag.shift():G.bag[0]; return 'normal'; }
 function applyOrbType(b){ const t=b.type; if(t==='heavy'){ b.r=capR(b,b.r*1.35); b.dmgX*=2; } else if(t==='lucky'){ b.mx=Math.max(b.mx,2); } else if(t==='ghost'){ b.pierce=true; b.dmgX*=1.5; } }
 // 自动发射只在已经通关过的章节生效（熔金转生后回头刷）
 const autoOK=()=>upLv('auto')&&M.autoOn&&M.ch<M.maxCh;
 // ---- 每轮目标 ----
-function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true; G.fx.push({x:W/2,y:H/2+40,t:'本轮目标达成',c:'#7fe0a0',life:1.6,sz:20}); SFX.play('ach');
-    if(G.route!=='delve'&&!G.ended){ G.ot=OT.t; G.ammo+=OT.ammo; G.fx.push({x:W/2,y:H/2+66,t:`加时：+${OT.ammo} 宝珠，${OT.t} 秒内金币 ×${OT.coin}`,c:'#7fe0a0',life:1.8,sz:15}); } } }
+function goalCheck(){ if(G.route&&!G.goalHit&&G.opened>=G.goal){ G.goalHit=true; G.stamp=1.8; SFX.play('stamp'); buzz([30,40,60]);
+    if(G.route!=='delve'&&!G.ended){ G.ot=OT.t; G.ammo+=OT.ammo; G.fx.push({x:W/2,y:H/2+66,t:`加时：+${OT.ammo} 宝珠，${OT.t} 秒内金币 ×${OT.coin}`,c:'#7fe0a0',life:1.8,sz:15});
+      learnOnce('lOT',icHTML('⏱️')||'⏱️','加时',`本轮目标达成后进入加时：送 <b>${OT.ammo} 颗宝珠</b>，<b>${OT.t} 秒</b>内金币 <b>×${OT.coin}</b>。<br><span class="sub">越早达成目标，加时越赚。剩下的宝珠照样能打，多开的包也算分。</span>`); } } }
 // 没达成：目标降到这轮实际开包数 ×1.15 附近（一次最多减半），旧版本 bug 抬高的目标几轮就能落回来
 const goalAfterMiss=(goal,opened)=>Math.max(GOAL_MIN,Math.min(goal-2,Math.max(Math.ceil(opened*1.15),Math.round(goal*.5))));
 function settleRoute(){ if(G.isBoss&&!G.bossWin){ if(M.run&&G.boss) M.bossWound={ch:M.ch,f:Math.max(0,G.boss.hp/G.boss.max)}; loseHeart('首领战失败'); }
@@ -2045,6 +2069,8 @@ function update(dt){
   PEGS.forEach(g=>{ if(g.amp) g.x=g.ox+Math.sin(G.time*g.sp)*g.amp; });
   if(G.mut.brittle&&PEGS.some(g=>g.dead&&!g.guard)) PEGS=PEGS.filter(g=>g.guard||!g.dead);
   if(G.zeroG>0) G.zeroG-=dt; if(G.ot>0) G.ot-=dt;
+  if(G.skill&&!M.guide.lSkill&&skillReady()){ const s=SKILLS[G.skill]; learnOnce('lSkill',artIco('skill_'+G.skill,s.ico,72),'主动技能充好了',`点台面左上角的圆形按钮${MOBILE.matches?'':'（或按 <b>E</b>）'}放出 <b>${s.name}</b>：${s.desc}。<br>每开 ${skillCharge()} 包充好一次，用掉再攒，一轮能放好几次。<br><span class="sub">技能看远征队，不同队伍技能不同。</span>`); }
+  pumpLearn();
   for(const p of G.packs.slice()) if(p.mimic){ p.x+=p.vx*dt; if(p.x<-44||p.x>W+44){ G.packs.splice(G.packs.indexOf(p),1); G.fx.push({x:W/2,y:H*.4,t:'🧰 宝箱怪跑掉了',c:'#9a8f78',life:1.2,sz:16}); } }
   BUMPERS.forEach(g=>g.flash=Math.max(0,g.flash-dt));
   if(burning>=9) grantMyth('sun');
@@ -2108,10 +2134,11 @@ function draw(){
     ctx.fillStyle=g.flash?'#efe0bb':'#7d6a49'; ctx.beginPath(); ctx.arc(g.x,g.y,g.r-.5,0,7); ctx.fill(); ctx.fillStyle='#ffffff22'; ctx.beginPath(); ctx.arc(g.x-1.5,g.y-1.5,g.r*.4,0,7); ctx.fill(); });
   // 底部倍率口袋
   POCKETS.forEach((p,i)=>{ const cx=(p.x0+p.x1)/2, col=p.m>=5?'#ffd76a':p.m>1?'#c8a464':'#5e5446';
-    ctx.fillStyle=p.m>=5?'#ffd76a14':p.m>1?'#c8a4640c':'#00000000'; ctx.fillRect(p.x0,H-30,p.x1-p.x0,21);
+    ctx.fillStyle=p.m>=5?'#ffd76a26':p.m>1?'#c8a46418':'#ffffff05'; ctx.fillRect(p.x0,H-30,p.x1-p.x0,21);
+    ctx.fillStyle=col; ctx.globalAlpha=p.m>1?.85:.4; ctx.fillRect(p.x0+2,H-31,p.x1-p.x0-4,2); ctx.globalAlpha=1;
     if(p.flash>0){ ctx.globalAlpha=p.flash/.4*.45; ctx.fillStyle=col; ctx.fillRect(p.x0,H-30,p.x1-p.x0,21); ctx.globalAlpha=1; }
     if(i){ ctx.fillStyle='#3a3127'; ctx.fillRect(p.x0-1,H-30,2,21); }
-    ctx.fillStyle=col; ctx.font=`bold ${Math.round((p.m>=5?13:11)*Math.min(UIK,1.4))}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('×'+p.m,cx,H-19); ctx.textBaseline='alphabetic'; });
+    ctx.fillStyle=col; ctx.font=`900 ${Math.round((p.m>=5?17:p.m>1?14:12)*Math.min(UIK,1.4))}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('×'+p.m,cx,H-19); ctx.textBaseline='alphabetic'; });
   // 弹射器 / 传送门 / 双倍区
   ZONES.forEach(z=>{ ctx.fillStyle='#c8a46408'; ctx.fillRect(z.x,z.y,z.w,z.h); ctx.setLineDash([4,6]); ctx.strokeStyle='#c8a46455'; ctx.lineWidth=1.5; ctx.strokeRect(z.x,z.y,z.w,z.h); ctx.setLineDash([]);
     ctx.fillStyle='#d9b45acc'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left'; ctx.fillText('✦ 金币 ×2',z.x+6,z.y+14); });
@@ -2373,12 +2400,13 @@ function fmt(n){ if(!isFinite(n)) return '∞'; if(n<10) return (Math.round(n*10
   if(LANG==='en'){ const U=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'], i=Math.floor(Math.log10(n)/3); return i>=U.length?n.toExponential(2):(n/Math.pow(10,i*3)).toFixed(2)+U[i]; }
   const i=Math.floor(Math.log10(n)/4); if(i>=UNITS.length) return n.toExponential(2); return (n/Math.pow(10,i*4)).toFixed(2)+UNITS[i]; }
 // 玩的时候：提示变成台面上的一行小字（不挡视线）；其余时候：普通提示框
-function toast(t,o={}){ if(running&&G&&G.packs){ if(o.quiet) return; G.banner={t,life:1.6}; return; }
+function toast(t,o={}){ if(running&&G&&G.packs){ if(o.quiet) return; G.banner={t,life:1.6,img:o.img}; return; }
   const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('show'),1800); }
 function drawBanner(){ const b=G.banner; if(!b) return; b.life-=1/60; if(b.life<=0){ G.banner=null; return; }
   ctx.save(); ctx.globalAlpha=Math.min(1,b.life*2)*.9; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font=b.guide?`bold ${Math.round(18*UIK)}px sans-serif`:'bold 17px sans-serif';
   let t=b.t; while(ctx.measureText(t).width>W-200&&t.length>4) t=t.slice(0,-2); if(t!==b.t) t+='…';
-  const by=G.isBoss?(MOBILE.matches?206:182):(MOBILE.matches?146+(UIK-1)*22:112); ctx.lineWidth=4; ctx.strokeStyle='#000c'; ctx.strokeText(t,W/2,by); ctx.fillStyle='#e6cf9c'; ctx.fillText(t,W/2,by); ctx.restore(); }
+  const by=G.isBoss?(MOBILE.matches?206:182):(MOBILE.matches?146+(UIK-1)*22:112); ctx.lineWidth=4; ctx.strokeStyle='#000c'; ctx.strokeText(t,W/2,by); ctx.fillStyle='#e6cf9c'; ctx.fillText(t,W/2,by);
+  const im=b.img&&IMG[b.img]; if(imgOk(im)) ctx.drawImage(im,W/2-22,by-58,44,44); ctx.restore(); }
 let lastAmmo=-1;
 const bossReady=()=>mapOn()?mapAtBoss():M.chRounds>=3;
 function chapHTML(){ const ci=chInfo(M.ch), ready=bossReady();
@@ -2457,7 +2485,7 @@ function tName(k,total){ return {loot:`战利品 ${total}`,deck:`卡组 ${equipp
   chal:`挑战 ${badgeN()}/${CHAL.length}`,ach:`成就 ${Object.keys(M.ach).length}/${ACH.length}`,legacy:'传承',sys:'设置',fb:'反馈',daily:'每日',manual:'手册'}[k]; }
 function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp/G.boss.max; G.ended=true; running=false; $('boonPop').classList.remove('show');
   ROUND_EQ=null; if(G.chal) chalEnd(); if(G.daily) dailyEnd();
-  M.best.opened=Math.max(M.best.opened,G.opened); if(G.opened>=30&&!G.basketIn) M.best.nobask=true;
+  M.best.opened=Math.max(M.best.opened,G.opened); M.best.goldR=Math.max(M.best.goldR||0,G.goldHits||0); M.best.skillR=Math.max(M.best.skillR||0,G.skillN||0); if(G.mimicWin) M.best.mimic=(M.best.mimic||0)+1; if(G.opened>=30&&!G.basketIn) M.best.nobask=true;
   if(!G.isBoss&&!G.chal&&!G.daily&&G.dealt>0) M.dealtAvg=M.dealtAvg?M.dealtAvg*.5+G.dealt*.5:G.dealt; // 最近几轮普通轮的输出
   settleRoute(); if(!G.chal&&!G.daily) M.best.roundCoins=Math.max(M.best.roundCoins||0,G.earned);
   SFX.play('end'); checkAch(); save(); tab='loot'; showBetween(); lbSubmit(); statSend(); }
@@ -2465,7 +2493,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-12.5';
+const GAME_V='2026-11-12.6';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2498,10 +2526,12 @@ async function lbSubmit(force){ if(!M.lbName||!M.pid||M.dev) return false; const
 let lbBoard='progress';
 function renderRank(body){
   const mine=LB[lbBoard].mine();
-  body.innerHTML=`<div class="chap" style="margin-top:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>昵称</b>
+  const form=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap${M.lbName?';margin-top:8px':''}">${M.lbName?'':'<b>昵称</b>'}
       <input id="lbName" maxlength="12" value="${escH(M.lbName||'')}" placeholder="起个名字才能上榜" style="flex:1;min-width:140px;max-width:240px;background:#0c0907;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
       <button class="btn" id="lbSave" style="padding:7px 16px;font-size:14px;letter-spacing:0">${M.lbName?'改名':'上榜'}</button></div>
-    <div class="sub" style="margin-top:6px">昵称会公开显示在排行榜上，不收集其他信息。每轮结算时自动上传刷新的最好成绩。</div></div>
+    <div class="sub" style="margin-top:6px">昵称会公开显示在排行榜上，不收集其他信息。每轮结算时自动上传刷新的最好成绩。</div>`;
+  // 已经起过昵称：收成一行，点「改名」才展开
+  body.innerHTML=`${M.lbName?`<details class="chap" style="margin-top:0"><summary style="cursor:pointer;display:flex;align-items:center;gap:8px;list-style:none"><span class="sub">我的昵称</span><b style="color:var(--gold2)">${escH(M.lbName)}</b><span class="ghost" style="margin-left:auto;padding:3px 10px;font-size:12px">改名</span></summary>${form}</details>`:`<div class="chap" style="margin-top:0">${form}</div>`}
     <div class="seg scroll" style="margin-top:10px">${Object.entries(LB).map(([k,v])=>`<button class="${k===lbBoard?'on':''}" data-lb="${k}">${v.ico} ${v.name}</button>`).join('')}</div>
     <div class="sub">${LB[lbBoard].how}　·　我的最好：<b style="color:var(--gold2)">${mine?LB[lbBoard].fmt(mine.value,mine.tb):'还没有'}</b></div>
     <div id="lbList" style="margin-top:10px"><p class="sub">加载中……</p></div>`;
@@ -2577,7 +2607,7 @@ const DANGER_RULES=[null,
   {ico:'🔥',name:'营火将熄',desc:'营火不能休息，只能磨练'},
   {ico:'👑',name:'首领觉醒',desc:'首领一开场就带着第二阶段的机关'},
   {ico:'💔',name:'孤注一掷',desc:'开局少 1 颗心（最少 1 颗）'}];
-const dangerRulesHTML=d=>DANGER_RULES.slice(1,d+1).map(r=>`${r.ico} <b>${r.name}</b>：${r.desc}`).join('<br>');
+const dangerRulesHTML=d=>DANGER_RULES.slice(1,d+1).map((r,i)=>`${artIco('danger_'+(i+1),r.ico,22)} <b>${r.name}</b>：${r.desc}`).join('<br>');
 const dangerLv=()=>DAILY||!M.run?0:(M.run.danger||0);
 const SQUADS=[
   {id:'std',ico:'🏛️',name:'金库远征队',desc:'标准配置：3 颗心。'},
@@ -2610,6 +2640,7 @@ function finishRun(){ const r=M.run; if(!r||r.awarded) return M.lastRun;
   const cleared=win?ACTS:M.ch-1, depth=(r.danger||0)*4+cleared;
   M.soul+=souls; M.runs=(M.runs||0)+1; if(win) M.wins=(M.wins||0)+1;
   M.bestScore=Math.max(M.bestScore||0,score); M.bestAct=Math.max(M.bestAct||0,Math.min(ACTS,M.ch));
+  if(win&&!r.daily&&(r.danger||0)>=5) M.best.d5=1;
   let dUnl=0; if(win&&!r.daily&&(r.danger||0)>=(M.dangerMax||0)&&(M.dangerMax||0)<DANGER_MAX){ M.dangerMax=(r.danger||0)+1; dUnl=M.dangerMax; }
   if(!r.daily&&(depth>(M.best.depth||0)||(depth===(M.best.depth||0)&&M.round<(M.best.depthRounds||1e9)))){ M.best.depth=depth; M.best.depthRounds=M.round; }
   const newSq=SQUADS.filter(q=>squadOk(q)&&!before.includes(q.id)).map(q=>q.id);
@@ -2842,12 +2873,12 @@ function offerBoon(){
   G.paused=true; holding=false; SFX.play('raise');
   const el=$('boonPop');
   el.innerHTML=`<div class="bt serif goldtxt">✨ 选择一个祝福 ✨</div><div class="sub" style="text-align:center">只在本轮有效 · 已选 ${G.boons.length} 个</div>
-    <div class="bcs">${picks.map((b,i)=>`<button class="bc" data-i="${i}" disabled><div class="bi">${b.ico}</div><b>${b.name}</b><div class="sub">${b.desc}</div></button>`).join('')}</div>
+    <div class="bcs">${picks.map((b,i)=>`<button class="bc" data-i="${i}" disabled><div class="bi">${artIco('boon_'+b.id,b.ico,56)}</div><b>${b.name}</b><div class="sub">${b.desc}</div></button>`).join('')}</div>
     <div class="sub" id="boonWait" style="text-align:center;font-size:11px">游戏已暂停，慢慢选</div>`;
   el.classList.add('show');
   // 防误触：弹出后 0.8 秒内点不了（正在连点发射的手指不会直接选中）
   clearTimeout(offerBoon.t); offerBoon.t=setTimeout(()=>el.querySelectorAll('.bc').forEach(x=>x.disabled=false),800);
-  const pick=i=>{ el.classList.remove('show'); const b=picks[i]; b.go(G); G.boons.push(b.id); G.paused=false; G.cool=.25; SFX.play('ach'); toast(`${b.ico} ${b.name}：${b.desc}`); };
+  const pick=i=>{ el.classList.remove('show'); const b=picks[i]; b.go(G); G.boons.push(b.id); G.paused=false; G.cool=.25; SFX.play('ach'); toast(`${b.ico} ${b.name}：${b.desc}`,{img:'boon_'+b.id}); };
   el.querySelectorAll('.bc').forEach(x=>x.onclick=e=>{ e.stopPropagation(); pick(+x.dataset.i); });
 }
 
@@ -3404,7 +3435,7 @@ function showBetween(){
   else if(tab==='loot'){
     body.innerHTML=ids.length?`<div class="grid">${ids.map((id,i)=>cardHTML(id,{pop:1,delay:i*.07,count:G.loot[id],isNew:G.newIds[id],up:G.upIds[id],foilNew:G.foilIds&&G.foilIds[id]})).join('')}</div>`:G.reborn?`<div class="chap" style="margin-top:0;border-color:var(--gold3)">🔥 <b>熔金完成</b>：获得 <b style="color:var(--gold2)">${G.reborn}</b> 金魂。回到第 1 章重新开始，卡牌、闪卡和图鉴都还在。<br><span class="sub">去「更多 → 传承」用金魂换永久加成，然后开下一轮。</span></div>`:'<p class="sub">这一轮还没开出卡牌。试试瞄准卡包密集的地方！</p>';
   } else if(tab==='bag'){
-    const orbRow=k=>{ const o=ORBS[k],n=M.orbs[k]||0; return `<div class="ach ${n?'yes':'no'}"><div class="ico" style="color:${o.c}">${o.ico}</div><div><div style="font-weight:800;color:${o.c}">${o.name}</div><div class="sub">${o.desc}</div></div><div class="rw">× ${n}</div></div>`; };
+    const orbRow=k=>{ const o=ORBS[k],n=M.orbs[k]||0; return `<div class="ach ${n?'yes':'no'}"><div class="ico" style="color:${o.c}">${artIco('orb_'+k,o.ico,30)}</div><div><div style="font-weight:800;color:${o.c}">${o.name}</div><div class="sub">${o.desc}</div></div><div class="rw">× ${n}</div></div>`; };
     const have=ORB_SPECIAL.filter(k=>M.orbs[k]), none=ORB_SPECIAL.filter(k=>!M.orbs[k]);
     body.innerHTML=`<details class="fold"><summary><span>❔ 珠袋是什么？</span></summary><div class="sub" style="margin-top:6px;line-height:1.7">每轮开局，特殊宝珠会和普通金珠一起洗进弹药（超出本轮宝珠数的不上场），发射器右边能看到接下来的三颗。新的特殊宝珠来自精英奖励和奇遇。</div></details>`
       +(have.length?have.map(orbRow).join(''):'<p class="sub">珠袋里还没有特殊宝珠。</p>')
