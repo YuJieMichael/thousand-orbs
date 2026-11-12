@@ -560,7 +560,7 @@ const IMG={}; const loadImg=(k,src)=>{ const im=new Image(); im.src=src; IMG[k]=
 // 远征新美术（art/ 文件夹里的 webp，按需加载；英文版在 /en/ 下，要往上一层找）
 const ART_DIR=(/\/en\/(index\.html)?$/.test(location.pathname)?'../':'')+'art/', artUrl=n=>ART_DIR+n+'.webp';
 // 补充插画（docs/art-prompts-2.md：秘符、地图节点、技能、台面词条、传承）。画好放进 art/ 后把文件名加进 ART_NEW；没加的继续用小图标
-const ART_NEW=new Set([]);
+const ART_NEW=new Set(['sigil_pouch','sigil_thread','sigil_spring','sigil_patron','sigil_heat','sigil_ward','sigil_wide','sigil_sharp','sigil_eye','sigil_split','sigil_tally','sigil_echo','sigil_chain','sigil_rebirth','sigil_storm','sigil_midas','sigil_overload','sigil_sunder','node_normal','node_elite','node_camp','node_shop','node_event','node_delve','node_gate','node_boss','skill_bomb','skill_rain','skill_stop','mod_wind','mod_moon','mod_spring','mod_drift','mod_hole','mod_brittle','mod_pegboom','mod_goldrush','mod_fast','mod_thick','legacy_pow','legacy_rich','legacy_orb','legacy_shine','legacy_start','legacy_relic','legacy_heart','legacy_pack','legacy_recruit','legacy_skill','legacy_sigil']);
 ART_NEW.forEach(n=>{ if(/^(skill|mod)_/.test(n)) loadImg(n,artUrl(n)); });
 const artIco=(n,ico,px,cls)=>ART_NEW.has(n)?`<img class="ai ${cls||''}" src="${artUrl(n)}" alt="" style="width:${px}px;height:${px}px;object-fit:contain;vertical-align:middle">`:ico;
 const artImg=(n,cls,alt)=>`<img class="${cls||'art'}" src="${artUrl(n)}" alt="${alt||''}" loading="lazy" decoding="async" onerror="this.style.display='none'">`;
@@ -1563,7 +1563,7 @@ const skillPts=()=>(G.realOpened||0)-(G.skillBase||0);
 const skillReady=()=>!!(G&&G.skill&&skillPts()>=skillCharge()&&!G.ended&&!G.paused&&!G.cine);
 const skillHit=(x,y)=>!!(G&&G.skill&&Math.hypot(x-SKILL_BTN.x,y-SKILL_BTN.y)<SKILL_BTN.r+10);
 function useSkill(){ if(!G||!G.skill||G.ended) return;
-  if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+70,y:SKILL_BTN.y+44,t:`再开 ${skillCharge()-skillPts()} 包充能`,c:'#c9b48a',life:.9,sz:13}); return; }
+  if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+120,y:SKILL_BTN.y+44,t:`再开 ${skillCharge()-skillPts()} 包充能`,c:'#c9b48a',life:.9,sz:13}); return; }
   G.skillBase=G.realOpened||0; G.skillN=(G.skillN||0)+1; const k=G.skill; SFX.play('ach'); shake(5);
   if(k==='bomb'){ G.packs.slice().forEach(p=>{ if(p.gold) return; burst(p.x,p.y,'#ff6b4a',10); dmgPack(p,p.boss?8*D():p.max*.35+3*D(),true,'skill'); });
     G.parts.push({ring:true,x:W/2,y:H/2,r:10,max:W*.75,life:.5,dur:.5,c:'#ff6b4a',lw:5}); }
@@ -2465,7 +2465,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-12.4';
+const GAME_V='2026-11-12.5';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
