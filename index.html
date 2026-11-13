@@ -189,6 +189,8 @@
     .pMoney .ammo{grid-column:1;grid-row:1;margin:0;gap:3px;min-height:10px} .pMoney .ammo i{width:11px;height:11px}
     .pMoney .chap{grid-column:1/-1;margin:2px 0 0;padding:6px 8px;font-size:12px}
     .frame{order:0;padding:5px;border-radius:14px;width:100%;max-width:calc((100svh - 24px) * 540 / 800);margin:0 auto}
+    /* 打的时候：页面正好比「地址栏收起后的一屏」高 1px，往上一滑 Safari 地址栏就收起，台面 + 底栏刚好一屏，不会滑过头 */
+    body.playing .pSkill{display:none} body.playing .wrap{align-content:start;min-height:calc(100vh + 1px);min-height:calc(100lvh + 1px)}
     .pSkill{order:2;padding:10px} .pSkill .slot{padding:5px 8px} .pSkill .slot .e{font-size:18px;width:22px}
     .pHint{order:3;font-size:11px}
     .ov{padding:52px 6px 16px}
@@ -2354,6 +2356,8 @@ function drawMechChips(p){ const ks=p.mech, y=142, gap=6, gapC=34; ctx.save(); c
   ctx.restore(); }
 // 手机：把余额等信息叠在台面顶部两角
 const MOBILE=matchMedia('(max-width:600px)');
+// 手机：打的时候 body 加 playing（藏掉台面下面的技能栏，留一点可滑的高度让 Safari 收起地址栏）
+setInterval(()=>{ const on=!!running&&!$('ov').classList.contains('show'); if(document.body.classList.contains('playing')!==on) document.body.classList.toggle('playing',on); },250);
 function hudBox(x,y,w,h,align){ ctx.save(); ctx.globalAlpha=.82; ctx.fillStyle='#0f0d0b'; rr(x,y,w,h,10); ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle='#2e2821'; ctx.lineWidth=1.5; rr(x,y,w,h,10); ctx.stroke(); ctx.restore(); }
 function drawHud(){
   ctx.save(); ctx.textBaseline='alphabetic';
@@ -2553,7 +2557,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-13.5';
+const GAME_V='2026-11-13.6';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
