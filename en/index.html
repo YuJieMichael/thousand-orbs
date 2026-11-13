@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:663477e73f0c938ba36dde5fd63693a337a0f388 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:667e93c0966c159750c99d2d84c161a90bd718b9 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -562,7 +562,7 @@ const IMG={}; const loadImg=(k,src)=>{ const im=new Image(); im.src=src; IMG[k]=
 const ART_DIR=(/\/en\/(index\.html)?$/.test(location.pathname)?'../':'')+'art/', artUrl=n=>ART_DIR+n+'.webp';
 // 补充插画（docs/art-prompts-2.md：秘符、地图节点、技能、台面词条、传承）。画好放进 art/ 后把文件名加进 ART_NEW；没加的继续用小图标
 const ART_NEW=new Set(['sigil_pouch','sigil_thread','sigil_spring','sigil_patron','sigil_heat','sigil_ward','sigil_wide','sigil_sharp','sigil_eye','sigil_split','sigil_tally','sigil_echo','sigil_chain','sigil_rebirth','sigil_storm','sigil_midas','sigil_overload','sigil_sunder','node_normal','node_elite','node_camp','node_shop','node_event','node_delve','node_gate','node_boss','skill_bomb','skill_rain','skill_stop','mod_wind','mod_moon','mod_spring','mod_drift','mod_hole','mod_brittle','mod_pegboom','mod_goldrush','mod_fast','mod_thick','legacy_pow','legacy_rich','legacy_orb','legacy_shine','legacy_start','legacy_relic','legacy_heart','legacy_pack','legacy_recruit','legacy_skill','legacy_sigil','boon_acid','boon_ammo','boon_bask','boon_big','boon_chain','boon_crit','boon_echo','boon_fire','boon_gamble','boon_gold','boon_luck','boon_mag','boon_nuke','boon_rage','boon_refill','boon_split','boon_tally','curse_fog','curse_short','curse_tough','danger_1','danger_2','danger_3','danger_4','danger_5','orb_fire','orb_ghost','orb_heavy','orb_lucky','orb_split','orb_thunder']);
-ART_NEW.forEach(n=>{ if(/^(skill|mod|curse|boon)_/.test(n)) loadImg(n,artUrl(n)); });
+ART_NEW.forEach(n=>{ if(/^(skill|mod|curse|boon|mech)_/.test(n)) loadImg(n,artUrl(n)); });
 const artIco=(n,ico,px,cls)=>ART_NEW.has(n)?`<img class="ai ${cls||''}" src="${artUrl(n)}" alt="" style="width:${px}px;height:${px}px;object-fit:contain;vertical-align:middle">`:ico;
 const artImg=(n,cls,alt)=>`<img class="${cls||'art'}" src="${artUrl(n)}" alt="${alt||''}" loading="lazy" decoding="async" onerror="this.style.display='none'">`;
 ['boss_lord_1','boss_lord_2','boss_gate_1','boss_gate_2','boss_thousand'].forEach(n=>loadImg(n,artUrl(n)));
@@ -1417,6 +1417,9 @@ function startRound(boss,opt={}){ if(boss===true) coachDone('cBoss');
       gateBoss:!!(M.run&&M.run.gate&&M.ch===ACTS),mech:bossMechs(M.ch).concat(dangerLv()>=4&&p2Mech(M.ch)?[p2Mech(M.ch)]:[]),shield:0,sT:5,mT:0,immune:false,vT:0,pT:0,p2:false,p2T:0,ph:0};
     if(M.run&&M.bossWound&&M.bossWound.ch===M.ch){ G.boss.hp=G.boss.max*Math.max(.5,Math.min(1,M.bossWound.f+BOSS_HEAL)); G.bossWounded=1; const pc=Math.round(G.boss.hp/G.boss.max*100); setTimeout(()=>toast(`🩸 The boss is still wounded from last time: only ${pc}% HP left`),600); } // 首领保留伤势：上次打掉的血只回 25%（最少还剩一半）
     G.packs.push(G.boss); M.bossTries++; }
+  // 每日远征：每一站开局的台面（卡包布局、词条、金标、宝箱怪）按「日期 + 章 + 站 + 路线」固定，大家打的台面一样
+  const rr=roundRng(), mr0=Math.random; if(rr) Math.random=rr;
+  try{
   for(let i=0;i<packN(upLv('packs'))-(boss?3:0);i++) addPack(true);
   G.skill=G.tut||daily||chal?null:skillOf();
   if(G.route==='normal'||G.route==='elite'){ const n=G.route==='elite'?2:1, quiet=G.tut||(M.ch===1&&mapStop(true)===0);
@@ -1425,7 +1428,8 @@ function startRound(boss,opt={}){ if(boss===true) coachDone('cBoss');
     for(let i=0;i<n+(G.goldExtra||0);i++) markGold();
     if(G.mods) G.mods.forEach(id=>{ const m=BOARD_MODS.find(x=>x.id===id); learnOnce('lMods',artIco('mod_'+id,m.ico,72),'Board modifiers',`Each round’s board can be different: 1 modifier in normal rounds, 2 in elite rounds. <br> This round:  <b>${m.name}</b>: ${m.desc}. <br><span class="sub"> The bottom-left corner always lists this round’s modifiers.</span>`); });
     if(G.packs.some(p=>p.gold)) learnOnce('lGold',icHTML('🎯')||'🎯','Bullseye packs',`Gold-framed packs only open on a <b> Direct hit</b>: the orb has to hit it first (no pegs on the way; banking off a wall is fine). <br> Opening one counts <b>${GOLD_PACK.bonus} packs</b>, coins <b>×${GOLD_PACK.coin}</b>. <br><span class="sub"> When the aim line turns gold and the pack gets a gold outline, it’s a direct hit.</span>`);
-    if(!G.tut&&runRand()<MIMIC.p) G.mimicAt=Math.max(3,Math.round(am*rnd(.25,.55))); }
+    if(!G.tut&&Math.random()<MIMIC.p){ G.mimicAt=Math.max(3,Math.round(am*rnd(.25,.55))); G.mimicDir=Math.random()<.5?1:-1; G.mimicLane=Math.floor(Math.random()*2); } }
+  } finally { Math.random=mr0; }
   for(let i=0;i<upLv('volley')*2;i++){ const a=rnd(.35,Math.PI-.35); spawnBall(LAUNCH.x,LAUNCH.y,Math.cos(a)*700,Math.sin(a)*700,{mini:true}); }
   M.routes=null; // 章节进度改为「达成目标」才 +1，见 endRound
   [1,2,3].forEach(t=>{ M.shopN[t]=Math.max(0,(M.shopN[t]||0)-1); });
@@ -1561,7 +1565,8 @@ const BOARD_MODS=[
   {id:'fast',ico:'⏩',name:'Fast forward',desc:'The whole board runs at ×1.25 speed',go:G=>{G.mut.speed=1.25;}},
   {id:'thick',ico:'🛡️',name:'Thick skin',desc:'Pack HP ×1.3, but coins ×1.5',go:G=>{G.mut.hpX=(G.mut.hpX||1)*1.3; G.bo.coin*=1.5;}},
 ];
-function rollBoardMods(n){ const pool=BOARD_MODS.slice(), out=[]; while(out.length<n&&pool.length) out.push(pool.splice(Math.floor(runRand()*pool.length),1)[0]); return out; }
+function rollBoardMods(n){ const pool=BOARD_MODS.slice(), out=[]; while(out.length<n&&pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); return out; }
+const roundRng=()=>{ const r=M.run; return r&&r.daily&&r.seed?mulberry(hashStr(r.seed+':'+M.ch+':'+mapStop(true)+':'+(G&&G.route||''))):null; };
 // ③ 主动技能：每开 12 个卡包充好一次，用掉后重新攒（一轮能放好几次）；按左上角的按钮（电脑按 E）。技能看远征队
 const SKILLS={
   bomb:{ico:'💣',name:'Detonate',desc:'Every pack on the board loses 35% HP, and the boss takes a hit too'},
@@ -1593,7 +1598,7 @@ function drawSkill(){ if(!G.skill) return; const s=SKILLS[G.skill], b=SKILL_BTN,
   ctx.strokeText(t,b.x,b.y+b.r+14*UIK); ctx.fillStyle=on?'#ffd76a':'#c9b48a'; ctx.fillText(t,b.x,b.y+b.r+14*UIK); ctx.restore(); }
 // ④ 局内事件：宝箱怪（横穿台面，打开多算 4 包、金币 ×5；跑掉就没了）；达成目标后「加时」：+2 宝珠、6 秒内金币 ×2
 const MIMIC={p:.45,bonus:4,coin:5,hpX:2.2,sp:72}, OT={t:6,ammo:2,coin:2};
-function spawnMimic(){ const dir=Math.random()<.5?1:-1, y=[397,522][Math.floor(Math.random()*2)], hp=packHp(2)*MIMIC.hpX*(G.mut.hpX||1);
+function spawnMimic(){ const dir=G.mimicDir||(Math.random()<.5?1:-1), y=[397,522][G.mimicLane??Math.floor(Math.random()*2)], hp=packHp(2)*MIMIC.hpX*(G.mut.hpX||1);
   G.packs.push({mimic:1,slot:null,x:dir>0?-30:W+30,y,vx:dir*MIMIC.sp,hw:PW,hh:PH,t:2,hp,max:hp,hit:0,burn:0,acid:0,grow:1,seed:Math.random(),ballHit:{}});
   G.fx.push({x:W/2,y:H*.34,t:'🧰 Mimic! Open it before it gets away',c:'#ffd76a',life:1.8,sz:19,slow:1}); SFX.play('mimic');
   learnOnce('lMimic',icHTML('🎁')||'🎁','Mimic',`A pack with eyes runs across the board and is gone once it reaches the other side. <br> Open it before it escapes: counts <b>${MIMIC.bonus} packs</b>, coins <b>×${MIMIC.coin}</b>.`); }
@@ -1950,7 +1955,7 @@ function tearPack(p){ const P=PT[p.t], body=p.t===3?'#17130f':P.b, edge=p.t===3?
   [-1,1].forEach(sg=>G.tears.push({x:p.x+sg*2,y:p.y+sg*p.hh/2,oy:0,w:p.hw*2,h:p.hh,top:sg<0,body,edge,vy:sg<0?-150:40,rot:0,vr:sg*rnd(1.5,3)*(Math.random()<.5?-1:1),life:.55}));
   G.parts.push({ring:true,x:p.x,y:p.y,r:6,max:46+p.t*12,life:.35,dur:.35,c:edge,lw:1.2}); }
 function zap(a,b,c){ SFX.play('zap'); G.zaps.push({x1:a.x,y1:a.y,x2:b.x,y2:b.y,c,life:.25}); }
-function burst(x,y,c,n){ n=Math.ceil(n*(calm()?.2:.45)); for(let i=0;i<n;i++){ const a=rnd(0,7),s=rnd(60,300); G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,c,life:rnd(.3,.7)}); } }
+function burst(x,y,c,n){ n=Math.ceil(n*(calm()?.2:.45)); if(G.parts.length>220) n=Math.ceil(n*.25); if(G.parts.length>420) return; /* 粒子上限：低端手机满屏宝珠时不卡 */ for(let i=0;i<n;i++){ const a=rnd(0,7),s=rnd(60,300); G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,c,life:rnd(.3,.7)}); } }
 // 减少动态效果：默认跟随系统设置，也可以在「设置」里手动开关（关掉震屏、闪光、狂热慢放、首领特写，粒子减半）
 const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const calm=()=>M&&(M.calm===true||(M.calm===undefined&&RM.matches));
@@ -2132,7 +2137,7 @@ function draw(){
       else if(g.kind==='bomb'){ ctx.moveTo(g.x-3,g.y-3); ctx.lineTo(g.x+3,g.y+3); ctx.moveTo(g.x+3,g.y-3); ctx.lineTo(g.x-3,g.y+3); }
       else { ctx.moveTo(g.x,g.y-4); ctx.lineTo(g.x,g.y+4); ctx.moveTo(g.x-4,g.y); ctx.lineTo(g.x+4,g.y); }
       ctx.stroke(); return; }
-    ctx.fillStyle=g.flash?'#efe0bb':'#7d6a49'; ctx.beginPath(); ctx.arc(g.x,g.y,g.r-.5,0,7); ctx.fill(); ctx.fillStyle='#ffffff22'; ctx.beginPath(); ctx.arc(g.x-1.5,g.y-1.5,g.r*.4,0,7); ctx.fill(); });
+    const sp=pegSprite(g.r,!!g.flash); ctx.drawImage(sp,g.x-g.r-1,g.y-g.r-1,g.r*2+2,g.r*2+2); });
   // 底部倍率口袋
   POCKETS.forEach((p,i)=>{ const cx=(p.x0+p.x1)/2, col=p.m>=5?'#ffd76a':p.m>1?'#c8a464':'#5e5446';
     ctx.fillStyle=p.m>=5?'#ffd76a26':p.m>1?'#c8a46418':'#ffffff05'; ctx.fillRect(p.x0,H-30,p.x1-p.x0,21);
@@ -2170,16 +2175,19 @@ function draw(){
     ctx.lineWidth=.8; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+rnd(-22,22),by+rnd(-22,22)); ctx.stroke();
     ctx.fillStyle=z.c; ctx.beginPath(); ctx.arc(z.x2,z.y2,2.4,0,7); ctx.fill(); ctx.globalAlpha=1; });
   // 宝珠
+  // 宝珠多的时候（金雨、分裂）：拖尾画成一条线、倍率字只给倍率最高的几颗，省掉大量 fill / 字体切换（低端手机掉帧）
+  const many=G.balls.length>14, lab=new Set(G.balls.filter(b=>!b.mini&&(b.mx>=1.5||b.pot>0)).sort((a,b)=>b.mx-a.mx).slice(0,many?6:99));
   G.balls.forEach(b=>{
-    b.trail.forEach((t,i)=>{ ctx.globalAlpha=i/b.trail.length*(G.fever>0?.4:.18+.04*(b.mx-1)); ctx.fillStyle=b.pierce?'#a993d8':mxCol(b.mx); ctx.beginPath(); ctx.arc(t.x,t.y,b.r*.8*(i/b.trail.length),0,7); ctx.fill(); }); ctx.globalAlpha=1;
+    if(many){ const tr=b.trail; if(tr.length>1){ ctx.globalAlpha=G.fever>0?.3:.16+.03*(b.mx-1); ctx.strokeStyle=b.pierce?'#a993d8':mxCol(b.mx); ctx.lineWidth=b.r*.9; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(tr[0].x,tr[0].y); for(let i=1;i<tr.length;i++) ctx.lineTo(tr[i].x,tr[i].y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.lineCap='butt'; } }
+    else b.trail.forEach((t,i)=>{ ctx.globalAlpha=i/b.trail.length*(G.fever>0?.4:.18+.04*(b.mx-1)); ctx.fillStyle=b.pierce?'#a993d8':mxCol(b.mx); ctx.beginPath(); ctx.arc(t.x,t.y,b.r*.8*(i/b.trail.length),0,7); ctx.fill(); }); ctx.globalAlpha=1;
     const bc=mxCol(b.mx);
     if(b.mx>=2){ ctx.globalAlpha=.12+.04*b.mx; ctx.fillStyle=bc; ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(1.5+.15*b.mx),0,7); ctx.fill(); ctx.globalAlpha=1; }
     ctx.fillStyle=b.pierce?'#3b2f55':bc; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.fill();
     if(b.type&&b.type!=='normal'){ ctx.strokeStyle=ORBS[b.type].c; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(b.x,b.y,b.r+2.5,0,7); ctx.stroke(); }
-    if(!b.mini&&(b.mx>=1.5||b.pot>0)){ ctx.save(); ctx.font=`bold ${Math.round((10+b.mx*1.6)*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const t=(b.mx>=1.5?'×'+b.mx.toFixed(1)+' ':'')+'✦'+f(b.pot);
+    if(lab.has(b)){ ctx.save(); ctx.font=`bold ${Math.round((10+b.mx*1.6)*UIK)}px sans-serif`; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeStyle='#000c'; const t=(b.mx>=1.5?'×'+b.mx.toFixed(1)+' ':'')+'✦'+f(b.pot);
       ctx.strokeText(t,b.x,b.y-b.r-5); ctx.fillStyle=bc; ctx.fillText(t,b.x,b.y-b.r-5); ctx.restore(); }
     if(b.pierce){ ctx.strokeStyle='#a993d8'; ctx.lineWidth=2; ctx.stroke(); ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(performance.now()/300); ctx.setLineDash([3,5]); ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,0,b.r+6,0,7); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); }
-    ctx.fillStyle='#ffffff55'; ctx.beginPath(); ctx.arc(b.x-b.r*.32,b.y-b.r*.32,b.r*.32,0,7); ctx.fill(); });
+    if(!many){ ctx.fillStyle='#ffffff55'; ctx.beginPath(); ctx.arc(b.x-b.r*.32,b.y-b.r*.32,b.r*.32,0,7); ctx.fill(); } });
   // 粒子
   G.parts.forEach(o=>{ ctx.globalAlpha=Math.min(1,o.life*2);
     if(o.ring){ ctx.globalAlpha=Math.min(1,o.life/(o.dur||.35))*.9; ctx.strokeStyle=o.c||'#d48a5c'; ctx.lineWidth=o.lw||2; ctx.beginPath(); ctx.arc(o.x,o.y,o.r,0,7); ctx.stroke(); }
@@ -2238,6 +2246,10 @@ function draw(){
   drawCine();
 }
 const RCOL={N:'#9a9184',R:'#7fa6d6',SR:'#a993d8',SSR:'#d8b36a',UR:'#e08cc0'};
+// 普通铆钉画成缓存的小图（每帧几十个 arc+fill 换成 drawImage）
+const PEG_SPR={};
+function pegSprite(r,fl){ const k=r+(fl?'f':''); if(PEG_SPR[k]) return PEG_SPR[k]; const S=4, c=document.createElement('canvas'); c.width=c.height=Math.ceil((r*2+2)*S); const x=c.getContext('2d'); x.scale(S,S);
+  x.fillStyle=fl?'#efe0bb':'#7d6a49'; x.beginPath(); x.arc(r+1,r+1,r-.5,0,7); x.fill(); x.fillStyle='#ffffff22'; x.beginPath(); x.arc(r-.5,r-.5,r*.4,0,7); x.fill(); return PEG_SPR[k]=c; }
 function drawLauncher(a){
   ctx.save(); ctx.translate(LAUNCH.x,LAUNCH.y); ctx.rotate(a-Math.PI/2);
   ctx.fillStyle='#1b1712'; ctx.strokeStyle='#c8a464'; ctx.lineWidth=1.5; rr(-9,0,18,38,4); ctx.fill(); ctx.stroke(); ctx.restore();
@@ -2292,9 +2304,30 @@ function drawBoss(p){
   ctx.strokeStyle='#2e2821'; ctx.lineWidth=1; ctx.strokeRect(110,124,W-220,8);
   ctx.fillStyle=p.p2?'#e06e5c':'#e6cf9c'; ctx.fillRect(W/2-1,121,2,14);
   ctx.fillStyle='#e6cf9c'; ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.fillText(`${chInfo(M.ch).boss}  ${f(Math.max(0,p.hp))} / ${f(p.max)}`,W/2,117);
-  ctx.fillStyle='#c9b48a'; ctx.font='11px sans-serif'; ctx.fillText(p.mech.map(k=>MECH[k].ico+' '+MECH[k].name).join('　'),W/2,150);
+  drawMechChips(p);
   if(p.acid>0){ ctx.fillStyle='#8fbf72'; ctx.font='bold 12px sans-serif'; ctx.fillText('Cor '+p.acid,p.x,p.y+p.hh+16); }
 }
+// 首领机关：血条下面一排小牌子（图标 + 名字 + 倒计时圈）。圈满就是机关要发动了；发动中整块变亮
+function mechState(p,k){ // 返回 [进度 0~1, 状态文字, 是否正在生效]
+  if(k==='shield'){ const sc=shieldCfg(); return p.shield>0?[1,'Shield '+p.shield,true]:[p.sT/sc.t,Math.ceil(sc.t-p.sT)+'s',false]; }
+  if(k==='mirror'){ const mc=mirrorCfg(), t=p.mT%mc.cyc; return p.immune?[1,'Immune',true]:[t/(mc.cyc-mc.dur),Math.ceil(mc.cyc-mc.dur-t)+'s',false]; }
+  if(k==='star') return [(p.pT||0)/8,Math.ceil(8-(p.pT||0))+'s',false];
+  if(k==='void') return [(p.vT||0)/10,Math.ceil(10-(p.vT||0))+'s',false];
+  if(k==='lord'){ const up=PEGS.filter(g=>g.guard&&!g.dead).length; return up?[1,up+'/3',true]:[(p.gT||0)/(p.p2?LORD.back2:LORD.back),Math.ceil((p.p2?LORD.back2:LORD.back)-(p.gT||0))+'s',false]; }
+  return [0,'',false]; }
+function drawMechChips(p){ const ks=p.mech, y=142, gap=6, gapC=34; ctx.save(); ctx.font='bold 11px sans-serif';
+  // 宽度按文字算；中间留出发射器的位置：一半放左边、一半放右边
+  const ch=ks.map(k=>{ const m=MECH[k], [pr,st,on]=mechState(p,k); ctx.font='bold 11px sans-serif'; const w1=ctx.measureText(m.name).width; ctx.font='bold 10px sans-serif'; const w2=ctx.measureText(st).width; return {k,m,pr,st,on,w:Math.ceil(28+w1+8+w2+10)}; });
+  const nl=Math.ceil(ch.length/2), L=ch.slice(0,nl), Rr=ch.slice(nl); let x=W/2-gapC; const pos=[];
+  L.slice().reverse().forEach(c=>{ x-=c.w; pos.push([c,x]); x-=gap; }); x=W/2+gapC; Rr.forEach(c=>{ pos.push([c,x]); x+=c.w+gap; });
+  pos.forEach(([c,x])=>{ const {k,m,pr,st,on,w}=c, im=IMG['mech_'+k];
+    ctx.globalAlpha=.88; ctx.fillStyle=on?'#3a1f1acc':'#0f0d0bcc'; rr(x,y,w,24,12); ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle=on?'#e06e5c':'#3a3127'; ctx.lineWidth=1.2; rr(x,y,w,24,12); ctx.stroke();
+    const cx=x+13, cy=y+12; ctx.strokeStyle='#2e2821'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(cx,cy,10,0,7); ctx.stroke();
+    if(pr>0){ ctx.strokeStyle=on?'#e06e5c':pr>.8?'#ffb35a':'#c8a464'; ctx.beginPath(); ctx.arc(cx,cy,10,-Math.PI/2,-Math.PI/2+Math.min(1,pr)*Math.PI*2); ctx.stroke(); }
+    if(imgOk(im)) ctx.drawImage(im,cx-8,cy-8,16,16); else { ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#efe6d2'; ctx.fillText(m.ico,cx,cy+1); }
+    ctx.textBaseline='middle'; ctx.textAlign='left'; ctx.font='bold 11px sans-serif'; ctx.fillStyle=on?'#ffb0a0':'#e6cf9c'; ctx.fillText(m.name,x+28,cy+1);
+    ctx.textAlign='right'; ctx.font='bold 10px sans-serif'; ctx.fillStyle=on?'#ff8a70':'#9a8f78'; ctx.fillText(st,x+w-9,cy+1); });
+  ctx.restore(); }
 // 手机：把余额等信息叠在台面顶部两角
 const MOBILE=matchMedia('(max-width:600px)');
 function hudBox(x,y,w,h,align){ ctx.save(); ctx.globalAlpha=.82; ctx.fillStyle='#0f0d0b'; rr(x,y,w,h,10); ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle='#2e2821'; ctx.lineWidth=1.5; rr(x,y,w,h,10); ctx.stroke(); ctx.restore(); }
@@ -2494,7 +2527,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-13.0';
+const GAME_V='2026-11-13.1';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
