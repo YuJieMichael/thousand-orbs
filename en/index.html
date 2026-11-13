@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:b55e7776217952e82477c40d63979d2f7baf05eb -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:08bf373d551b7d44c2a837c0e68523ff38787556 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1602,12 +1602,13 @@ const SKILL_CHARGE=12, SKILL_BTN={x:46,y:116,r:26};
 const skillOf=()=>({rich:'rain',gamb:'rain',sage:'stop',spec:'stop'})[runSquad()]||'bomb';
 const skillCharge=()=>SKILL_CHARGE-2*lg('skill');
 const skillPts=()=>(G.realOpened||0)-(G.skillBase||0);
-const skillReady=()=>!!(G&&G.skill&&skillPts()>=skillCharge()&&!G.ended&&!G.paused&&!G.cine);
+const skillShotOk=()=>!G.skillN||(G.shots||0)>(G.skillShot||0); // 放完一次技能，至少要再发一颗宝珠才能放下一次（防止技能开的包给自己充能、原地无限放）
+const skillReady=()=>!!(G&&G.skill&&skillPts()>=skillCharge()&&skillShotOk()&&!G.ended&&!G.paused&&!G.cine);
 const skillHit=(x,y)=>!!(G&&G.skill&&Math.hypot(x-SKILL_BTN.x,y-SKILL_BTN.y)<SKILL_BTN.r+10);
 function useSkill(){ if(!G||!G.skill||G.ended) return;
-  if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+120,y:SKILL_BTN.y+44,t:`Open ${skillCharge()-skillPts()} more packs to charge`,c:'#c9b48a',life:.9,sz:13}); return; }
-  G.skillBase=G.realOpened||0; G.skillN=(G.skillN||0)+1; const k=G.skill; SFX.play('skill'); shake(5);
-  if(k==='bomb'){ G.packs.slice().forEach(p=>{ if(p.gold) return; burst(p.x,p.y,'#ff6b4a',10); dmgPack(p,p.boss?8*D():p.max*.35+3*D(),true,'skill'); });
+  if(!skillReady()){ G.fx.push({x:SKILL_BTN.x+120,y:SKILL_BTN.y+44,t:skillPts()>=skillCharge()?'Throw an orb first':`Open ${skillCharge()-skillPts()} more packs to charge`,c:'#c9b48a',life:.9,sz:13}); return; }
+  G.skillBase=G.realOpened||0; G.skillShot=G.shots||0; G.skillN=(G.skillN||0)+1; const k=G.skill; SFX.play('skill'); shake(5);
+  if(k==='bomb'){ G.packs.slice().forEach(p=>{ if(p.gold) return; burst(p.x,p.y,'#ff6b4a',10); dmgPack(p,p.boss?8*D():p.max*.35+3*D(),true,'skill'); }); G.skillBase=G.realOpened||0; // 引爆自己开的包不算充能
     G.parts.push({ring:true,x:W/2,y:H/2,r:10,max:W*.75,life:.5,dur:.5,c:'#ff6b4a',lw:5}); }
   else if(k==='stop') G.zeroG=4;
   else for(let i=0;i<8;i++) spawnBall(40+i*(W-80)/7,24,rnd(-60,60),rnd(80,180),{mini:true,mx:2});
@@ -2558,7 +2559,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-13.6';
+const GAME_V='2026-11-13.7';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -3580,7 +3581,7 @@ function manualHTML(){
     '<b> The aim line</b> runs until the first thing the orb would hit. Hitting a pack first is a <b> Direct hit</b> (no pegs on the way; banking off a wall is fine): damage ×2.5 and it counts 1 extra pack.',
     '<b>🎯 Bullseye packs</b> (gold frame): only a direct hit opens them; other damage does nothing. Opening one counts 3 extra packs and pays coins ×3. Normal rounds start with 1, elite rounds with 2, and a new one appears 10 packs after you open one.',
     '<b> Board modifiers</b>: 1 per normal round and 2 per elite round, such as Gale, Low gravity, Spring walls, Drifting pegs, Black hole and Brittle pegs. They’re shown when the round starts and listed in the bottom-left corner.',
-    '<b> Active skill</b> (the round button at the top left, or E on a keyboard): charges every 12 packs you open and recharges after use, so you can fire it several times a round. Vault Expedition / Iron Guard get 💣 Detonate, Gold Caravan / The Gambler get 🌧️ Gold rain, Sigil Scholar / School Specialist get 🪶 Zero-G.',
+    '<b> Active skill</b> (the round button at the top-left of the board, or E on a computer): charges once every 12 packs and recharges after use (packs opened by Detonate itself do not count). You must throw at least one orb between uses; you can use it several times per round. Vault Expedition / Iron Guard get 💣 Detonate, Gold Caravan / The Gambler get 🌧️ Gold rain, Sigil Scholar / School Specialist get 🪶 Zero-G.',
     '<b> Mimic</b>: sometimes a pack with eyes runs across the board. Open it before it escapes for 4 extra packs and coins ×5. Reaching the round goal starts <b> Overtime</b>: +2 orbs and coins ×2 for 6 seconds.',
   ]))}
   ${sec('🎛️','Buttons',li([

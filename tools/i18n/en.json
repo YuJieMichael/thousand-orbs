@@ -1809,7 +1809,6 @@
 "，最多": ", up to",
 "（营地": " (camp →",
 "传承与宝库）：用金魂买的永久加成。除了伤害、金币、宝珠、闪卡率、开局金币，还有遗珍栏 +1、心 +1、开局带遗珍、开局多招募、技能充能更快、秘符上限 +1（每日远征不算这几条）。每次远征结束都会拿到金魂，有能买的东西时标签上会有": "Legacy & Vault): permanent bonuses bought with Gold Souls. Besides damage, coins, orbs, foil chance and starting coins, there’s +1 relic slot, +1 heart, starting relics, extra starting recruits, faster skill charge and +1 sigil cap (these don’t apply to the daily expedition). Every expedition pays Gold Souls, and the tab shows",
-"（台面左上角的圆形按钮，电脑按 E）：每开 12 包充好一次，用掉后重新攒，一轮能放好几次。金库远征队 / 铁卫是": " (the round button at the top left, or E on a keyboard): charges every 12 packs you open and recharges after use, so you can fire it several times a round. Vault Expedition / Iron Guard get",
 "分数和金魂": "Score and Gold Souls",
 "（营地里选）：打通当前最高一级解锁下一级。越往上越硬：危险 5 时目标 +65%、卡包血量 +80%、首领血量 +180%，每级还多一条规则；分数和金魂每级 +35%。传承买得差不多了，就该去打危险等级了。": " (chosen at camp): clear your highest level to unlock the next. It ramps up: at Danger 5, goals +65%, pack HP +80% and boss HP +180%, and each level adds a rule; score and Gold Souls +35% per level. Once your Legacy is mostly bought, Danger is where the challenge is.",
 "百步穿杨": "Sharpshooter",
@@ -2068,5 +2067,7 @@
 "：选一套构筑，一层层往下打，打通一层拿分，随时撤离保住分数；没达成目标倒下只剩一半。远征到达第 2 章后解锁。": ": pick a build and fight down layer by layer. Each cleared layer scores points; extract any time to keep them, but fall short of a goal and you keep only half. Unlocks when an expedition reaches Chapter 2.",
 "：选一套构筑连打 5 个首领，每个首领只有一轮机会，中间三选一强化，比打倒数和用时。打通一次远征后解锁。": ": pick a build and face 5 bosses in a row, one round each, choosing an upgrade between fights. Ranked by bosses beaten, then time. Unlocks after you clear an expedition.",
 "：卡牌图鉴、流派套装和成就墙，所有模式开到的卡都算。每集齐一个流派，金库里伤害和金币各 +10%。": ": the card collection, school sets and achievement wall. Cards from every mode count. Each completed school gives +10% damage and coins in The Vault.",
-"新手先从这里开始": "New here? Start with this one"
+"新手先从这里开始": "New here? Start with this one",
+"先发一颗宝珠再放": "Throw an orb first",
+"（台面左上角的圆形按钮，电脑按 E）：每开 12 包充好一次，用掉后重新攒（引爆自己开的包不算），两次之间至少要发一颗宝珠，一轮能放好几次。金库远征队 / 铁卫是": " (the round button at the top-left of the board, or E on a computer): charges once every 12 packs and recharges after use (packs opened by Detonate itself do not count). You must throw at least one orb between uses; you can use it several times per round. Vault Expedition / Iron Guard get"
 }
