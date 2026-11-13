@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:76b50427dd2d1e0c898a9c348d0c3a9fb2d01bf2 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:f6908e3e23cf8d54500cc9c9889fb0212da7f706 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2530,7 +2530,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-13.2';
+const GAME_V='2026-11-13.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2823,6 +2823,8 @@ function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigil
 // 6 个基础栏位，传承「遗珍架」最多再 +2；每日远征不计传承。
 const RELIC_MAX=6, RELIC_BLACK=.08; // 黑金秘藏 8% 掉遗珍
 const relicMax=(state=M)=>RELIC_MAX+(state.run?.daily?0:Math.min(2,state.legacy.relic||0));
+const RELIC_MELT={c:6,r:12,l:24}; // 栏满时换下来 / 不要的遗珍熔成金币 = 二星卡包价值 × 这个倍数
+const meltValue=r=>packValue(2)*RELIC_MELT[r.r];
 const RARE={c:{name:'Normal',c:'#c9b48a',w:{elite:60,boss:20,black:50}},r:{name:'Rare',c:'#7fb2ff',w:{elite:30,boss:50,black:40}},l:{name:'Legendary',c:'#ffb347',w:{elite:10,boss:30,black:10}}};
 const RELICS=[
   {id:'magnet',r:'c',ico:'🧲',name:'Lodestone Gauntlet',desc:'Orbs are pulled toward nearby packs'},
@@ -2871,18 +2873,19 @@ const relicTag=r=>`<b style="color:${RARE[r.r].c}" title="${r.desc}">${relicIco(
 function relicsHTML(){ if(!mapOn()) return ''; const rs=(M.relics||[]).map(relicOf).filter(Boolean);
   return `<span class="chip">🏺 Relics ${rs.length}/${relicMax()}${rs.length?': '+rs.map(relicTag).join(', '):''}</span>`; }
 // 栏位满了：结算页上选择换掉哪一件
-function relicSwapHTML(){ const id=(M.relicQ||[])[0]; if(!id) return ''; const n=relicOf(id);
+function relicSwapHTML(){ while(M.relicQ&&M.relicQ.length&&M.relics.length<relicMax()) M.relics.push(M.relicQ.shift()); const id=(M.relicQ||[])[0]; if(!id) return ''; const n=relicOf(id);
   const rc=(r,extra)=>`<div class="rcard" style="border-color:${RARE[r.r].c}66"><div class="rc-h"><b style="color:${RARE[r.r].c};display:flex;align-items:center;gap:8px">${relicIco(r,40)}${r.name}</b><span class="rc-r" style="color:${RARE[r.r].c}">${RARE[r.r].name}</span></div><div class="rc-d">${r.desc}</div>${extra||''}</div>`;
   return `<div class="chap" id="relicSwap" style="margin-top:12px;border-color:${RARE[n.r].c}">
     <div class="h3" style="margin:0 0 8px"><span>🏺 New relic</span><span class="sub"> Relic slots full ${M.relics.length}/${relicMax()}</span></div>
     ${rc(n)}
-    <div class="sub" style="margin:12px 0 6px"> Which one goes? Tap twice to confirm.</div>
-    <div class="rgrid">${M.relics.map((rid,i)=>rc(relicOf(rid),`<button class="ghost" data-rswap="${i}"> Replace this</button>`)).join('')}</div>
-    <div style="margin-top:8px;text-align:right"><button class="ghost" data-rswap="-1"> Skip “${n.name}”</button></div></div>`; }
+    <div class="sub" style="margin:12px 0 6px"> Which one goes? The replaced relic is melted into coins. Tap twice to confirm.</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${M.relics.map((rid,i)=>{ const r=relicOf(rid); return `<div class="row" style="cursor:default;border-color:${RARE[r.r].c}44;align-items:center">${relicIco(r,30)}<div class="info" style="flex:1;min-width:0"><div class="nm" style="color:${RARE[r.r].c}">${r.name} <span class="sub" style="font-size:11px">${RARE[r.r].name}</span></div><div class="sub" style="font-size:12px">${r.desc}</div></div><button class="ghost" data-rswap="${i}" style="flex:none;font-size:12px;padding:6px 10px;max-width:46%"> Replace this (melts into ${f(meltValue(r))} coins)</button></div>`; }).join('')}</div>
+    <div style="margin-top:8px;text-align:right"><button class="ghost" data-rswap="-1"> Skip “${n.name}” and melt it into ${f(meltValue(n))} Coins</button></div></div>`; }
 function bindRelicSwap(){ document.querySelectorAll('[data-rswap]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.rswap;
-    if(!b.dataset.c){ document.querySelectorAll('[data-rswap]').forEach(x=>{ delete x.dataset.c; x.classList.remove('armed'); x.textContent=+x.dataset.rswap<0?`Skip “${relicOf(M.relicQ[0]).name}”`:'Replace this'; });
-      b.dataset.c=1; b.classList.add('armed'); b.textContent=i<0?'Really skip?':`Confirm: swap in “${relicOf(M.relicQ[0]).name}”`; return; }
-    const id=M.relicQ.shift(); if(i>=0){ const old=relicOf(M.relics[i]); M.relics[i]=id; toast(`🏺 ${old.name} → ${relicOf(id).name}`); } save(); SFX.play('buy'); showBetween(); }); }
+    if(!b.dataset.c){ document.querySelectorAll('[data-rswap]').forEach(x=>{ delete x.dataset.c; x.classList.remove('armed'); x.textContent=+x.dataset.rswap<0?`Skip “${relicOf(M.relicQ[0]).name}” and melt it into ${f(meltValue(relicOf(M.relicQ[0])))} Coins`:`Replace this (melts into ${f(meltValue(relicOf(M.relics[+x.dataset.rswap])))} coins)`; });
+      b.dataset.c=1; b.classList.add('armed'); b.textContent=i<0?'Melt it?':`Confirm: swap in “${relicOf(M.relicQ[0]).name}”`; return; }
+    const id=M.relicQ.shift(); const gone=relicOf(i>=0?M.relics[i]:id), v=meltValue(gone); M.money+=v; if(M.run) M.run.melted=(M.run.melted||0)+1;
+    if(i>=0){ M.relics[i]=id; toast(`🏺 ${gone.name} → ${relicOf(id).name}, melted for ${f(v)} Coins`); } else toast(`🏺 “${gone.name}” melted into ${f(v)} Coins`); save(); SFX.play('buy'); showBetween(); }); }
 
 // ================= ✨ 局内三选一祝福 =================
 const BOONS=[
@@ -3227,7 +3230,7 @@ function manualHTML(){
     'When you’re out of orbs and all orbs have landed, the round goes to <b> Results</b>. Spend coins on upgrades there, then start the next round.',
     'Each round has a <b> pack goal</b> (bottom-left of the board), rising as you near the boss. Hit it for a streak bonus; miss it and lose 1 ❤️.',
     '<b>🔷 Sigil</b>: pick 1 of 3 when you set out on a map, after stop 3, and after winning an elite. The tier (Silver / Gold / Prismatic) is revealed first; you can pay to reroll once. Lasts the whole map, up to 4; cleared when you beat the boss and move on.',
-    '<b>🏺 Relics</b>: guaranteed from elites and bosses, and black-gold packs can drop them too. 6 slots (Relic Rack in Legacy at camp adds up to 2 more); when full you can swap one out. They last the whole expedition (kept into the next chapter).',
+    '<b>🏺 Relics</b>: guaranteed from elites and bosses, and black-gold packs can drop them too. 6 slots (Relic Rack in Legacy at camp adds up to 2 more). When full you can swap one out, and the replaced relic melts into coins. They last the whole expedition (kept into the next chapter).',
     'An orb that chains 20 hits triggers <b> Frenzy</b>: double damage for a short time.',
     '<b> The aim line</b> runs until the first thing the orb would hit. Hitting a pack first is a <b> Direct hit</b> (no pegs on the way; banking off a wall is fine): damage ×2.5 and it counts 1 extra pack.',
     '<b>🎯 Bullseye packs</b> (gold frame): only a direct hit opens them; other damage does nothing. Opening one counts 3 extra packs and pays coins ×3. Normal rounds start with 1, elite rounds with 2, and a new one appears 10 packs after you open one.',

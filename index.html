@@ -2529,7 +2529,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-13.2';
+const GAME_V='2026-11-13.3';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2822,6 +2822,8 @@ function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigil
 // 6 个基础栏位，传承「遗珍架」最多再 +2；每日远征不计传承。
 const RELIC_MAX=6, RELIC_BLACK=.08; // 黑金秘藏 8% 掉遗珍
 const relicMax=(state=M)=>RELIC_MAX+(state.run?.daily?0:Math.min(2,state.legacy.relic||0));
+const RELIC_MELT={c:6,r:12,l:24}; // 栏满时换下来 / 不要的遗珍熔成金币 = 二星卡包价值 × 这个倍数
+const meltValue=r=>packValue(2)*RELIC_MELT[r.r];
 const RARE={c:{name:'普通',c:'#c9b48a',w:{elite:60,boss:20,black:50}},r:{name:'稀有',c:'#7fb2ff',w:{elite:30,boss:50,black:40}},l:{name:'传说',c:'#ffb347',w:{elite:10,boss:30,black:10}}};
 const RELICS=[
   {id:'magnet',r:'c',ico:'🧲',name:'磁石护手',desc:'宝珠会被附近的卡包吸过去'},
@@ -2870,18 +2872,19 @@ const relicTag=r=>`<b style="color:${RARE[r.r].c}" title="${r.desc}">${relicIco(
 function relicsHTML(){ if(!mapOn()) return ''; const rs=(M.relics||[]).map(relicOf).filter(Boolean);
   return `<span class="chip">🏺 遗珍 ${rs.length}/${relicMax()}${rs.length?'：'+rs.map(relicTag).join('、'):''}</span>`; }
 // 栏位满了：结算页上选择换掉哪一件
-function relicSwapHTML(){ const id=(M.relicQ||[])[0]; if(!id) return ''; const n=relicOf(id);
+function relicSwapHTML(){ while(M.relicQ&&M.relicQ.length&&M.relics.length<relicMax()) M.relics.push(M.relicQ.shift()); const id=(M.relicQ||[])[0]; if(!id) return ''; const n=relicOf(id);
   const rc=(r,extra)=>`<div class="rcard" style="border-color:${RARE[r.r].c}66"><div class="rc-h"><b style="color:${RARE[r.r].c};display:flex;align-items:center;gap:8px">${relicIco(r,40)}${r.name}</b><span class="rc-r" style="color:${RARE[r.r].c}">${RARE[r.r].name}</span></div><div class="rc-d">${r.desc}</div>${extra||''}</div>`;
   return `<div class="chap" id="relicSwap" style="margin-top:12px;border-color:${RARE[n.r].c}">
     <div class="h3" style="margin:0 0 8px"><span>🏺 新遗珍</span><span class="sub">遗珍栏满了 ${M.relics.length}/${relicMax()}</span></div>
     ${rc(n)}
-    <div class="sub" style="margin:12px 0 6px">换掉哪一件？点两次确认。</div>
-    <div class="rgrid">${M.relics.map((rid,i)=>rc(relicOf(rid),`<button class="ghost" data-rswap="${i}">换掉这件</button>`)).join('')}</div>
-    <div style="margin-top:8px;text-align:right"><button class="ghost" data-rswap="-1">放弃「${n.name}」</button></div></div>`; }
+    <div class="sub" style="margin:12px 0 6px">换掉哪一件？换下来的会熔成金币。点两次确认。</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${M.relics.map((rid,i)=>{ const r=relicOf(rid); return `<div class="row" style="cursor:default;border-color:${RARE[r.r].c}44;align-items:center">${relicIco(r,30)}<div class="info" style="flex:1;min-width:0"><div class="nm" style="color:${RARE[r.r].c}">${r.name} <span class="sub" style="font-size:11px">${RARE[r.r].name}</span></div><div class="sub" style="font-size:12px">${r.desc}</div></div><button class="ghost" data-rswap="${i}" style="flex:none;font-size:12px;padding:6px 10px;max-width:46%">换掉这件（熔成 ${f(meltValue(r))} 金币）</button></div>`; }).join('')}</div>
+    <div style="margin-top:8px;text-align:right"><button class="ghost" data-rswap="-1">不要「${n.name}」，熔成 ${f(meltValue(n))} 金币</button></div></div>`; }
 function bindRelicSwap(){ document.querySelectorAll('[data-rswap]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.rswap;
-    if(!b.dataset.c){ document.querySelectorAll('[data-rswap]').forEach(x=>{ delete x.dataset.c; x.classList.remove('armed'); x.textContent=+x.dataset.rswap<0?`放弃「${relicOf(M.relicQ[0]).name}」`:'换掉这件'; });
-      b.dataset.c=1; b.classList.add('armed'); b.textContent=i<0?'确认放弃？':`确认：换成「${relicOf(M.relicQ[0]).name}」`; return; }
-    const id=M.relicQ.shift(); if(i>=0){ const old=relicOf(M.relics[i]); M.relics[i]=id; toast(`🏺 ${old.name} → ${relicOf(id).name}`); } save(); SFX.play('buy'); showBetween(); }); }
+    if(!b.dataset.c){ document.querySelectorAll('[data-rswap]').forEach(x=>{ delete x.dataset.c; x.classList.remove('armed'); x.textContent=+x.dataset.rswap<0?`不要「${relicOf(M.relicQ[0]).name}」，熔成 ${f(meltValue(relicOf(M.relicQ[0])))} 金币`:`换掉这件（熔成 ${f(meltValue(relicOf(M.relics[+x.dataset.rswap])))} 金币）`; });
+      b.dataset.c=1; b.classList.add('armed'); b.textContent=i<0?'确认熔掉？':`确认：换成「${relicOf(M.relicQ[0]).name}」`; return; }
+    const id=M.relicQ.shift(); const gone=relicOf(i>=0?M.relics[i]:id), v=meltValue(gone); M.money+=v; if(M.run) M.run.melted=(M.run.melted||0)+1;
+    if(i>=0){ M.relics[i]=id; toast(`🏺 ${gone.name} → ${relicOf(id).name}，熔得 ${f(v)} 金币`); } else toast(`🏺 「${gone.name}」熔成了 ${f(v)} 金币`); save(); SFX.play('buy'); showBetween(); }); }
 
 // ================= ✨ 局内三选一祝福 =================
 const BOONS=[
@@ -3226,7 +3229,7 @@ function manualHTML(){
     '宝珠全部用完、台面上的宝珠都落下后，这一轮<b>结算</b>。在结算页花金币升级，再开下一轮。',
     '每轮有<b>开包目标</b>（台面左下角），越往首领走目标越高。达成了拿连胜奖励；没达成掉 1 颗 ❤️。',
     '<b>🔷 秘符</b>：每张地图出发时、走到第 3 站后、打赢精英后各三选一。先揭晓品级（白银 / 黄金 / 棱彩），可以花钱重抽一次。整张地图有效，最多 4 个；打过首领进下一章时清空。',
-    '<b>🏺 遗珍</b>：打赢精英、打败首领必掉，开出黑金秘藏也有机会掉。6 个栏位（营地「传承」里的遗珍架最多再 +2），满了可以换掉旧的。整次远征有效（进下一章也保留）。',
+    '<b>🏺 遗珍</b>：打赢精英、打败首领必掉，开出黑金秘藏也有机会掉。6 个栏位（营地「传承」里的遗珍架最多再 +2），满了可以换掉旧的，换下来的熔成金币。整次远征有效（进下一章也保留）。',
     '一颗宝珠连锁 20 下会进入<b>狂热</b>：短时间内伤害翻倍。',
     '<b>瞄准线</b>会一直画到第一次撞到东西为止。第一下就撞上卡包叫<b>直击</b>（中途不碰铆钉，先撞墙可以）：伤害 ×2.5，还多算 1 包。',
     '<b>🎯 金标卡包</b>（金框）：只有直击才打得开，其他伤害都没用；打开多算 3 包、金币 ×3。普通轮开局有 1 个、精英轮 2 个，打开后再开 10 包会补一个。',

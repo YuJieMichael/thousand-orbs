@@ -1841,5 +1841,17 @@
 "包充好一次，用掉再攒，一轮能放好几次。": " packs and recharges after use, so you can fire it several times a round.",
 "技能看远征队，不同队伍技能不同。": "Your skill depends on your squad.",
 "我的昵称": "My nickname",
-"王冠": "Crowns"
+"王冠": "Crowns",
+"开局遗珍栏": "Starting relic slots:",
+"换掉哪一件？换下来的会熔成金币。点两次确认。": "Which one goes? The replaced relic is melted into coins. Tap twice to confirm.",
+"每打败一个章节首领，遗珍栏 +1（本次远征最多 +2）。": "Each chapter boss you beat adds 1 relic slot (up to +2 this expedition).",
+"换掉这件（熔成": "Replace this (melts into",
+"金币）": "coins)",
+"不要「": "Skip “",
+"」，熔成": "” and melt it into",
+"确认熔掉？": "Melt it?",
+"，熔得": ", melted for",
+"」熔成了": "” melted into",
+"：打赢精英、打败首领必掉，开出黑金秘藏也有机会掉。开局 5 个栏位，每打败一个章节首领 +1（最多 +2），营地「传承」里的遗珍架再 +2；满了可以换掉旧的，换下来的熔成金币。整次远征有效（进下一章也保留）。": ": guaranteed from elites and bosses, and black-gold packs can drop them too. You start with 5 slots, each chapter boss you beat adds 1 (up to +2), and Relic Rack in Legacy at camp adds 2 more. When full you can swap one out, and the replaced relic melts into coins. They last the whole expedition (kept into the next chapter).",
+"：打赢精英、打败首领必掉，开出黑金秘藏也有机会掉。6 个栏位（营地「传承」里的遗珍架最多再 +2），满了可以换掉旧的，换下来的熔成金币。整次远征有效（进下一章也保留）。": ": guaranteed from elites and bosses, and black-gold packs can drop them too. 6 slots (Relic Rack in Legacy at camp adds up to 2 more). When full you can swap one out, and the replaced relic melts into coins. They last the whole expedition (kept into the next chapter)."
 }
