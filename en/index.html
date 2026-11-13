@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:12e3a13562b5867514936e652e921a569746acd0 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:70d66f5f679f8baf8e7c1647a349561e1e5a554e -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2554,7 +2554,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-13.4';
+const GAME_V='2026-11-13.5';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2737,7 +2737,7 @@ const BUILD_LV=5, BUILD_DMG=8, BUILD_KEEP={slot:3,ammo:3,packs:2}; // 宝珠数 
 function startPreset(mode,bid){ switchMode(mode); const b=BUILDS.find(x=>x.id===bid)||BUILDS[0];
   b.cards.forEach(id=>{ if(byId[id]) M.owned[id]=copiesFor(BUILD_LV); }); M.deck=b.cards.filter(id=>byId[id]); M.up.dmg=BUILD_DMG; M.keep=Object.assign({},BUILD_KEEP);
   UNL.forEach(u=>{ M.unl[u.id]=1; }); M.guide.story=1; M.money=0; recalcTree(); syncGoal(); save(); }
-const buildPick=(id,act)=>`<div class="hgrid" style="margin-top:10px">${BUILDS.map(b=>`<button class="hcard" data-${act}="${b.id}"><span class="hc-i">${icHTML(b.ico)||b.ico}</span><span class="hc-t"><b>${b.name}</b><span class="sub">${b.desc}</span><span class="sub" style="font-size:11px">${b.cards.map(c=>byId[c]?byId[c].name:'').join(' · ')}</span></span></button>`).join('')}</div>`;
+const buildPick=(id,act)=>`<div class="hgrid" style="margin-top:10px">${BUILDS.map(b=>`<button class="hcard" data-${act}="${b.id}"><span class="hc-i">${artIco('build_'+b.id,icHTML(b.ico)||b.ico,40)}</span><span class="hc-t"><b>${b.name}</b><span class="sub">${b.desc}</span><span class="sub" style="font-size:11px">${b.cards.map(c=>byId[c]?byId[c].name:'').join(' · ')}</span></span></button>`).join('')}</div>`;
 // 通用的模式结算 / 说明页
 function modePage(title,body,foot){ running=false; $('boonPop').classList.remove('show');
   $('box').innerHTML=`<h2 class="serif goldtxt">${title}</h2>${body}<div class="foot">${foot||'<span></span>'}</div>`;
@@ -2893,26 +2893,26 @@ const PUZZLES=[
   {name:'Quiz',tip:'Use everything you’ve learned so far.',orbs:7,s:[3,2],pegs:()=>pgGrid(5,3,70,100,250,110,true),bump:[[270,470]],packs:[[120,330,1],[420,330,1],[270,580,1,'g'],[120,680,2],[420,680,2]]},
   // 第二章 · 机关：传送门、移动靶、黑洞、风
   {name:'Portal Hop',tip:'In through the blue portal, out through the purple one.',orbs:5,s:[3,2],pegs:()=>pgLine(30,380,510,380,12),portal:[[90,250],[450,620]],packs:[[380,660,1],[150,660,1]]},
-  {name:'Moving Target',tip:'The packs slide side to side. Lead your shot.',orbs:6,s:[3,2],pegs:()=>pgRow(4,120,100,280),packs:[[270,460,1,'m'],[270,620,1,'m']]},
+  {name:'Moving Target',tip:'The packs slide side to side. Lead your shot.',orbs:6,s:[4,2],pegs:()=>pgRow(4,120,100,280),packs:[[270,460,1,'m'],[270,620,1,'m']]},
   {name:'Bullseye Twins',tip:'Two bullseyes. You can’t afford to graze either one.',orbs:5,s:[3,2],pegs:()=>pgGrid(4,2,120,100,300,120,false),packs:[[170,600,1,'g'],[370,600,1,'g'],[270,700,1]]},
   {name:'Maze',tip:'The pegs are dense. Be patient.',orbs:9,s:[5,3],pegs:()=>pgGrid(6,4,86,73,240,85,true),packs:[[120,620,1],[270,620,2],[420,620,1],[270,700,1]]},
-  {name:'High Wall',tip:'A wall with only two gaps.',orbs:6,s:[3,2],pegs:()=>[...pgLine(30,420,190,420,6),...pgLine(250,420,290,420,2),...pgLine(350,420,510,420,6)],packs:[[120,600,2],[270,600,2],[420,600,2]]},
+  {name:'High Wall',tip:'A wall with only two gaps.',orbs:6,s:[4,3],pegs:()=>[...pgLine(30,420,190,420,6),...pgLine(250,420,290,420,2),...pgLine(350,420,510,420,6)],packs:[[120,600,2],[270,600,2],[420,600,2]]},
   {name:'Pendulum',tip:'Moving targets plus bumpers.',orbs:5,s:[3,2],pegs:()=>pgRow(3,170,100,260),bump:[[120,450],[420,450]],packs:[[270,560,2,'m'],[120,690,1],[420,690,1]]},
   {name:'Event Horizon',tip:'The black hole sucks orbs in and flings them out.',orbs:6,s:[3,2],pegs:()=>pgRow(5,90,90,280),mut:{hole:{x:270,y:450}},packs:[[110,620,2],[430,620,2],[270,700,1]]},
   {name:'Moonwalk',tip:'Low gravity: orbs fly high and far.',orbs:5,s:[3,2],pegs:()=>pgGrid(4,3,120,100,300,120,true),mut:{grav:.55},packs:[[80,700,1],[460,700,1],[270,520,2]]},
   {name:'Rebound',tip:'Walls speed orbs up. Use them.',orbs:5,s:[3,2],pegs:()=>pgLine(110,360,430,360,9),mut:{wallK:1.1},packs:[[60,520,1,'g'],[480,520,1,'g'],[270,640,2]]},
-  {name:'Contraption Exam',tip:'Portals, moving targets and bullseyes, all at once.',orbs:7,s:[3,2],pegs:()=>pgGrid(5,2,70,100,300,140,true),portal:[[60,230],[480,600]],bump:[[270,500]],packs:[[270,380,1,'m'],[120,650,1,'g'],[420,700,2],[270,710,2]]},
+  {name:'Contraption Exam',tip:'Portals, moving targets and bullseyes, all at once.',orbs:7,s:[4,3],pegs:()=>pgGrid(5,2,70,100,300,140,true),portal:[[60,230],[480,600]],bump:[[270,500]],packs:[[270,380,1,'m'],[120,650,1,'g'],[420,700,2],[270,710,2]]},
   // 第三章 · 大师：宝珠更少，要一珠多用
   {name:'Two Birds',tip:'Two packs line up. Get one orb through both.',orbs:4,s:[2,1],pegs:()=>[],packs:[[200,380,1],[150,600,1],[400,600,1]]},
-  {name:'Iron Wall',tip:'A tough pack stands in the way.',orbs:6,s:[3,2],pegs:()=>pgRow(5,90,90,300),packs:[[270,480,4],[270,660,2],[110,660,1],[430,660,1]]},
+  {name:'Iron Wall',tip:'A tough pack stands in the way.',orbs:6,s:[4,2],pegs:()=>pgRow(5,90,90,300),packs:[[270,480,4],[270,660,2],[110,660,1],[430,660,1]]},
   {name:'Hidden Nook',tip:'The bullseyes hide behind pegs. Bank off the walls.',orbs:5,s:[3,2],pegs:()=>[...pgRing(140,560,70,10,[0]),...pgRing(400,560,70,10,[5])],packs:[[140,560,1,'g'],[400,560,1,'g'],[270,700,1]]},
   {name:'Meteor Shower',tip:'Six packs, five orbs.',orbs:5,s:[3,2],pegs:()=>pgGrid(5,2,70,100,260,100,true),packs:[[90,450,1],[270,450,1],[450,450,1],[180,650,1],[360,650,1],[270,740,1]]},
-  {name:'Wind Tunnel',tip:'The wind swings back and forth, and the aim line ignores it.',orbs:6,s:[3,2],pegs:()=>pgRow(4,120,100,300),mut:{wind:300},packs:[[120,600,1],[270,600,2],[420,600,1]]},
+  {name:'Wind Tunnel',tip:'The wind swings back and forth, and the aim line ignores it.',orbs:6,s:[4,2],pegs:()=>pgRow(4,120,100,300),mut:{wind:300},packs:[[120,600,1],[270,600,2],[420,600,1]]},
   {name:'Double Portal',tip:'A portal pair and two walls.',orbs:5,s:[3,2],pegs:()=>[...pgLine(30,340,510,340,12),...pgLine(30,560,510,560,12)],portal:[[90,240],[450,450]],packs:[[150,450,2],[380,700,1],[150,700,1]]},
   {name:'Brittle pegs',tip:'Pegs break after 4 hits, so the path opens up.',orbs:5,s:[3,2],pegs:()=>pgGrid(7,3,50,73,300,90,true),mut:{brittle:4},packs:[[150,620,2],[390,620,2],[270,700,1]]},
   {name:'Moat',tip:'A ring of pegs guards a tough pack.',orbs:5,s:[3,2],pegs:()=>[...pgRing(270,520,95,16,[12]),...pgRow(3,170,100,280)],packs:[[270,520,4],[90,700,1],[450,700,1]]},
-  {name:'Triple Threat',tip:'Bullseye, moving target and portals, with few orbs.',orbs:7,s:[3,1],pegs:()=>pgGrid(5,2,70,100,260,120,true),portal:[[60,220],[480,520]],packs:[[270,460,1,'m'],[120,680,1,'g'],[420,680,2],[270,740,1]]},
-  {name:'Thousand Orbs',tip:'Final level: seven packs, nine orbs.',orbs:9,s:[5,3],pegs:()=>pgGrid(6,3,86,73,250,95,true),bump:[[180,520],[360,520]],packs:[[90,430,1],[270,430,1,'g'],[450,430,1],[150,630,2],[390,630,2],[270,700,2,'m'],[60,690,1]]},
+  {name:'Triple Threat',tip:'Bullseye, moving target and portals, with few orbs.',orbs:7,s:[4,3],pegs:()=>pgGrid(5,2,70,100,260,120,true),portal:[[60,220],[480,520]],packs:[[270,460,1,'m'],[120,680,1,'g'],[420,680,2],[270,740,1]]},
+  {name:'Thousand Orbs',tip:'Final level: seven packs, nine orbs.',orbs:9,s:[4,2],pegs:()=>pgGrid(6,3,86,73,250,95,true),bump:[[180,520],[360,520]],packs:[[90,430,1],[270,430,1,'g'],[450,430,1],[150,630,2],[390,630,2],[270,700,2,'m'],[60,690,1]]},
 ];
 const puzStars=()=>Object.values(M.puz||{}).reduce((a,b)=>a+(b||0),0);
 const puzOpen=i=>i===0||((M.puz||{})[i-1]||0)>0||M.dev;
