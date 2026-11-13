@@ -39,3 +39,13 @@ CREATE TABLE IF NOT EXISTS rounds (
 );
 CREATE INDEX IF NOT EXISTS rounds_day ON rounds (day);
 CREATE INDEX IF NOT EXISTS rounds_pid ON rounds (pid);
+
+-- 幽灵对战：每个榜只留榜首那一次的进度曲线（JSON 数组：每秒累计开了几包）
+CREATE TABLE IF NOT EXISTS ghosts (
+  board TEXT    PRIMARY KEY,
+  pid   TEXT    NOT NULL,
+  name  TEXT    NOT NULL,
+  v     REAL    NOT NULL,
+  tr    TEXT    NOT NULL,
+  ts    INTEGER NOT NULL
+);

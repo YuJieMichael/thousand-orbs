@@ -2,7 +2,8 @@ import { CARD_NAMES, SCHOOL_NAMES } from './cards.js';
 import ADMIN_HTML from './admin.html';
 // 千珠落尽排行榜 Worker
 // GET  /top?board=progress&limit=50&pid=xxx  → 前 N 名 + 自己的名次
-// POST /submit {pid, name, scores:{progress:{value,tb}, coins:{value}, streak:{value}, chain:{value}, d20261105:{value}}}
+// POST /submit {pid, name, scores:{progress:{value,tb}, coins:{value}, streak:{value}, chain:{value}, d20261105:{value}, w2026W46:{value}, abyss, rush, puzzle}}
+// GET  /ghost?board=…  POST /ghost：每个榜榜首的进度曲线（幽灵对战用）
 //
 // 游戏完全跑在浏览器里，成绩没法真正防作弊；这里只做基本的格式、范围检查和限流。
 
@@ -11,11 +12,19 @@ const BOARDS = {
   coins:    { max: 1e300 },    // 单轮最高金币
   streak:   { max: 100000 },   // 最长连续达成目标
   chain:    { max: 100000 },   // 一颗宝珠落底前的最多命中
+  abyss:    { max: 1e7, int: true },  // 无尽深渊：带出来的分数（tb = 打通的层数，越大越好时不用 tb，这里只当附加信息）
+  rush:     { max: 1e6, int: true },  // 首领连战：首领数 × 100000 + (99999 - 用时×10)
+  puzzle:   { max: 1000, int: true }, // 谜题：总星数
 };
+const WEEK_MS = 7 * 864e5;
 // 每日挑战榜：d + UTC 日期（d20261105），值是开包数；只收前后两天以内的成绩
 const DAY_MS = 864e5;
+// 每周挑战榜：w + ISO 周（w2026W46），值是开包数；只收当前周和上一周的成绩
+const weekStart = (y, w) => { const j4 = new Date(Date.UTC(y, 0, 4)); const mon = Date.UTC(y, 0, 4) - ((j4.getUTCDay() + 6) % 7) * 864e5; return mon + (w - 1) * WEEK_MS; };
 const boardCfg = (b, forSubmit) => {
   if (BOARDS[b]) return BOARDS[b];
+  const wm = /^w(\d{4})W(\d{2})$/.exec(String(b || ''));
+  if (wm) { const t = weekStart(+wm[1], +wm[2]); if (!Number.isFinite(t) || +wm[2] < 1 || +wm[2] > 53 || (forSubmit && (Date.now() < t - 864e5 || Date.now() > t + 2 * WEEK_MS))) return null; return { max: 100000, int: true }; }
   const m = /^d(\d{4})(\d{2})(\d{2})$/.exec(String(b || ''));
   if (!m) return null;
   const t = Date.UTC(+m[1], +m[2] - 1, +m[3]);
@@ -111,6 +120,31 @@ async function submit(req, env) {
   return json(req, { ok: true, saved });
 }
 
+// ================= 幽灵：每个榜只留榜首那一次的进度曲线（每秒开了几包） =================
+// GET /ghost?board=w2026W46 → {name, v, tr}；POST /ghost {pid, name, board, v, tr}，只有分数不低于这个榜的榜首才收
+async function ghostGet(req, env, url) {
+  const board = url.searchParams.get('board');
+  if (!boardCfg(board)) return json(req, { error: 'unknown board' }, 400);
+  const r = await env.DB.prepare('SELECT name, v, tr FROM ghosts WHERE board = ?').bind(board).first();
+  if (!r) return json(req, { error: 'none' }, 404, { 'Cache-Control': 'public, max-age=30' });
+  return json(req, { name: r.name, v: r.v, tr: JSON.parse(r.tr) }, 200, { 'Cache-Control': 'public, max-age=30' });
+}
+async function ghostPut(req, env) {
+  if (Number(req.headers.get('Content-Length') || 0) > 8000) return json(req, { error: 'too large' }, 413);
+  let b; try { b = await req.json(); } catch { return json(req, { error: 'bad json' }, 400); }
+  const name = cleanName(b && b.name), cfg = b && boardCfg(b.board, true);
+  if (!b || !okPid(b.pid) || !name || !cfg || !okNum(b.v, cfg.max) || !Array.isArray(b.tr) || b.tr.length > 600 || !b.tr.every((x) => okNum(x, cfg.max))) return json(req, { error: 'bad request' }, 400);
+  const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
+  if (await limited(env, ip)) return json(req, { error: 'slow down' }, 429);
+  // 只认排行榜上已经有的成绩：幽灵的分数不能比这个人在榜上的成绩高
+  const sc = await env.DB.prepare('SELECT value FROM scores WHERE board = ? AND pid = ?').bind(b.board, b.pid).first();
+  if (!sc || b.v > sc.value) return json(req, { error: 'not on board' }, 409);
+  await env.DB.prepare(`INSERT INTO ghosts (board, pid, name, v, tr, ts) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(board) DO UPDATE SET pid = excluded.pid, name = excluded.name, v = excluded.v, tr = excluded.tr, ts = excluded.ts WHERE excluded.v > ghosts.v`)
+    .bind(b.board, b.pid, name, b.v, JSON.stringify(b.tr), Date.now()).run();
+  return json(req, { ok: true });
+}
+
 // ================= 匿名统计 =================
 // POST /event：每轮结算一条。GET /stats：汇总（要带 Authorization: Bearer <STATS_KEY>）。GET /admin：统计页面
 const KINDS = ['normal', 'elite', 'boss', 'chal'];
@@ -170,6 +204,8 @@ export default {
       if (req.method === 'GET' && url.pathname === '/top') return await top(req, env, url);
       if (req.method === 'POST' && url.pathname === '/submit') return await submit(req, env);
       if (req.method === 'POST' && url.pathname === '/event') return await event(req, env);
+      if (req.method === 'GET' && url.pathname === '/ghost') return await ghostGet(req, env, url);
+      if (req.method === 'POST' && url.pathname === '/ghost') return await ghostPut(req, env);
       if (req.method === 'GET' && url.pathname === '/stats') return await stats(req, env, url);
       if (req.method === 'GET' && url.pathname === '/admin') return new Response(ADMIN_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } });
       return json(req, { error: 'not found' }, 404);
