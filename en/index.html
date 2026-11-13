@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:667e93c0966c159750c99d2d84c161a90bd718b9 -->
+<!-- 由 tools/i18n/build-en.cjs 从 index.html 生成，不要直接改。source-sha1:76b50427dd2d1e0c898a9c348d0c3a9fb2d01bf2 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -734,8 +734,7 @@ function normalizeSave(data){
   if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
   if(Array.isArray(next.charms)&&!next.sigils.length) next.sigils=next.charms; delete next.charms; // 旧版「护符」→「秘符」（id 相同的直接沿用）
   if(typeof SIGILS!=='undefined'){ next.sigils=next.sigils.filter(id=>typeof id==='string'&&SIGILS.some(c=>c.id===id));
-    next.sigQ=next.sigQ.filter(x=>['start','mid','elite','gold'].includes(x)).slice(0,6); next.sigils=next.sigils.slice(0,SIGIL_MAX+1);
-    next.relics=next.relics.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,RELIC_MAX+2); next.relicQ=next.relicQ.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,6); }
+    next.sigQ=next.sigQ.filter(x=>['start','mid','elite','gold'].includes(x)).slice(0,6); next.sigils=next.sigils.slice(0,SIGIL_MAX+1); }
   if(next.inRound!==undefined&&next.inRound!==null&&!['normal','elite','delve','boss'].includes(next.inRound)) bad();
   if(next.elitePick!==undefined&&!(Number.isSafeInteger(next.elitePick)&&next.elitePick>=0&&next.elitePick<=5)) bad();
   for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
@@ -769,6 +768,10 @@ function normalizeSave(data){
   if(R!==null&&!(R&&typeof R==='object'&&!Array.isArray(R)&&['std','rich','iron','sage','gamb','spec'].includes(R.squad)&&nn(R.danger)&&R.danger<=Math.min(5,Math.max(next.dangerMax||0,R.daily?1:0))
     &&nn(R.hearts)&&R.hearts<=5&&['score','goals','bosses'].every(k=>R[k]===undefined||nn(R[k]))&&[undefined,null,'win','lose'].includes(R.over))) next.run=null;
   if(next.run&&(next.run.score||0)>20000) next.run=null;
+  if(typeof RELICS!=='undefined'){
+    const relics=[...new Set([...next.relics,...next.relicQ].filter(relicOf))], slots=relicMax(next);
+    next.relics=relics.slice(0,slots); next.relicQ=relics.slice(slots);
+  }
   return next;
 }
 function readSave(raw){ return normalizeSave(JSON.parse(raw)); }
@@ -2527,7 +2530,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-13.1';
+const GAME_V='2026-11-13.2';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2817,8 +2820,9 @@ function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigil
   return `<span class="chip">🔷 Sigil ${cs.length}/${sigilMax()}${cs.length?': '+cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join(', '):''}</span>`; }
 
 // ================= 🏺 遗珍：精英、首领、黑金秘藏掉落的整局宝物 =================
-// 4 个栏位（传承「遗珍架」最多再 +2），满了可以换掉旧的。整局有效：进下一章也保留，命用完或转生时清空。
-const RELIC_MAX=4, RELIC_BLACK=.08, relicMax=()=>RELIC_MAX+lg('relic'); // 黑金秘藏 8% 掉遗珍
+// 6 个基础栏位，传承「遗珍架」最多再 +2；每日远征不计传承。
+const RELIC_MAX=6, RELIC_BLACK=.08; // 黑金秘藏 8% 掉遗珍
+const relicMax=(state=M)=>RELIC_MAX+(state.run?.daily?0:Math.min(2,state.legacy.relic||0));
 const RARE={c:{name:'Normal',c:'#c9b48a',w:{elite:60,boss:20,black:50}},r:{name:'Rare',c:'#7fb2ff',w:{elite:30,boss:50,black:40}},l:{name:'Legendary',c:'#ffb347',w:{elite:10,boss:30,black:10}}};
 const RELICS=[
   {id:'magnet',r:'c',ico:'🧲',name:'Lodestone Gauntlet',desc:'Orbs are pulled toward nearby packs'},
@@ -3223,7 +3227,7 @@ function manualHTML(){
     'When you’re out of orbs and all orbs have landed, the round goes to <b> Results</b>. Spend coins on upgrades there, then start the next round.',
     'Each round has a <b> pack goal</b> (bottom-left of the board), rising as you near the boss. Hit it for a streak bonus; miss it and lose 1 ❤️.',
     '<b>🔷 Sigil</b>: pick 1 of 3 when you set out on a map, after stop 3, and after winning an elite. The tier (Silver / Gold / Prismatic) is revealed first; you can pay to reroll once. Lasts the whole map, up to 4; cleared when you beat the boss and move on.',
-    '<b>🏺 Relics</b>: guaranteed from elites and bosses, and black-gold packs can drop them too. 4 slots (Relic Rack in Legacy at camp adds up to 2 more); when full you can swap one out. They last the whole expedition (kept into the next chapter).',
+    '<b>🏺 Relics</b>: guaranteed from elites and bosses, and black-gold packs can drop them too. 6 slots (Relic Rack in Legacy at camp adds up to 2 more); when full you can swap one out. They last the whole expedition (kept into the next chapter).',
     'An orb that chains 20 hits triggers <b> Frenzy</b>: double damage for a short time.',
     '<b> The aim line</b> runs until the first thing the orb would hit. Hitting a pack first is a <b> Direct hit</b> (no pegs on the way; banking off a wall is fine): damage ×2.5 and it counts 1 extra pack.',
     '<b>🎯 Bullseye packs</b> (gold frame): only a direct hit opens them; other damage does nothing. Opening one counts 3 extra packs and pays coins ×3. Normal rounds start with 1, elite rounds with 2, and a new one appears 10 packs after you open one.',

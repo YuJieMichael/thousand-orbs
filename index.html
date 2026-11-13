@@ -733,8 +733,7 @@ function normalizeSave(data){
   if(next.speed!==undefined&&![1,2,3].includes(next.speed)) bad();
   if(Array.isArray(next.charms)&&!next.sigils.length) next.sigils=next.charms; delete next.charms; // 旧版「护符」→「秘符」（id 相同的直接沿用）
   if(typeof SIGILS!=='undefined'){ next.sigils=next.sigils.filter(id=>typeof id==='string'&&SIGILS.some(c=>c.id===id));
-    next.sigQ=next.sigQ.filter(x=>['start','mid','elite','gold'].includes(x)).slice(0,6); next.sigils=next.sigils.slice(0,SIGIL_MAX+1);
-    next.relics=next.relics.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,RELIC_MAX+2); next.relicQ=next.relicQ.filter(id=>typeof id==='string'&&RELICS.some(r=>r.id===id)).slice(0,6); }
+    next.sigQ=next.sigQ.filter(x=>['start','mid','elite','gold'].includes(x)).slice(0,6); next.sigils=next.sigils.slice(0,SIGIL_MAX+1); }
   if(next.inRound!==undefined&&next.inRound!==null&&!['normal','elite','delve','boss'].includes(next.inRound)) bad();
   if(next.elitePick!==undefined&&!(Number.isSafeInteger(next.elitePick)&&next.elitePick>=0&&next.elitePick<=5)) bad();
   for(const k of ['a2hsOff','lbAskOff']) if(Object.hasOwn(next,k)&&![0,1,false,true].includes(next[k])) bad();
@@ -768,6 +767,10 @@ function normalizeSave(data){
   if(R!==null&&!(R&&typeof R==='object'&&!Array.isArray(R)&&['std','rich','iron','sage','gamb','spec'].includes(R.squad)&&nn(R.danger)&&R.danger<=Math.min(5,Math.max(next.dangerMax||0,R.daily?1:0))
     &&nn(R.hearts)&&R.hearts<=5&&['score','goals','bosses'].every(k=>R[k]===undefined||nn(R[k]))&&[undefined,null,'win','lose'].includes(R.over))) next.run=null;
   if(next.run&&(next.run.score||0)>20000) next.run=null;
+  if(typeof RELICS!=='undefined'){
+    const relics=[...new Set([...next.relics,...next.relicQ].filter(relicOf))], slots=relicMax(next);
+    next.relics=relics.slice(0,slots); next.relicQ=relics.slice(slots);
+  }
   return next;
 }
 function readSave(raw){ return normalizeSave(JSON.parse(raw)); }
@@ -2526,7 +2529,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-13.1';
+const GAME_V='2026-11-13.2';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
@@ -2816,8 +2819,9 @@ function sigilsHTML(){ if(!mapOn()) return ''; const cs=(M.sigils||[]).map(sigil
   return `<span class="chip">🔷 秘符 ${cs.length}/${sigilMax()}${cs.length?'：'+cs.map(c=>`<b style="color:${TIER[c.t].c}" title="${sigilDesc(c)}">${sigilName(c)}</b>`).join('、'):''}</span>`; }
 
 // ================= 🏺 遗珍：精英、首领、黑金秘藏掉落的整局宝物 =================
-// 4 个栏位（传承「遗珍架」最多再 +2），满了可以换掉旧的。整局有效：进下一章也保留，命用完或转生时清空。
-const RELIC_MAX=4, RELIC_BLACK=.08, relicMax=()=>RELIC_MAX+lg('relic'); // 黑金秘藏 8% 掉遗珍
+// 6 个基础栏位，传承「遗珍架」最多再 +2；每日远征不计传承。
+const RELIC_MAX=6, RELIC_BLACK=.08; // 黑金秘藏 8% 掉遗珍
+const relicMax=(state=M)=>RELIC_MAX+(state.run?.daily?0:Math.min(2,state.legacy.relic||0));
 const RARE={c:{name:'普通',c:'#c9b48a',w:{elite:60,boss:20,black:50}},r:{name:'稀有',c:'#7fb2ff',w:{elite:30,boss:50,black:40}},l:{name:'传说',c:'#ffb347',w:{elite:10,boss:30,black:10}}};
 const RELICS=[
   {id:'magnet',r:'c',ico:'🧲',name:'磁石护手',desc:'宝珠会被附近的卡包吸过去'},
@@ -3222,7 +3226,7 @@ function manualHTML(){
     '宝珠全部用完、台面上的宝珠都落下后，这一轮<b>结算</b>。在结算页花金币升级，再开下一轮。',
     '每轮有<b>开包目标</b>（台面左下角），越往首领走目标越高。达成了拿连胜奖励；没达成掉 1 颗 ❤️。',
     '<b>🔷 秘符</b>：每张地图出发时、走到第 3 站后、打赢精英后各三选一。先揭晓品级（白银 / 黄金 / 棱彩），可以花钱重抽一次。整张地图有效，最多 4 个；打过首领进下一章时清空。',
-    '<b>🏺 遗珍</b>：打赢精英、打败首领必掉，开出黑金秘藏也有机会掉。4 个栏位（营地「传承」里的遗珍架最多再 +2），满了可以换掉旧的。整次远征有效（进下一章也保留）。',
+    '<b>🏺 遗珍</b>：打赢精英、打败首领必掉，开出黑金秘藏也有机会掉。6 个栏位（营地「传承」里的遗珍架最多再 +2），满了可以换掉旧的。整次远征有效（进下一章也保留）。',
     '一颗宝珠连锁 20 下会进入<b>狂热</b>：短时间内伤害翻倍。',
     '<b>瞄准线</b>会一直画到第一次撞到东西为止。第一下就撞上卡包叫<b>直击</b>（中途不碰铆钉，先撞墙可以）：伤害 ×2.5，还多算 1 包。',
     '<b>🎯 金标卡包</b>（金框）：只有直击才打得开，其他伤害都没用；打开多算 3 包、金币 ×3。普通轮开局有 1 个、精英轮 2 个，打开后再开 10 包会补一个。',

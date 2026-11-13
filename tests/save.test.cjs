@@ -148,3 +148,25 @@ test('explicit reset replaces both slots with a valid fresh state', () => {
   assert.equal(f.state().money, 0); assert.equal(JSON.parse(f.values.get(key)).money, 0);
   assert.equal(JSON.parse(f.values.get(backup)).money, 0);
 });
+
+test('existing expeditions fill new relic slots from the pending queue in order', () => {
+  const f = fixture();
+  f.run(html.slice(html.indexOf('const RELIC_MAX='), html.indexOf('const hasRelic=')));
+  const active = ['magnet', 'dawn', 'chest', 'wall'];
+  const queued = ['hammer', 'glass', 'compass', 'feather', 'gemini'];
+  const run = {squad: 'std', danger: 0, hearts: 3};
+
+  f.importCode(f.codeFor({run, relics: active, relicQ: queued}));
+  assert.deepEqual(f.state().relics, [...active, ...queued.slice(0, 2)]);
+  assert.deepEqual(f.state().relicQ, queued.slice(2));
+  assert.equal(f.run('relicMax()'), 6);
+
+  f.importCode(f.codeFor({run, relics: active, relicQ: queued, legacy: {relic: 2}}));
+  assert.deepEqual(f.state().relics, [...active, ...queued.slice(0, 4)]);
+  assert.deepEqual(f.state().relicQ, queued.slice(4));
+  assert.equal(f.run('relicMax()'), 8);
+
+  f.importCode(f.codeFor({run: {...run, daily: '20261113'}, relics: active, relicQ: queued, legacy: {relic: 2}}));
+  assert.equal(f.run('relicMax()'), 6);
+  assert.deepEqual(f.state().relicQ, queued.slice(2));
+});
