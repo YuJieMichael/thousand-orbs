@@ -560,7 +560,7 @@ const IMG={}; const loadImg=(k,src)=>{ const im=new Image(); im.src=src; IMG[k]=
 // 远征新美术（art/ 文件夹里的 webp，按需加载；英文版在 /en/ 下，要往上一层找）
 const ART_DIR=(/\/en\/(index\.html)?$/.test(location.pathname)?'../':'')+'art/', artUrl=n=>ART_DIR+n+'.webp';
 // 补充插画（docs/art-prompts-2.md：秘符、地图节点、技能、台面词条、传承）。画好放进 art/ 后把文件名加进 ART_NEW；没加的继续用小图标
-const ART_NEW=new Set(['sigil_pouch','sigil_thread','sigil_spring','sigil_patron','sigil_heat','sigil_ward','sigil_wide','sigil_sharp','sigil_eye','sigil_split','sigil_tally','sigil_echo','sigil_chain','sigil_rebirth','sigil_storm','sigil_midas','sigil_overload','sigil_sunder','node_normal','node_elite','node_camp','node_shop','node_event','node_delve','node_gate','node_boss','skill_bomb','skill_rain','skill_stop','mod_wind','mod_moon','mod_spring','mod_drift','mod_hole','mod_brittle','mod_pegboom','mod_goldrush','mod_fast','mod_thick','legacy_pow','legacy_rich','legacy_orb','legacy_shine','legacy_start','legacy_relic','legacy_heart','legacy_pack','legacy_recruit','legacy_skill','legacy_sigil']);
+const ART_NEW=new Set(['sigil_pouch','sigil_thread','sigil_spring','sigil_patron','sigil_heat','sigil_ward','sigil_wide','sigil_sharp','sigil_eye','sigil_split','sigil_tally','sigil_echo','sigil_chain','sigil_rebirth','sigil_storm','sigil_midas','sigil_overload','sigil_sunder','node_normal','node_elite','node_camp','node_shop','node_event','node_delve','node_gate','node_boss','skill_bomb','skill_rain','skill_stop','mod_wind','mod_moon','mod_spring','mod_drift','mod_hole','mod_brittle','mod_pegboom','mod_goldrush','mod_fast','mod_thick','legacy_pow','legacy_rich','legacy_orb','legacy_shine','legacy_start','legacy_relic','legacy_heart','legacy_pack','legacy_recruit','legacy_skill','legacy_sigil','boon_acid','boon_ammo','boon_bask','boon_big','boon_chain','boon_crit','boon_echo','boon_fire','boon_gamble','boon_gold','boon_luck','boon_mag','boon_nuke','boon_rage','boon_refill','boon_split','boon_tally','curse_fog','curse_short','curse_tough','danger_1','danger_2','danger_3','danger_4','danger_5','orb_fire','orb_ghost','orb_heavy','orb_lucky','orb_split','orb_thunder']);
 ART_NEW.forEach(n=>{ if(/^(skill|mod|curse|boon)_/.test(n)) loadImg(n,artUrl(n)); });
 const artIco=(n,ico,px,cls)=>ART_NEW.has(n)?`<img class="ai ${cls||''}" src="${artUrl(n)}" alt="" style="width:${px}px;height:${px}px;object-fit:contain;vertical-align:middle">`:ico;
 const artImg=(n,cls,alt)=>`<img class="${cls||'art'}" src="${artUrl(n)}" alt="${alt||''}" loading="lazy" decoding="async" onerror="this.style.display='none'">`;
@@ -2493,7 +2493,7 @@ function endRound(){ M.inRound=null; if(G.isBoss&&G.boss) G.lastBossHp=G.boss.hp
 // ================= 🏆 排行榜（Cloudflare Worker + D1，源码在 leaderboard/） =================
 const LB_URL='https://thousand-orbs-board.achat-vente-garderie.workers.dev';
 // 匿名统计：每轮结算发一条（随机玩家 id，不带昵称），作者在 LB_URL/admin 看汇总；「设置」里能关
-const GAME_V='2026-11-12.6';
+const GAME_V='2026-11-13.0';
 // 开发者模式：网址加 ?dev=1 打开（?dev=0 关闭），或在设置里勾选；开着时不上传统计、不上排行榜
 try{ const q=new URLSearchParams(location.search).get('dev'); if(q==='1'||q==='0') addEventListener('load',()=>{ M.dev=q==='1'; save(); }); }catch(e){}
 function statSend(){ if(M.stats===false||M.dev||!M.pid||!G||!G.packs) return;
